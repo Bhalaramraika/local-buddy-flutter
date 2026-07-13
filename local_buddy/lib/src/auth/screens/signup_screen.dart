@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:local_buddy/src/auth/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authService = Provider.of<AuthService>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: const Text('Signup'),
       ),
       body: Form(
         key: _formKey,
@@ -46,13 +46,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
-                  await authService.signInWithEmailAndPassword(
+                  await authService.createUserWithEmailAndPassword(
                     _emailController.text,
                     _passwordController.text,
                   );
                 }
               },
-              child: const Text('Login'),
+              child: const Text('Signup'),
             ),
           ],
         ),
