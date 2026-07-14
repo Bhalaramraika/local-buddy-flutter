@@ -14,11 +14,35 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -56,51 +80,54 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? const LoadingIndicator()
                 : Form(
                     key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Local Buddy',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Local Buddy',
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 40),
-                        CustomTextField(
-                          controller: _emailController,
-                          labelText: 'Email',
-                          validator: (value) =>
-                              value!.isEmpty ? 'Please enter your email' : null,
-                        ),
-                        const SizedBox(height: 20),
-                        CustomTextField(
-                          controller: _passwordController,
-                          labelText: 'Password',
-                          obscureText: true,
-                          validator: (value) => value!.isEmpty
-                              ? 'Please enter your password'
-                              : null,
-                        ),
-                        const SizedBox(height: 30),
-                        CustomButton(
-                          text: 'Login',
-                          onPressed: _login,
-                        ),
-                        const SizedBox(height: 10),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const SignupScreen(),
-                            ));
-                          },
-                          child: const Text(
-                            'Don't have an account? Sign up',
-                            style: TextStyle(color: Colors.white),
+                          const SizedBox(height: 40),
+                          CustomTextField(
+                            controller: _emailController,
+                            labelText: 'Email',
+                            validator: (value) =>
+                                value!.isEmpty ? 'Please enter your email' : null,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 20),
+                          CustomTextField(
+                            controller: _passwordController,
+                            labelText: 'Password',
+                            obscureText: true,
+                            validator: (value) => value!.isEmpty
+                                ? 'Please enter your password'
+                                : null,
+                          ),
+                          const SizedBox(height: 30),
+                          CustomButton(
+                            text: 'Login',
+                            onPressed: _login,
+                          ),
+                          const SizedBox(height: 10),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => const SignupScreen(),
+                              ));
+                            },
+                            child: const Text(
+                              'Don\'t have an account? Sign up',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
           ),
