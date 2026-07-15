@@ -30,8 +30,6 @@ To build a sustainable platform for Tier-2/3 cities (where margins are thin at 1
 
 ### 2.2 Firebase (Auth & NoSQL Database) - The Core State
 **Role:** Handles User Identity, App Bootstrap, and Marketplace Feed.
-*   **Firebase Authentication:**
-    *   Handles phone OTPs (if using native Firebase Phone Auth) and Google Sign-in.
     *   Issues the primary JWT token. (This token is passed to Supabase via RLS policies to authenticate Postgres requests).
 *   **Firestore Database (Low-Frequency Collections):**
     *   `users`: Stores Profile, Wallet Balance, Commission Due, KYC Status, and FCM Device Tokens.
