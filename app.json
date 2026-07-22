@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Local Buddy",
+    "slug": "local-buddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "localbuddy",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFC"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.localbuddy.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Local Buddy needs your location to show nearby tasks and enable live tracking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Local Buddy needs background location to track Buddy's live location during active tasks.",
+        "NSCameraUsageDescription": "Local Buddy needs camera access for KYC verification (live selfie).",
+        "NSPhotoLibraryUsageDescription": "Local Buddy needs photo library access to upload ID documents for KYC.",
+        "NSMicrophoneUsageDescription": "Local Buddy needs microphone access for voice messages in chat."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F8FAFC"
+      },
+      "package": "com.localbuddy.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "VIBRATE",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "local-buddy"
+      }
+    },
+    "owner": "localbuddy"
+  }
+}

@@ -1,0 +1,282 @@
+/**
+ * UI Store - Zustand
+ * Global UI state: modals, toasts, loading, navigation, theme, etc.
+ */
+
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { storage } from '@/services/storage';
+import { ModalState, ToastMessage, LoadingState } from '@/types';
+
+interface UIState {
+  // Modals
+  modals: Record<string, ModalState>;
+  
+  // Toasts
+  toasts: ToastMessage[];
+  
+  // Global loading
+  globalLoading: LoadingState;
+  
+  // Network
+  isOnline: boolean;
+  isSlowConnection: boolean;
+  
+  // App state
+  isAppActive: boolean;
+  isFirstLaunch: boolean;
+  hasSeenOnboarding: boolean;
+  
+  // Theme/Appearance
+  theme: 'light' | 'dark' | 'system';
+  language: 'en' | 'hi';
+  fontSize: 'small' | 'medium' | 'large';
+  
+  // Navigation
+  previousRoute: string | null;
+  currentRoute: string | null;
+  
+  // Keyboard
+  isKeyboardVisible: boolean;
+  keyboardHeight: number;
+  
+  // Safe area
+  safeAreaInsets: {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  };
+  
+  // Actions
+  // Modals
+  openModal: (id: string, type: string, data?: any) => void;
+  closeModal: (id: string) => void;
+  closeAllModals: () => void;
+  updateModalData: (id: string, data: any) => void;
+  isModalOpen: (id: string) => boolean;
+  
+  // Toasts
+  showToast: (toast: Omit<ToastMessage, 'id'>) => string;
+  hideToast: (id: string) => void;
+  clearToasts: () => void;
+  
+  // Global loading
+  setGlobalLoading: (loading: LoadingState) => void;
+  
+  // Network
+  setOnlineStatus: (isOnline: boolean) => void;
+  setSlowConnection: (isSlow: boolean) => void;
+  
+  // App state
+  setAppActive: (isActive: boolean) => void;
+  setFirstLaunch: (isFirst: boolean) => void;
+  setHasSeenOnboarding: (hasSeen: boolean) => void;
+  
+  // Theme/Appearance
+  setTheme: (theme: UIState['theme']) => void;
+  setLanguage: (language: UIState['language']) => void;
+  setFontSize: (fontSize: UIState['fontSize']) => void;
+  
+  // Navigation
+  setPreviousRoute: (route: string | null) => void;
+  setCurrentRoute: (route: string | null) => void;
+  
+  // Keyboard
+  setKeyboardVisible: (visible: boolean, height?: number) => void;
+  
+  // Safe area
+  setSafeAreaInsets: (insets: UIState['safeAreaInsets']) => void;
+  
+  // Reset
+  clearAll: () => void;
+}
+
+const defaultSafeAreaInsets = {
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
+};
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      modals: {},
+      toasts: [],
+      globalLoading: { isLoading: false },
+      isOnline: true,
+      isSlowConnection: false,
+      isAppActive: true,
+      isFirstLaunch: true,
+      hasSeenOnboarding: false,
+      theme: 'system',
+      language: 'en',
+      fontSize: 'medium',
+      previousRoute: null,
+      currentRoute: null,
+      isKeyboardVisible: false,
+      keyboardHeight: 0,
+      safeAreaInsets: defaultSafeAreaInsets,
+      
+      // Modal actions
+      openModal: (id, type, data) => set((state) => ({
+        modals: {
+          ...state.modals,
+          [id]: { isVisible: true, type, data },
+        },
+      })),
+      
+      closeModal: (id) => set((state) => {
+        const { [id]: closed, ...rest } = state.modals;
+        return { modals: rest };
+      }),
+      
+      closeAllModals: () => set({ modals: {} }),
+      
+      updateModalData: (id, data) => set((state) => ({
+        modals: {
+          ...state.modals,
+          [id]: { ...state.modals[id], data },
+        },
+      })),
+      
+      isModalOpen: (id) => get().modals[id]?.isVisible || false,
+      
+      // Toast actions
+      showToast: (toast) => {
+        const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const newToast: ToastMessage = { ...toast, id };
+        set((state) => ({
+          toasts: [...state.toasts, newToast],
+        }));
+        // Auto-hide after duration
+        setTimeout(() => {
+          get().hideToast(id);
+        }, toast.duration || 4000);
+        return id;
+      },
+      
+      hideToast: (id) => set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== id),
+      })),
+      
+      clearToasts: () => set({ toasts: [] }),
+      
+      // Global loading
+      setGlobalLoading: (globalLoading) => set({ globalLoading }),
+      
+      // Network
+      setOnlineStatus: (isOnline) => set({ isOnline }),
+      
+      setSlowConnection: (isSlowConnection) => set({ isSlowConnection }),
+      
+      // App state
+      setAppActive: (isAppActive) => set({ isAppActive }),
+      
+      setFirstLaunch: (isFirstLaunch) => set({ isFirstLaunch }),
+      
+      setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
+      
+      // Theme/Appearance
+      setTheme: (theme) => set({ theme }),
+      
+      setLanguage: (language) => set({ language }),
+      
+      setFontSize: (fontSize) => set({ fontSize }),
+      
+      // Navigation
+      setPreviousRoute: (previousRoute) => set({ previousRoute }),
+      
+      setCurrentRoute: (currentRoute) => set((state) => ({
+        previousRoute: state.currentRoute,
+        currentRoute,
+      })),
+      
+      // Keyboard
+      setKeyboardVisible: (isKeyboardVisible, keyboardHeight = 0) => set({ 
+        isKeyboardVisible, 
+        keyboardHeight 
+      }),
+      
+      // Safe area
+      setSafeAreaInsets: (safeAreaInsets) => set({ safeAreaInsets }),
+      
+      // Reset
+      clearAll: () => set({
+        modals: {},
+        toasts: [],
+        globalLoading: { isLoading: false },
+        isOnline: true,
+        isSlowConnection: false,
+        isAppActive: true,
+        isFirstLaunch: false,
+        hasSeenOnboarding: false,
+        theme: 'system',
+        language: 'en',
+        fontSize: 'medium',
+        previousRoute: null,
+        currentRoute: null,
+        isKeyboardVisible: false,
+        keyboardHeight: 0,
+        safeAreaInsets: defaultSafeAreaInsets,
+      }),
+    }),
+    {
+      name: 'ui-storage',
+      storage: createJSONStorage(() => storage),
+      partialize: (state) => ({
+        theme: state.theme,
+        language: state.language,
+        fontSize: state.fontSize,
+        hasSeenOnboarding: state.hasSeenOnboarding,
+        isFirstLaunch: state.isFirstLaunch,
+      }),
+    }
+  )
+);
+
+// Selectors
+export const selectModals = (state: UIState) => state.modals;
+export const selectToasts = (state: UIState) => state.toasts;
+export const selectGlobalLoading = (state: UIState) => state.globalLoading;
+export const selectIsOnline = (state: UIState) => state.isOnline;
+export const selectIsSlowConnection = (state: UIState) => state.isSlowConnection;
+export const selectIsAppActive = (state: UIState) => state.isAppActive;
+export const selectIsFirstLaunch = (state: UIState) => state.isFirstLaunch;
+export const selectHasSeenOnboarding = (state: UIState) => state.hasSeenOnboarding;
+export const selectTheme = (state: UIState) => state.theme;
+export const selectLanguage = (state: UIState) => state.language;
+export const selectFontSize = (state: UIState) => state.fontSize;
+export const selectPreviousRoute = (state: UIState) => state.previousRoute;
+export const selectCurrentRoute = (state: UIState) => state.currentRoute;
+export const selectIsKeyboardVisible = (state: UIState) => state.isKeyboardVisible;
+export const selectKeyboardHeight = (state: UIState) => state.keyboardHeight;
+export const selectSafeAreaInsets = (state: UIState) => state.safeAreaInsets;
+
+// Helper hooks
+export const useModal = (id: string) => {
+  const modal = useUIStore((state) => state.modals[id]);
+  const openModal = useUIStore((state) => state.openModal);
+  const closeModal = useUIStore((state) => state.closeModal);
+  const updateModalData = useUIStore((state) => state.updateModalData);
+  
+  return {
+    isOpen: modal?.isVisible || false,
+    type: modal?.type,
+    data: modal?.data,
+    open: (type: string, data?: any) => openModal(id, type, data),
+    close: () => closeModal(id),
+    updateData: (data: any) => updateModalData(id, data),
+  };
+};
+
+export const useToast = () => {
+  const toasts = useUIStore((state) => state.toasts);
+  const showToast = useUIStore((state) => state.showToast);
+  const hideToast = useUIStore((state) => state.hideToast);
+  const clearToasts = useUIStore((state) => state.clearToasts);
+  
+  return { toasts, showToast, hideToast, clearToasts };
+};
