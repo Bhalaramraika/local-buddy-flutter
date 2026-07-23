@@ -56,5 +56,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the application (API server by default, worker if WORKER=true)
+CMD ["sh", "-c", "if [ \"$WORKER\" = \"true\" ]; then node dist/worker.js; else node dist/index.js; fi"]

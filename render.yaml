@@ -88,8 +88,9 @@ services:
     region: singapore
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    startCommand: node dist/jobs/index.js
     envVars:
+      - key: WORKER
+        value: "true"
       - key: NODE_ENV
         value: production
       # Firebase Admin SDK
@@ -135,16 +136,6 @@ services:
         sync: false
       # FCM
       - key: FCM_SERVER_KEY
-        sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
 
 databases:
