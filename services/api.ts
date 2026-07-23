@@ -24,6 +24,12 @@ export const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
     try {
+      // Check if Firebase Auth is configured
+      if (!auth) {
+        console.warn('[API] Firebase Auth not configured - skipping auth token');
+        return config;
+      }
+      
       const user = auth.currentUser;
       if (user) {
         const token = await user.getIdToken(true); // Force refresh
@@ -63,6 +69,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
+        // Check if Firebase Auth is configured
+        if (!auth) {
+          console.warn('[API] Firebase Auth not configured - cannot refresh token');
+          return Promise.reject(error);
+        }
+        
         const user = auth.currentUser;
         if (user) {
           // Force token refresh

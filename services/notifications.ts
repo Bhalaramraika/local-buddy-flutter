@@ -7,7 +7,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform, PermissionsAndroid } from 'react-native';
-import { messaging, getToken, onMessage } from './firebase';
+import { getMessagingAsync, getToken, onMessage } from './firebase';
 import { preferencesStorage } from './storage';
 import { NOTIFICATION_CONFIG } from '@/constants/app';
 
@@ -159,7 +159,7 @@ export const initializeNotifications = async (): Promise<string | null> => {
     const token = await getFCMToken();
     
     // Set up foreground message handler
-    setupForegroundHandler();
+    await setupForegroundHandler();
     
     // Set up notification response handler
     setupNotificationResponseHandler();
@@ -216,6 +216,7 @@ export const requestNotificationPermissions = async (): Promise<Notifications.Pe
 // Get FCM token
 export const getFCMToken = async (): Promise<string | null> => {
   try {
+    const messaging = await getMessagingAsync();
     if (!messaging) {
       console.warn('[Notifications] Firebase messaging not initialized');
       return null;
@@ -252,7 +253,8 @@ const setNotificationCategories = async (): Promise<void> => {
 // Foreground message handler
 let foregroundHandler: (() => void) | null = null;
 
-const setupForegroundHandler = (): void => {
+const setupForegroundHandler = async (): Promise<void> => {
+  const messaging = await getMessagingAsync();
   if (messaging) {
     foregroundHandler = onMessage(messaging, async (remoteMessage) => {
       console.log('[Notifications] Foreground message:', remoteMessage);

@@ -21,35 +21,75 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase App
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+// Validate Firebase config - prevent crash on missing or placeholder config
+const isFirebaseConfigured = (): boolean => {
+  const requiredKeys = ['apiKey', 'projectId'] as const;
+  return requiredKeys.every(key => {
+    const value = firebaseConfig[key];
+    return value && 
+           typeof value === 'string' && 
+           value.length > 0 && 
+           !value.startsWith('your-') && 
+           !value.includes('placeholder');
+  });
+};
+
+// Initialize Firebase App only if configured
+let app: FirebaseApp | null = null;
+if (isFirebaseConfigured()) {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApps()[0];
+  }
 } else {
-  app = getApps()[0];
+  console.warn('[Firebase] Firebase not configured - missing or placeholder EXPO_PUBLIC_FIREBASE_API_KEY or EXPO_PUBLIC_FIREBASE_PROJECT_ID. Auth/Firestore/Storage will be unavailable. Please add your Firebase config to .env file.');
 }
 
 // Initialize Auth
-export const auth: Auth = getAuth(app);
+export const auth: Auth | null = app ? getAuth(app) : null;
 
 // Initialize Firestore
-export const db: Firestore = getFirestore(app);
+export const db: Firestore | null = app ? getFirestore(app) : null;
 
 // Initialize Storage
-export const storage: FirebaseStorage = getStorage(app);
+export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
 
 // Initialize Messaging (FCM) - only on supported platforms
 let messaging: Messaging | null = null;
-isSupported().then((supported) => {
-  if (supported) {
-    messaging = getMessaging(app);
-  }
-});
+let messagingInitialized = false;
+if (app) {
+  isSupported().then((supported) => {
+    if (supported) {
+      messaging = getMessaging(app);
+    }
+    messagingInitialized = true;
+  });
+}
 
 export const getMessagingInstance = (): Messaging | null => messaging;
 
+// Export a promise that resolves when messaging is initialized
+export const getMessagingAsync = async (): Promise<Messaging | null> => {
+  if (messagingInitialized) {
+    return messaging;
+  }
+  // Wait for initialization
+  await new Promise<void>((resolve) => {
+    const check = () => {
+      if (messagingInitialized) {
+        resolve();
+      } else {
+        setTimeout(check, 50);
+      }
+    };
+    check();
+  });
+  return messaging;
+};
+
 // Connect to emulators in development
-if (__DEV__) {
+if (__DEV__ && app) {
   // Uncomment and configure for local emulator testing
   // connectAuthEmulator(auth, 'http://localhost:9099');
   // connectFirestoreEmulator(db, 'localhost', 8080);

@@ -5,6 +5,7 @@
 import { auth } from './firebase';
 import { supabase } from './supabase';
 import { api } from './api';
+import { authService } from './auth';
 
 /**
  * Initialize Firebase client
@@ -13,11 +14,17 @@ import { api } from './api';
 export const initializeFirebase = async (): Promise<void> => {
   try {
     // Firebase is already initialized via the module import
-    // This function ensures auth state is ready
+    // Check if Firebase is configured
+    const { auth } = await import('./firebase');
+    if (!auth) {
+      console.warn('[Services] Firebase not configured - skipping Firebase initialization');
+      return;
+    }
     console.log('[Services] Firebase initialized');
   } catch (error) {
     console.error('[Services] Firebase initialization failed:', error);
-    throw error;
+    // Don't throw - allow app to continue without Firebase
+    console.warn('[Services] Continuing without Firebase...');
   }
 };
 
@@ -57,6 +64,7 @@ export const initializeServices = async (): Promise<void> => {
 export { auth } from './firebase';
 export { supabase } from './supabase';
 export { api } from './api';
+export { authService } from './auth';
 export { storageService } from './storage';
 export { locationService } from './location';
 export { notificationService } from './notifications';

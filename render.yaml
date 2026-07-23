@@ -1,0 +1,154 @@
+# Render Deployment Configuration for LocalBuddy Backend
+# Deploy: https://dashboard.render.com/blueprints
+
+services:
+  # Backend API Service
+  - type: web
+    name: localbuddy-api
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: HOST
+        value: "0.0.0.0"
+      # Firebase Admin SDK (Required for backend)
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      # JWT Configuration
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRY
+        value: "7d"
+      # PayU Payment Gateway
+      - key: PAYU_MERCHANT_KEY
+        sync: false
+      - key: PAYU_MERCHANT_SALT
+        sync: false
+      - key: PAYU_BASE_URL
+        value: "https://secure.payu.in"
+      # Fast2SMS for OTP
+      - key: FAST2SMS_API_KEY
+        sync: false
+      # Cloudinary for Image Upload
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Brevo (Sendinblue) for Email
+      - key: BREVO_API_KEY
+        sync: false
+      # Rate Limiting
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: OTP_RATE_LIMIT_MAX
+        value: "3"
+      # CORS & Security
+      - key: CORS_ORIGIN
+        sync: false
+      - key: WS_MAX_CONNECTIONS
+        value: "10000"
+      # App URLs
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      # Supabase (for database)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # FCM Server Key (for push notifications)
+      - key: FCM_SERVER_KEY
+        sync: false
+
+  # Background Worker for Jobs
+  - type: worker
+    name: localbuddy-worker
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    startCommand: node dist/jobs/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Firebase Admin SDK
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      # JWT
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRY
+        value: "7d"
+      # PayU
+      - key: PAYU_MERCHANT_KEY
+        sync: false
+      - key: PAYU_MERCHANT_SALT
+        sync: false
+      - key: PAYU_BASE_URL
+        value: "https://secure.payu.in"
+      # Fast2SMS
+      - key: FAST2SMS_API_KEY
+        sync: false
+      # Cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Brevo
+      - key: BREVO_API_KEY
+        sync: false
+      # Supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # FCM
+      - key: FCM_SERVER_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+databases:
+  # PostgreSQL Database (if using Supabase, this may not be needed)
+  # - name: localbuddy-db
+  #   plan: starter
+  #   region: singapore

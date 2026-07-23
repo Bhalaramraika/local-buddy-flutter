@@ -67,15 +67,16 @@ export default function CreateTaskScreen() {
 
   useEffect(() => {
     let mounted = true;
-    if (isAuthenticated && currentLocation && mounted) {
-      setFormData(prev => ({
-        ...prev,
-        location: currentLocation.address || '',
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-      }));
+    if (isAuthenticated && currentLocation) {
+      if (mounted) {
+        setFormData(prev => ({
+          ...prev,
+          location: currentLocation.address || '',
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+        }));
+      }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     requestLocationPermission();
     return () => { mounted = false; };
   }, [isAuthenticated, currentLocation, requestLocationPermission]);

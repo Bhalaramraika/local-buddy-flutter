@@ -228,7 +228,7 @@ export default function ContactSupportScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoTitle, { color: isDark ? '#fff' : '#000' }]}>Email Confirmation</Text>
-              <Text style={[styles.infoDesc, { color: isDark ? '#888' : '#666' }]}>You'll receive an email with your ticket number for tracking.</Text>
+              <Text style={[styles.infoDesc, { color: isDark ? '#888' : '#666' }]}>You&apos;ll receive an email with your ticket number for tracking.</Text>
             </View>
           </View>
           <View style={[styles.infoRow, { marginTop: 12 }]}>
