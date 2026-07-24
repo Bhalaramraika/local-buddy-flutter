@@ -1,24 +1,29 @@
-# Render Deployment Configuration for LocalBuddy Backend
-# Deploy: https://dashboard.render.com/blueprints
+# Render.com Blueprint Configuration for LocalBuddy Backend
+# Deploy: Connect GitHub repo → Render auto-detects this file
+# Free Tier: 750 hrs/mo, spins down after 15min inactivity
+# Region: singapore (closest to India) or oregon/frankfurt
 
 services:
-  # Backend API Service
+  # Backend API Service (Free Tier)
   - type: web
     name: localbuddy-api
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
+      # Required - Node Environment
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
       - key: HOST
         value: "0.0.0.0"
-      # Firebase Admin SDK (Required for backend)
+
+      # Required - Firebase Admin (from Firebase Console > Service Accounts)
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
@@ -27,31 +32,42 @@ services:
         sync: false
       - key: FIREBASE_DATABASE_URL
         sync: false
-      # JWT Configuration
+
+      # Required - JWT Configuration
       - key: JWT_SECRET
         sync: false
+        generateValue: true  # Render auto-generates secure secret
       - key: JWT_EXPIRY
         value: "7d"
-      # PayU Payment Gateway
+
+      # Required - PayU Payment Gateway (Test Mode from PayU Merchant Dashboard)
       - key: PAYU_MERCHANT_KEY
         sync: false
       - key: PAYU_MERCHANT_SALT
         sync: false
       - key: PAYU_BASE_URL
-        value: "https://secure.payu.in"
-      # Fast2SMS for OTP
+        value: "https://test.payu.in"
+
+      # Required - Fast2SMS for OTP
       - key: FAST2SMS_API_KEY
         sync: false
-      # Cloudinary for Image Upload
+
+      # Required - Cloudinary for Image Upload
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      # Brevo (Sendinblue) for Email
+
+      # Optional - Brevo (Sendinblue) for Email
       - key: BREVO_API_KEY
         sync: false
+
+      # Optional - FCM Server Key (from Firebase Console > Cloud Messaging)
+      - key: FCM_SERVER_KEY
+        sync: false
+
       # Rate Limiting
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
@@ -59,16 +75,19 @@ services:
         value: "100"
       - key: OTP_RATE_LIMIT_MAX
         value: "3"
+
       # CORS & Security
       - key: CORS_ORIGIN
         sync: false
       - key: WS_MAX_CONNECTIONS
         value: "10000"
-      # App URLs
+
+      # App URLs (update after frontend deploy)
       - key: APP_URL
         sync: false
       - key: FRONTEND_URL
         sync: false
+
       # Supabase (for database)
       - key: SUPABASE_URL
         sync: false
@@ -76,15 +95,12 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      # FCM Server Key (for push notifications)
-      - key: FCM_SERVER_KEY
-        sync: false
 
-  # Background Worker for Jobs
+  # Background Worker for Jobs (Free Tier - limited hours)
   - type: worker
     name: localbuddy-worker
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -112,7 +128,7 @@ services:
       - key: PAYU_MERCHANT_SALT
         sync: false
       - key: PAYU_BASE_URL
-        value: "https://secure.payu.in"
+        value: "https://test.payu.in"
       # Fast2SMS
       - key: FAST2SMS_API_KEY
         sync: false
@@ -136,19 +152,24 @@ services:
       # FCM
       - key: FCM_SERVER_KEY
         sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
 
-databases:
-  # PostgreSQL Database (if using Supabase, this may not be needed)
-  # - name: localbuddy-db
-  #   plan: starter
-  #   region: singapore
+# Optional: PostgreSQL Database (Free tier available)
+# databases:
+#   - name: localbuddy-db
+#     plan: free
+#     region: singapore
+#     databaseName: localbuddy
+#     user: localbuddy_user
+
+# Optional: Redis for caching/sessions (Paid only on Render)
+# databases:
+#   - name: localbuddy-redis
+#     plan: starter
+#     region: singapore
+
+# Optional: Cron Jobs for background tasks
+# cronJobs:
+#   - name: cleanup-expired-otps
+#     schedule: "0 * * * *"  # Every hour
+#     command: "node dist/jobs/cleanup-otps.js"
+#     plan: free
