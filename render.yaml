@@ -35,7 +35,6 @@ services:
 
       # Required - JWT Configuration
       - key: JWT_SECRET
-        sync: false
         generateValue: true  # Render auto-generates secure secret
       - key: JWT_EXPIRY
         value: "7d"
@@ -104,7 +103,6 @@ services:
     region: singapore
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    startCommand: node dist/jobs/index.js
     envVars:
       - key: NODE_ENV
         value: production
