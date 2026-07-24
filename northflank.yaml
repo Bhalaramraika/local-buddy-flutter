@@ -1,0 +1,115 @@
+# Northflank Deployment Configuration for LocalBuddy Backend
+# This file can be used with Northflank CLI or imported via UI
+# Documentation: https://docs.northflank.com/v1.0/docs/configuration-as-code
+
+project: localbuddy-backend
+
+services:
+  - name: api
+    type: web_service
+    dockerfilePath: ./backend/Dockerfile
+    buildContext: ./backend
+    port: 3000
+    healthCheckPath: /health
+    healthCheckInterval: 30
+    healthCheckTimeout: 10
+    healthCheckRetries: 3
+    startCommand: ["node", "dist/index.js"]
+    
+    # Resource allocation (adjust based on needs)
+    resources:
+      cpu: 0.5
+      memory: 512Mi
+    
+    # Scaling
+    replicas: 1
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilization: 70
+    
+    # Environment variables (set these in Northflank UI or via CLI)
+    # DO NOT put actual secrets here - use Northflank secret groups
+    environmentVariables:
+      - name: NODE_ENV
+        value: "production"
+      - name: PORT
+        value: "3000"
+      - name: APP_URL
+        value: "https://api.localbuddy.app"
+      - name: FRONTEND_URL
+        value: "https://localbuddy.app"
+      - name: LOG_LEVEL
+        value: "info"
+    
+    # Secret references (create these in Northflank Secret Groups)
+    secrets:
+      - name: FIREBASE_ADMIN_PROJECT_ID
+      - name: FIREBASE_ADMIN_CLIENT_EMAIL
+      - name: FIREBASE_ADMIN_PRIVATE_KEY
+      - name: SUPABASE_URL
+      - name: SUPABASE_SERVICE_ROLE_KEY
+      - name: PAYU_MERCHANT_KEY
+      - name: PAYU_SALT
+      - name: PAYU_BASE_URL
+      - name: CLOUDINARY_CLOUD_NAME
+      - name: CLOUDINARY_API_KEY
+      - name: CLOUDINARY_API_SECRET
+      - name: FAST2SMS_API_KEY
+      - name: BREVO_API_KEY
+      - name: FCM_SERVER_KEY
+      - name: JWT_SECRET
+    
+    # Domains (configure in Northflank UI after deployment)
+    # domains:
+    #   - domain: api.localbuddy.app
+    #     path: /
+    #     https: true
+
+  # Optional: Add a cron job service for background tasks
+  # - name: cron-jobs
+  #   type: job
+  #   dockerfilePath: ./backend/Dockerfile
+  #   buildContext: ./backend
+  #   schedule: "0 * * * *"  # Every hour
+  #   command: ["node", "dist/jobs/index.js"]
+  #   resources:
+  #     cpu: 0.25
+  #     memory: 256Mi
+  #   secrets:
+  #     - name: FIREBASE_ADMIN_PROJECT_ID
+  #     - name: FIREBASE_ADMIN_CLIENT_EMAIL
+  #     - name: FIREBASE_ADMIN_PRIVATE_KEY
+  #     - name: SUPABASE_URL
+  #     - name: SUPABASE_SERVICE_ROLE_KEY
+
+# Secret groups (create these in Northflank UI first, then reference here)
+# secretGroups:
+#   - name: firebase-secrets
+#     secrets:
+#       - FIREBASE_ADMIN_PROJECT_ID
+#       - FIREBASE_ADMIN_CLIENT_EMAIL
+#       - FIREBASE_ADMIN_PRIVATE_KEY
+#   - name: supabase-secrets
+#     secrets:
+#       - SUPABASE_URL
+#       - SUPABASE_SERVICE_ROLE_KEY
+#   - name: payment-secrets
+#     secrets:
+#       - PAYU_MERCHANT_KEY
+#       - PAYU_SALT
+#       - PAYU_BASE_URL
+#   - name: storage-secrets
+#     secrets:
+#       - CLOUDINARY_CLOUD_NAME
+#       - CLOUDINARY_API_KEY
+#       - CLOUDINARY_API_SECRET
+#   - name: messaging-secrets
+#     secrets:
+#       - FAST2SMS_API_KEY
+#       - BREVO_API_KEY
+#       - FCM_SERVER_KEY
+#   - name: app-secrets
+#     secrets:
+#       - JWT_SECRET

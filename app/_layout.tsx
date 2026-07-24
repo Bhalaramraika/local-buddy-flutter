@@ -34,6 +34,8 @@ import { initializeStores } from '@/store';
 import { initializeServices } from '@/services';
 import { initializeFirebase } from '@/services/firebase';
 import { initializeSupabase } from '@/services/supabase';
+import { ToastContainer } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { SplashScreen } from 'expo-splash-screen';
 import { useFonts as useExpoFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -192,6 +194,72 @@ function StoreInitializer() {
   return null;
 }
 
+// Global error handler hook - catches unhandled promise rejections and other global errors
+function GlobalErrorHandler() {
+  const { showToast } = useUIStore();
+
+  useEffect(() => {
+    // Handle unhandled promise rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      event.preventDefault(); // Prevent default browser behavior
+      
+      const error = event.reason instanceof Error 
+        ? event.reason 
+        : new Error(String(event.reason));
+      
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'An unexpected error occurred',
+        duration: 8000,
+      });
+    };
+
+    // Handle global errors (React Native doesn't have window.onerror, but we can use ErrorUtils)
+    const handleGlobalError = (error: Error, isFatal?: boolean) => {
+      console.error('Global error:', error, isFatal ? '(FATAL)' : '');
+      
+      showToast({
+        type: 'error',
+        title: isFatal ? 'Critical Error' : 'Error',
+        message: error.message || 'An unexpected error occurred',
+        duration: isFatal ? 10000 : 8000,
+      });
+    };
+
+    // Set up global error handlers
+    // For React Native, we use the global ErrorUtils
+    const originalHandler = global.ErrorUtils?.getGlobalHandler?.();
+    
+    if (global.ErrorUtils) {
+      global.ErrorUtils.setGlobalHandler(handleGlobalError);
+    }
+
+    // For unhandled promise rejections (works in React Native with proper polyfill)
+    const rejectionHandler = (event: PromiseRejectionEvent) => {
+      handleUnhandledRejection(event);
+    };
+
+    // Add event listeners
+    if (typeof window !== 'undefined') {
+      window.addEventListener('unhandledrejection', rejectionHandler);
+    }
+
+    // Cleanup
+    return () => {
+      if (global.ErrorUtils && originalHandler) {
+        global.ErrorUtils.setGlobalHandler(originalHandler);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('unhandledrejection', rejectionHandler);
+      }
+    };
+  }, [showToast]);
+
+  return null;
+}
+
 // Font loader component
 function FontLoader({ children }: { children: React.ReactNode }) {
   const fontsLoaded = useLoadFonts();
@@ -240,15 +308,19 @@ function AppProviders({ children }: { children: React.ReactNode }) {
                     <LocationProvider>
                       <SocketProvider>
                         <SafeAreaProvider>
-                          <ThemedStatusBar />
-                          <FontLoader>
-                            <StoreInitializer />
-                            <AuthInitializer />
-                            <LocationInitializer />
-                            <NotificationInitializer />
-                            <SocketInitializer />
-                            {children}
-                          </FontLoader>
+                          <ErrorBoundary>
+                            <ThemedStatusBar />
+                            <ToastContainer />
+                            <FontLoader>
+                              <StoreInitializer />
+                              <GlobalErrorHandler />
+                              <AuthInitializer />
+                              <LocationInitializer />
+                              <NotificationInitializer />
+                              <SocketInitializer />
+                              {children}
+                            </FontLoader>
+                          </ErrorBoundary>
                         </SafeAreaProvider>
                       </SocketProvider>
                     </LocationProvider>
