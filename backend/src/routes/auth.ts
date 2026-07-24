@@ -41,18 +41,40 @@ function generateOTP(): string {
 }
 
 async function sendSMS(phone: string, otp: string): Promise<void> {
-  // TODO: Integrate with Fast2SMS API
-  // For now, log to console in development
-  console.log(`[SMS] To ${phone}: Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`);
-  
-  // Production implementation:
-  // const response = await axios.post('https://www.fast2sms.com/dev/bulkV2', {
-  //   route: 'otp',
-  //   variables_values: otp,
-  //   numbers: phone.replace('+91', ''),
-  // }, {
-  //   headers: { authorization: config.fast2sms.apiKey }
-  // });
+  const authKeyApiKey = process.env.AUTHKEY_API_KEY;
+  const senderId = process.env.AUTHKEY_SENDER_ID || 'LBUDDY';
+  const route = process.env.AUTHKEY_ROUTE || '4';
+
+  if (!authKeyApiKey) {
+    console.warn('[SMS] AUTHKEY_API_KEY not configured, logging OTP to console');
+    console.log(`[SMS] To ${phone}: Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`);
+    return;
+  }
+
+  // Format phone number for AuthKey.io (remove +91 prefix)
+  const mobile = phone.replace('+91', '');
+  const message = `Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`;
+
+  try {
+    const url = `https://api.authkey.io/request?authkey=${authKeyApiKey}&mobile=${mobile}&message=${encodeURIComponent(message)}&sender=${senderId}&route=${route}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.Message && data.Message !== 'Success') {
+      console.error('[SMS] AuthKey.io error:', data);
+      throw new Error(`AuthKey.io error: ${data.Message}`);
+    }
+    
+    console.log(`[SMS] OTP sent to ${phone} via AuthKey.io`);
+  } catch (error) {
+    console.error('[SMS] Failed to send OTP via AuthKey.io:', error);
+    // Fallback to console logging in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[SMS] To ${phone}: Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`);
+    }
+    throw error;
+  }
 }
 
 async function checkUserLock(phone: string): Promise<void> {
