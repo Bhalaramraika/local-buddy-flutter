@@ -138,3 +138,10 @@ export async function sendMulticastNotification(
 
   return messaging.sendEachForMulticast(message);
 }
+
+export function getFirebaseApp(): App | null {
+  if (!firebaseApp) {
+    initializeFirebase();
+  }
+  return firebaseApp;
+}

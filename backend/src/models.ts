@@ -4,9 +4,12 @@
  */
 
 import { getFirestore } from './firebase';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Firestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
+
+// Export Firestore instance for batch operations
+export const firestore: Firestore = db;
 
 // ============================================================
 // Collection References
@@ -21,6 +24,7 @@ export const collections = {
   verifications: db.collection('verifications'),
   otpSessions: db.collection('otp_sessions'),
   userLocks: db.collection('user_locks'),
+  jobs: db.collection('jobs'),
 };
 
 // Sub-collection helpers

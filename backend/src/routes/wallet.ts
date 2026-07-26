@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { collections, TransactionDocument, TransactionType, TransactionStatus, runTransaction, timestamp } from '../models';
-import { requireAuth, requireKYC } from '../middleware/auth';
+import { requireAuth, requireKYC, requireRole } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { config } from '../config';
