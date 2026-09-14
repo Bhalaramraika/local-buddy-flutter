@@ -5,7 +5,6 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { 
-  SafeAreaProvider, 
   SafeAreaView, 
   StyleSheet, 
   View,
@@ -13,14 +12,10 @@ import {
   StatusBar,
   useColorScheme,
 } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Slot } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ReanimatedProvider } from 'react-native-reanimated';
-import { Providers as NativeWindProviders } from 'nativewind';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { NotificationProvider, useNotifications } from '@/contexts/NotificationContext';
@@ -32,11 +27,9 @@ import { useLocationStore } from '@/store/locationStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { initializeStores } from '@/store';
 import { initializeServices } from '@/services';
-import { initializeFirebase } from '@/services/firebase';
-import { initializeSupabase } from '@/services/supabase';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { SplashScreen } from 'expo-splash-screen';
+import * as SplashScreen from 'expo-splash-screen';
 import { useFonts as useExpoFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
@@ -55,12 +48,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create persister for query cache
-const persister = createSyncStoragePersister({
-  storage: AsyncStorage,
-  throttleTime: 1000 * 60 * 5, // 5 minutes
-});
-
 // Font loading hook
 function useLoadFonts() {
   const [fontsLoaded] = useExpoFonts({
@@ -76,7 +63,10 @@ function useLoadFonts() {
 function AuthInitializer() {
   const { initializeAuth, isInitialized } = useAuth();
   const { setUser, setTokens, setLoading: setAuthLoading } = useAuthStore();
-  const { setLoading: setUILoading } = useUIStore();
+  const { setGlobalLoading } = useUIStore();
+  const setUILoading = useCallback((isLoading: boolean) => {
+    setGlobalLoading({ isLoading });
+  }, [setGlobalLoading]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -187,8 +177,6 @@ function StoreInitializer() {
   useEffect(() => {
     initializeStores();
     initializeServices();
-    initializeFirebase();
-    initializeSupabase();
   }, []);
 
   return null;
@@ -294,43 +282,33 @@ function ThemedStatusBar() {
 function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <ReanimatedProvider>
-        <NativeWindProviders>
-          <QueryClientProvider client={queryClient}>
-            <PersistQueryClientProvider 
-              client={queryClient} 
-              persister={persister}
-              maxAge={1000 * 60 * 60 * 24} // 24 hours
-            >
-              <AuthProvider>
-                <ThemeProvider>
-                  <NotificationProvider>
-                    <LocationProvider>
-                      <SocketProvider>
-                        <SafeAreaProvider>
-                          <ErrorBoundary>
-                            <ThemedStatusBar />
-                            <ToastContainer />
-                            <FontLoader>
-                              <StoreInitializer />
-                              <GlobalErrorHandler />
-                              <AuthInitializer />
-                              <LocationInitializer />
-                              <NotificationInitializer />
-                              <SocketInitializer />
-                              {children}
-                            </FontLoader>
-                          </ErrorBoundary>
-                        </SafeAreaProvider>
-                      </SocketProvider>
-                    </LocationProvider>
-                  </NotificationProvider>
-                </ThemeProvider>
-              </AuthProvider>
-            </PersistQueryClientProvider>
-          </QueryClientProvider>
-        </NativeWindProviders>
-      </ReanimatedProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ThemeProvider>
+            <NotificationProvider>
+              <LocationProvider>
+                <SocketProvider>
+                  <SafeAreaProvider>
+                    <ErrorBoundary>
+                      <ThemedStatusBar />
+                      <ToastContainer />
+                      <FontLoader>
+                        <StoreInitializer />
+                        <GlobalErrorHandler />
+                        <AuthInitializer />
+                        <LocationInitializer />
+                        <NotificationInitializer />
+                        <SocketInitializer />
+                        {children}
+                      </FontLoader>
+                    </ErrorBoundary>
+                  </SafeAreaProvider>
+                </SocketProvider>
+              </LocationProvider>
+            </NotificationProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }

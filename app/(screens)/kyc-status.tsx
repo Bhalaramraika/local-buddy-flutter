@@ -148,7 +148,7 @@ export default function KYCStatusScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" style={styles.spinning} />
+          <Ionicons name="refresh" size={32} color="#4F46E5" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading verification status...</Text>
         </View>
       </View>
@@ -273,7 +273,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  spinning: { animation: 'spin 1s linear infinite' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   statusCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
   statusHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },

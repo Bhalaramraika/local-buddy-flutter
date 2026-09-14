@@ -50,7 +50,7 @@ export default function TaskDetailScreen() {
   const handleApply = async () => {
     if (!isAuthenticated) {
       showToast('Please sign in to apply for tasks', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
 
@@ -73,7 +73,7 @@ export default function TaskDetailScreen() {
   const handleSave = () => {
     if (!isAuthenticated) {
       showToast('Please sign in to save tasks', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
     setSaved(!saved);
@@ -83,7 +83,7 @@ export default function TaskDetailScreen() {
   const handleChat = async () => {
     if (!isAuthenticated) {
       showToast('Please sign in to chat', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
 
@@ -134,7 +134,7 @@ export default function TaskDetailScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" style={styles.spinning} />
+          <Ionicons name="refresh" size={32} color="#4F46E5" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading task...</Text>
         </View>
       </View>
@@ -367,7 +367,7 @@ export default function TaskDetailScreen() {
                   >
                     {isApplying ? (
                       <>
-                        <Ionicons name="refresh" size={20} color="#fff" style={styles.spinning} />
+                        <Ionicons name="refresh" size={20} color="#fff" />
                         <Text style={styles.applyButtonText}>Applying...</Text>
                       </>
                     ) : (
@@ -437,7 +437,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  spinning: { animation: 'spin 1s linear infinite' },
   scrollContent: { paddingBottom: 100 },
   imageContainer: { height: 220, position: 'relative' },
   taskImage: { width: '100%', height: '100%' },

@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   filterTabTextActive: { color: '#fff' },
   scrollContent: { paddingTop: 16, paddingBottom: 40 },
   summaryContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, backgroundColor: isDark ? '#2a2a2a' : '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  statCard: { flex: 1, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
   statCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   statCardValue: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 2 },
   statCardTitle: { fontSize: 13, fontFamily: 'Inter_500Medium' },

@@ -10,6 +10,10 @@ import { auth } from './firebase';
 // API Base URL from environment
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.localbuddy.in/v1';
 
+export const isMockApiEnabled =
+  process.env.EXPO_PUBLIC_MOCK_API === 'true' ||
+  API_BASE_URL.includes('your-vercel-app.vercel.app');
+
 // Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -160,18 +164,20 @@ export const ENDPOINTS = {
     register: '/auth/register',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
-    verifyPhone: '/auth/verify-phone',
-    resendOtp: '/auth/resend-otp',
+    otpSend: '/auth/otp/send',
+    otpVerify: '/auth/otp/verify',
+    verifyPhone: '/auth/otp/verify',
+    resendOtp: '/auth/otp/send',
     firebaseToken: '/auth/firebase-token', // Exchange Firebase token for custom token
   },
   
   // User Profile
   user: {
     profile: '/user/profile',
-    updateProfile: '/user/profile',
+    updateProfile: '/users/me/profile',
     updateLocation: '/user/location',
     updateLanguage: '/user/language',
-    updateFcmToken: '/user/fcm-token',
+    updateFcmToken: '/users/me/fcm-token',
     deleteAccount: '/user/account',
   },
   

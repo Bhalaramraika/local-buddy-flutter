@@ -13,7 +13,7 @@ import { formatRelativeTime } from '@/utils/helpers';
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { conversations, fetchConversations, totalUnreadCount, markAsRead } = useChatStore();
+  const { chats, clearUnreadCount } = useChatStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -23,42 +23,44 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchConversations();
     }
-  }, [isAuthenticated, fetchConversations]);
+  }, [isAuthenticated]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchConversations();
     setRefreshing(false);
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.otherUser.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = (chats || []).filter(conv =>
+    conv.participants?.some((participant) => participant.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    conv.lastMessage?.content?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderConversation = ({ item }: { item: any }) => (
+  const renderConversation = ({ item }: { item: any }) => {
+    const otherUser = item.participants?.find((participant: any) => participant.id !== user?.id) || item.participants?.[0];
+    const displayUser = otherUser || { name: item.groupName || 'Conversation', avatar: item.groupAvatar, isOnline: false };
+
+    return (
     <TouchableOpacity
       style={[styles.conversationCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
       onPress={() => {
         router.push(`/(screens)/chat-detail/${item.id}`);
         if (item.unreadCount > 0) {
-          markAsRead(item.id);
+          clearUnreadCount(item.id);
         }
       }}
     >
       <View style={styles.conversationAvatar}>
-        {item.otherUser.avatar ? (
-          <Image source={{ uri: item.otherUser.avatar }} style={styles.avatarImage} />
+        {displayUser.avatar ? (
+          <Image source={{ uri: displayUser.avatar }} style={styles.avatarImage} />
         ) : (
-          <Text style={styles.avatarInitial}>{item.otherUser.name.charAt(0)}</Text>
+          <Text style={styles.avatarInitial}>{displayUser.name.charAt(0)}</Text>
         )}
-        {item.otherUser.isOnline && <View style={styles.onlineIndicator} />}
+        {displayUser.isOnline && <View style={styles.onlineIndicator} />}
       </View>
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={[styles.conversationName, { color: isDark ? '#fff' : '#000' }]}>{item.otherUser.name}</Text>
+          <Text style={[styles.conversationName, { color: isDark ? '#fff' : '#000' }]}>{displayUser.name}</Text>
           <Text style={[styles.conversationTime, { color: isDark ? '#888' : '#666' }]}>{formatRelativeTime(item.lastMessage?.createdAt || item.updatedAt)}</Text>
         </View>
         <View style={styles.conversationPreview}>
@@ -76,7 +78,8 @@ export default function ChatScreen() {
         </View>
       )}
     </TouchableOpacity>
-  );
+    );
+  };
 
   if (!isAuthenticated) {
     return (

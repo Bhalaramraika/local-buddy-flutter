@@ -6,15 +6,11 @@
 export { useAuthStore } from './authStore';
 export type { AuthState } from './authStore';
 export {
-  selectUser,
   selectIsAuthenticated,
   selectIsLoading,
   selectAuthError,
   selectTokens,
-  selectFCMToken,
-  selectKYCStatus,
   selectWalletBalance,
-  selectBiometricEnabled,
 } from './authStore';
 
 // Task Store
@@ -187,11 +183,7 @@ export {
   selectAvatarUrl,
   selectIsProfileComplete,
   selectReferralLink,
-  selectLanguage,
   selectCurrency,
-  selectTheme,
-  selectFontSize,
-  selectNotifications,
   selectPrivacy,
   selectAccessibility,
   selectAutoAcceptTasks,
@@ -203,7 +195,6 @@ export {
   selectSOSContacts,
   selectEmergencyContacts,
   selectTwoFactorEnabled,
-  selectBiometricEnabled,
   selectPinEnabled,
 } from './userStore';
 

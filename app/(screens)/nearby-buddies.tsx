@@ -268,7 +268,7 @@ export default function NearbyBuddiesScreen() {
 
       {/* Search & Radius */}
       <View style={[styles.searchSection, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
           <Ionicons name="search-outline" size={20} color={isDark ? '#666' : '#999'} style={styles.searchIcon} />
           <Text style={[styles.searchPlaceholder, { color: isDark ? '#666' : '#999' }]}>Search buddies by skill, name...</Text>
         </View>
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   headerSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
   searchSection: { paddingHorizontal: 16, paddingVertical: 16, gap: 16 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
+  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
   searchIcon: { marginRight: 10 },
   searchPlaceholder: { fontSize: 15, fontFamily: 'Inter_400Regular', flex: 1 },
   radiusControl: { gap: 8 },
@@ -370,12 +370,12 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 40 },
-  buddyCard: { backgroundColor: isDark ? '#2a2a2a' : '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  buddyCard: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   buddyHeader: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   avatarContainer: { position: 'relative' },
   avatar: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 20, fontFamily: 'Inter_700Bold', color: '#fff' },
-  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 16, height: 16, borderRadius: 8, backgroundColor: '#10B981', borderWidth: 3, borderColor: isDark ? '#1a1a1a' : '#fff' },
+  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 16, height: 16, borderRadius: 8, backgroundColor: '#10B981', borderWidth: 3, borderColor: '#fff' },
   buddyInfo: { flex: 1 },
   buddyNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   buddyName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },

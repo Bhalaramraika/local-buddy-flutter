@@ -4,9 +4,12 @@
  */
 
 import { getFirestore } from './firebase';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Firestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
+
+// Export Firestore instance for batch operations
+export const firestore: Firestore = db;
 
 // ============================================================
 // Collection References
@@ -21,6 +24,7 @@ export const collections = {
   verifications: db.collection('verifications'),
   otpSessions: db.collection('otp_sessions'),
   userLocks: db.collection('user_locks'),
+  jobs: db.collection('jobs'),
 };
 
 // Sub-collection helpers
@@ -45,6 +49,11 @@ export interface UserDocument {
   phone: string;
   email?: string;
   name: string;
+  bio?: string;
+  skills?: string[];
+  dateOfBirth?: string;
+  profileCompleted?: boolean;
+  referralCode?: string;
   avatar?: string;
   role: UserRole;
   status: 'active' | 'inactive' | 'suspended' | 'banned';
@@ -85,7 +94,6 @@ export interface UserDocument {
   preferences: Record<string, any>;
   fcmTokens: string[];
   currentLocation?: { latitude: number; longitude: number; updatedAt: string };
-  referralCode?: string;
   referredBy?: string;
   commissionDue: number;
   createdAt: string;

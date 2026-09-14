@@ -93,7 +93,7 @@ export default function WalletTopupScreen() {
     if (!validateAmount()) return;
     if (!isAuthenticated) {
       showToast('Please login to add money', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
 
@@ -204,7 +204,7 @@ export default function WalletTopupScreen() {
         <Text style={styles.authSubtitle}>
           Please login to add money to your wallet
         </Text>
-        <TouchableOpacity style={styles.authButton} onPress={() => router.push('/(auth)/login')}>
+        <TouchableOpacity style={styles.authButton} onPress={() => router.push('/login')}>
           <Text style={styles.authButtonText}>Login / Sign Up</Text>
         </TouchableOpacity>
       </View>

@@ -14,7 +14,7 @@ import { verifyToken } from '../utils/jwt';
 import { prisma } from '../config/prisma';
 import { supabaseAdmin } from '../config/supabase';
 
-interface AuthenticatedSocket extends Socket {
+export interface AuthenticatedSocket extends Socket {
   userId: string;
   userRole: string;
   chatRooms: Set<string>;
@@ -59,7 +59,7 @@ interface UserSocketMap {
   [userId: string]: Set<string>; // userId -> Set of socket IDs
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   chatId: string;
   senderId: string;
@@ -69,7 +69,8 @@ interface ChatMessage {
   createdAt: Date;
 }
 
-interface LocationUpdate {
+export interface LocationUpdate {
+  taskId: string;
   userId: string;
   latitude: number;
   longitude: number;
@@ -79,7 +80,7 @@ interface LocationUpdate {
   timestamp: Date;
 }
 
-interface TaskUpdate {
+export interface TaskUpdate {
   taskId: string;
   type: 'STATUS_CHANGE' | 'ASSIGNMENT' | 'LOCATION_UPDATE' | 'MESSAGE' | 'CANCELLATION';
   data: any;
@@ -117,9 +118,10 @@ export class SocketManager {
    * Setup authentication middleware
    */
   private setupMiddleware(): void {
-    this.io.use(async (socket: AuthenticatedSocket, next) => {
+    this.io.use(async (socket, next) => {
       try {
-        const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+        const authSocket = socket as AuthenticatedSocket;
+        const token = authSocket.handshake.auth.token || authSocket.handshake.headers.authorization?.split(' ')[1];
         
         if (!token) {
           return next(new Error('Authentication required'));
@@ -140,11 +142,11 @@ export class SocketManager {
           return next(new Error('User not found or inactive'));
         }
 
-        socket.userId = user.id;
-        socket.userRole = user.role;
-        socket.chatRooms = new Set();
-        socket.locationRooms = new Set();
-        socket.taskRooms = new Set();
+        authSocket.userId = user.id;
+        authSocket.userRole = user.role;
+        authSocket.chatRooms = new Set();
+        authSocket.locationRooms = new Set();
+        authSocket.taskRooms = new Set();
 
         next();
       } catch (error) {

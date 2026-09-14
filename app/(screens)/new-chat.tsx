@@ -54,7 +54,7 @@ export default function NewChatScreen() {
   const handleStartChat = async (targetUser: any) => {
     if (!isAuthenticated) {
       showToast('Please sign in to start a chat', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
 
@@ -153,7 +153,7 @@ export default function NewChatScreen() {
       {/* Users List */}
       {usersLoading ? (
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" style={styles.spinning} />
+          <Ionicons name="refresh" size={32} color="#4F46E5" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading users...</Text>
         </View>
       ) : filteredUsers.length === 0 ? (
@@ -203,7 +203,6 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', color: '#000' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  spinning: { animation: 'spin 1s linear infinite' },
   listContent: { padding: 16, paddingBottom: 40 },
   userItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   userAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },

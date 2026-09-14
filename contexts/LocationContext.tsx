@@ -70,6 +70,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     nearbyBuddies,
     currentCity,
     currentArea,
+    error,
     setCurrentLocation,
     setLastKnownLocation,
     setTracking,

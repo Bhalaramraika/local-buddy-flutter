@@ -13,7 +13,7 @@ import { formatCurrency, formatDistance, formatRelativeTime } from '@/utils/help
 
 export default function TasksScreen() {
   const router = useRouter();
-  const { tasks, nearbyTasks, myTasks, appliedTasks, fetchTasks, fetchNearbyTasks, fetchMyTasks, fetchAppliedTasks, setFilter, clearFilter, filter } = useTaskStore();
+  const { nearbyTasks: storedNearbyTasks, myTasks: storedMyTasks, assignedTasks: storedAssignedTasks, getFilteredTasks, setFilters } = useTaskStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -21,18 +21,18 @@ export default function TasksScreen() {
   const [activeTab, setActiveTab] = useState<'nearby' | 'my' | 'applied'>('nearby');
 
   const isDark = theme === 'dark';
+  const nearbyTasks = storedNearbyTasks ?? [];
+  const myTasks = storedMyTasks ?? [];
+  const assignedTasks = storedAssignedTasks ?? [];
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchNearbyTasks();
-      fetchMyTasks();
-      fetchAppliedTasks();
-    }
-  }, [isAuthenticated, fetchNearbyTasks, fetchMyTasks, fetchAppliedTasks]);
+    if (!isAuthenticated) return;
+    setFilters({});
+  }, [isAuthenticated, setFilters]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchNearbyTasks(), fetchMyTasks(), fetchAppliedTasks()]);
+    setFilters({});
     setRefreshing(false);
   };
 
@@ -40,13 +40,13 @@ export default function TasksScreen() {
     let taskList = [];
     switch (activeTab) {
       case 'nearby':
-        taskList = nearbyTasks;
+        taskList = nearbyTasks.length > 0 ? nearbyTasks : (getFilteredTasks() ?? []);
         break;
       case 'my':
         taskList = myTasks;
         break;
       case 'applied':
-        taskList = appliedTasks;
+        taskList = assignedTasks;
         break;
     }
     
@@ -63,9 +63,9 @@ export default function TasksScreen() {
   };
 
   const tabs = [
-    { id: 'nearby', label: 'Nearby', count: nearbyTasks.length },
-    { id: 'my', label: 'My Tasks', count: myTasks.length },
-    { id: 'applied', label: 'Applied', count: appliedTasks.length },
+    { id: 'nearby', label: 'Nearby', count: nearbyTasks?.length ?? 0 },
+    { id: 'my', label: 'My Tasks', count: myTasks?.length ?? 0 },
+    { id: 'applied', label: 'Applied', count: assignedTasks?.length ?? 0 },
   ];
 
   const renderTask = ({ item }: { item: any }) => (

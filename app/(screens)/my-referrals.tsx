@@ -102,7 +102,7 @@ export default function MyReferralsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" style={styles.spinning} />
+          <Ionicons name="refresh" size={32} color="#4F46E5" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading referrals...</Text>
         </View>
       </View>
@@ -281,7 +281,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  spinning: { animation: 'spin 1s linear infinite' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   summaryContainer: { flexDirection: 'row', gap: 12 },
   summaryCard: { flex: 1, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },

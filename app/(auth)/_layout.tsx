@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { Stack } from 'expo-router';
-import { SafeAreaView, StyleSheet } from 'react-native';
 
 export default function AuthLayout() {
   return (
@@ -14,7 +13,6 @@ export default function AuthLayout() {
         headerShown: false,
         presentation: 'modal',
         gestureEnabled: true,
-        cardStyle: styles.card,
       }}
     >
       <Stack.Screen name="login" options={{ title: 'Login' }} />
@@ -25,9 +23,3 @@ export default function AuthLayout() {
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-  },
-});

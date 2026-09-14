@@ -7,34 +7,46 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
 import { User, UserRole, KYCStatus } from '@/types/user';
+import { AuthTokens } from '@/types';
 
 interface AuthState {
   // State
   user: User | null;
+  tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isRefreshing: boolean;
   fcmToken: string | null;
+  error: string | null;
+  biometricEnabled: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
+  setTokens: (tokens: AuthTokens | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
   setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
   setRefreshing: (refreshing: boolean) => void;
   setFcmToken: (token: string | null) => void;
+  setFCMToken: (token: string | null) => void;
+  setBiometricEnabled: (enabled: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
   updateKYCStatus: (status: KYCStatus, details?: Partial<User['kyc']>) => void;
   updateWalletBalance: (balance: number) => void;
   logout: () => void;
+  clearAll: () => void;
   hydrate: () => Promise<void>;
 }
 
 const initialState = {
   user: null,
+  tokens: null,
   isAuthenticated: false,
   isLoading: true,
   isRefreshing: false,
   fcmToken: null,
+  error: null,
+  biometricEnabled: false,
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -47,6 +59,8 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: !!user,
         isLoading: false,
       }),
+
+      setTokens: (tokens) => set({ tokens }),
       
       setAuthenticated: (authenticated) => set({ 
         isAuthenticated: authenticated,
@@ -54,10 +68,16 @@ export const useAuthStore = create<AuthState>()(
       }),
       
       setLoading: (loading) => set({ isLoading: loading }),
+
+      setError: (error) => set({ error }),
       
       setRefreshing: (refreshing) => set({ isRefreshing: refreshing }),
       
       setFcmToken: (token) => set({ fcmToken: token }),
+
+      setFCMToken: (token) => set({ fcmToken: token }),
+
+      setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
       
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
@@ -93,6 +113,8 @@ export const useAuthStore = create<AuthState>()(
         
         set({ ...initialState, isLoading: false });
       },
+
+      clearAll: () => set({ ...initialState, isLoading: false }),
       
       hydrate: async () => {
         try {

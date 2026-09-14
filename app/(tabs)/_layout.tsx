@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/authStore';
@@ -13,13 +12,13 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useChatStore } from '@/store/chatStore';
 
 export default function TabsLayout() {
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { totalUnreadCount } = useChatStore();
-  
-  const colorScheme = useColorScheme();
+  const { getTotalUnreadCount } = useChatStore();
+  const totalUnreadCount = getTotalUnreadCount();
   const isDark = resolvedTheme === 'dark';
+
 
   // Tab bar active/inactive colors
   const activeColor = isDark ? '#fff' : '#000';
@@ -31,6 +30,10 @@ export default function TabsLayout() {
       // Navigation will be handled by the root layout
     }
   }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <Tabs
@@ -89,10 +92,10 @@ export default function TabsLayout() {
             />
           ),
           // Badge for active tasks
-          tabBarBadge: user?.stats?.activeTasks && user.stats.activeTasks > 0 
-            ? user.stats.activeTasks > 99 
+          tabBarBadge: user?.stats?.tasksPosted && user.stats.tasksPosted > 0
+            ? user.stats.tasksPosted > 99
               ? '99+' 
-              : String(user.stats.activeTasks)
+              : String(user.stats.tasksPosted)
             : undefined,
         }}
       />
