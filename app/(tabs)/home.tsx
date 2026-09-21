@@ -41,10 +41,10 @@ export default function HomeScreen() {
   };
 
   const quickActions = [
-    { id: 'create-task', icon: 'plus-circle', label: 'Post Task', color: '#4F46E5', route: '/(screens)/create-task' },
-    { id: 'find-buddy', icon: 'account-group', label: 'Find Buddy', color: '#10B981', route: '/(screens)/nearby-buddies' },
-    { id: 'wallet', icon: 'wallet', label: 'Wallet', color: '#F59E0B', route: '/
-    { id: 'chat', icon: 'chat', label: 'Messages', color: '#EF4444', route: 'nreadCount },
+    { id: 'create-task', icon: 'plus-circle', label: 'Post Task', color: '#4F46E5', route: '/create-task' },
+    { id: 'find-buddy', icon: 'account-group', label: 'Find Buddy', color: '#10B981', route: '/nearby-buddies' },
+    { id: 'wallet', icon: 'wallet', label: 'Wallet', color: '#F59E0B', route: '/wallet' },
+    { id: 'chat', icon: 'chat', label: 'Messages', color: '#EF4444', route: '/chat', badge: totalUnreadCount },
   ];
 
   const stats = [
@@ -103,7 +103,7 @@ export default function HomeScreen() {
       <View style={[styles.walletCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
         <View style={styles.walletHeader}>
           <Text style={[styles.walletLabel, { color: isDark ? '#aaa' : '#666' }]}>Wallet Balance</Text>
-          <TouchableOpacity onPress={() => router.push('/
+          <TouchableOpacity onPress={() => router.push('/wallet')}>
             <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#666'} />
           </TouchableOpacity>
         </View>
@@ -178,7 +178,7 @@ export default function HomeScreen() {
       <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Nearby Tasks</Text>
-          <TouchableOpacity onPress={() => router.push('
+          <TouchableOpacity onPress={() => router.push('/tasks')}>
             <Text style={styles.seeAll}>See All</Text>
             <Ionicons name="chevron-forward-outline" size={16} color="#4F46E5" />
           </TouchableOpacity>
