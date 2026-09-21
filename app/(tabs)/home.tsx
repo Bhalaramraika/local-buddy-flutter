@@ -18,10 +18,11 @@ import { formatCurrency, formatDistance } from '@/utils/helpers';
 export default function HomeScreen() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
-  const { tasks, nearbyTasks, fetchNearbyTasks, isLoading: tasksLoading } = useTaskStore();
-  const { wallet, fetchWallet } = useWalletStore();
+  const { nearbyTasks, isLoading: tasksLoading } = useTaskStore();
+  const { getAvailableBalance } = useWalletStore();
   const { unreadCount } = useNotificationStore();
-  const { totalUnreadCount } = useChatStore();
+  const { getTotalUnreadCount } = useChatStore();
+  const totalUnreadCount = getTotalUnreadCount();
   const { nearbyBuddies } = useLocationStore();
   const { theme } = useUIStore();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -30,29 +31,27 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchNearbyTasks();
-      fetchWallet();
     }
-  }, [isAuthenticated, fetchNearbyTasks, fetchWallet]);
+  }, [isAuthenticated]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchNearbyTasks(), fetchWallet()]);
+    getAvailableBalance();
     setRefreshing(false);
   };
 
   const quickActions = [
-    { id: 'create-task', icon: 'plus-circle', label: 'Post Task', color: '#4F46E5', route: '/(screens)/create-task' },
-    { id: 'find-buddy', icon: 'account-group', label: 'Find Buddy', color: '#10B981', route: '/(screens)/nearby-buddies' },
-    { id: 'wallet', icon: 'wallet', label: 'Wallet', color: '#F59E0B', route: '/(tabs)/wallet' },
-    { id: 'chat', icon: 'chat', label: 'Messages', color: '#EF4444', route: '/(tabs)/chat', badge: totalUnreadCount },
+    { id: 'create-task', icon: 'plus-circle', label: 'Post Task', color: '#4F46E5', route: '/create-task' },
+    { id: 'find-buddy', icon: 'account-group', label: 'Find Buddy', color: '#10B981', route: '/nearby-buddies' },
+    { id: 'wallet', icon: 'wallet', label: 'Wallet', color: '#F59E0B', route: '/wallet' },
+    { id: 'chat', icon: 'chat', label: 'Messages', color: '#EF4444', route: '/chat', badge: totalUnreadCount },
   ];
 
   const stats = [
-    { label: 'Active Tasks', value: user?.stats?.activeTasks || 0, icon: 'clipboard-check', color: '#4F46E5' },
-    { label: 'Completed', value: user?.stats?.completedTasks || 0, icon: 'check-circle', color: '#10B981' },
+    { label: 'Posted Tasks', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-check', color: '#4F46E5' },
+    { label: 'Completed', value: user?.stats?.tasksCompleted || 0, icon: 'check-circle', color: '#10B981' },
     { label: 'Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: '#F59E0B' },
-    { label: 'Rating', value: user?.stats?.rating?.toFixed(1) || '0.0', icon: 'star', color: '#EF4444' },
+    { label: 'Rating', value: user?.rating?.average?.toFixed(1) || '0.0', icon: 'star', color: '#EF4444' },
   ];
 
   if (!isAuthenticated) {
@@ -62,7 +61,7 @@ export default function HomeScreen() {
           <Ionicons name="person-circle-outline" size={80} color={isDark ? '#666' : '#ccc'} />
           <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Welcome to LocalBuddy</Text>
           <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Sign in to find local tasks and buddies</Text>
-          <TouchableOpacity style={styles.authButton} onPress={() => router.push('/(auth)/login')}>
+          <TouchableOpacity style={styles.authButton} onPress={() => router.push('/login')}>
             <Text style={styles.authButtonText}>Get Started</Text>
           </TouchableOpacity>
         </View>
@@ -104,12 +103,12 @@ export default function HomeScreen() {
       <View style={[styles.walletCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
         <View style={styles.walletHeader}>
           <Text style={[styles.walletLabel, { color: isDark ? '#aaa' : '#666' }]}>Wallet Balance</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/wallet')}>
+          <TouchableOpacity onPress={() => router.push('/wallet')}>
             <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#666'} />
           </TouchableOpacity>
         </View>
         <Text style={[styles.walletAmount, { color: isDark ? '#fff' : '#000' }]}>
-          {formatCurrency(wallet?.balance || 0)}
+          {formatCurrency(getAvailableBalance())}
         </Text>
         <View style={styles.walletActions}>
           <TouchableOpacity style={[styles.walletActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-topup')}>
@@ -140,7 +139,7 @@ export default function HomeScreen() {
               onPress={() => router.push(action.route)}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}20` }]}>
-                <MaterialCommunityIcons name={action.icon} size={24} color={action.color} />
+                <MaterialCommunityIcons name={action.icon as any} size={24} color={action.color} />
               </View>
               <Text style={[styles.quickActionLabel, { color: isDark ? '#fff' : '#000' }]}>{action.label}</Text>
               {action.badge && action.badge > 0 && (
@@ -166,7 +165,7 @@ export default function HomeScreen() {
           {stats.map((stat) => (
             <View key={stat.label} style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}>
               <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                <MaterialCommunityIcons name={stat.icon} size={24} color={stat.color} />
+                <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
               </View>
               <Text style={[styles.statValue, { color: isDark ? '#fff' : '#000' }]}>{stat.value}</Text>
               <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>{stat.label}</Text>
@@ -179,7 +178,7 @@ export default function HomeScreen() {
       <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Nearby Tasks</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/tasks')}>
+          <TouchableOpacity onPress={() => router.push('/tasks')}>
             <Text style={styles.seeAll}>See All</Text>
             <Ionicons name="chevron-forward-outline" size={16} color="#4F46E5" />
           </TouchableOpacity>
@@ -203,26 +202,26 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/(screens)/task-detail/${task.id}`)}
               >
                 <View style={styles.taskHeader}>
-                  <View style={[styles.taskCategory, { backgroundColor: `${task.categoryColor}20` }]}>
-                    <Text style={[styles.taskCategoryText, { color: task.categoryColor }]}>{task.category}</Text>
+                  <View style={[styles.taskCategory, { backgroundColor: '#4F46E520' }]}>
+                    <Text style={[styles.taskCategoryText, { color: '#4F46E5' }]}>{task.category}</Text>
                   </View>
                   <Text style={[styles.taskDistance, { color: isDark ? '#888' : '#666' }]}>
-                    {formatDistance(task.distance)}
+                    {formatDistance(task.buddy?.distance || 0)}
                   </Text>
                 </View>
                 <Text style={[styles.taskTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{task.title}</Text>
                 <View style={styles.taskFooter}>
                   <View style={styles.taskMeta}>
                     <Ionicons name="cash-outline" size={14} color="#10B981" />
-                    <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(task.budget)}</Text>
+                    <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(task.budget.amount)}</Text>
                   </View>
                   <View style={styles.taskMeta}>
                     <Ionicons name="time-outline" size={14} color={isDark ? '#888' : '#666'} />
-                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{task.duration}</Text>
+                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{task.estimatedDuration ? `${task.estimatedDuration} min` : 'Flexible'}</Text>
                   </View>
                   <View style={styles.taskMeta}>
                     <Ionicons name="person-outline" size={14} color={isDark ? '#888' : '#666'} />
-                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{task.applicantsCount} applicants</Text>
+                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>Open task</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -254,7 +253,7 @@ export default function HomeScreen() {
                   ) : (
                     <Text style={styles.buddyAvatarInitial}>{buddy.name.charAt(0)}</Text>
                   )}
-                  {buddy.isOnline && <View style={styles.onlineIndicator} />}
+                  {buddy.isAvailable && <View style={styles.onlineIndicator} />}
                 </View>
                 <View style={styles.buddyInfo}>
                   <Text style={[styles.buddyName, { color: isDark ? '#fff' : '#000' }]}>{buddy.name}</Text>

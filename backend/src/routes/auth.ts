@@ -207,6 +207,7 @@ router.post(
           id: firebaseUser.uid,
           phone,
           name: `User ${phone.slice(-4)}`,
+          profileCompleted: false,
           role: 'customer',
           status: 'active',
           isActive: true,

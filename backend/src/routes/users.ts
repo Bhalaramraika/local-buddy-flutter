@@ -5,8 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { FieldValue } from 'firebase-admin/firestore';
 import { collections, UserDocument, KYCStatus, runTransaction, timestamp } from '../models';
-import { requireAuth, requireRole, requireKYC } from '../middleware/auth';
+import { requireAuth, requireRole, requireKYC, optionalAuth } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { getAuth } from '../firebase';
@@ -21,6 +22,12 @@ const updateProfileSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   email: z.string().email().optional(),
   avatar: z.string().url().optional(),
+  bio: z.string().max(500).optional(),
+  skills: z.array(z.string().max(40)).max(20).optional(),
+  dateOfBirth: z.string().optional(),
+  profileCompleted: z.boolean().optional(),
+  referralCode: z.string().max(30).optional(),
+  role: z.enum(['customer', 'buddy']).optional(),
   language: z.enum(['en', 'hi']).optional(),
   city: z.string().max(50).optional(),
   area: z.string().max(100).optional(),
@@ -63,7 +70,7 @@ router.get(
   validateParams(z.object({ id: z.string().min(1) })),
   optionalAuth,
   async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const userDoc = await collections.users.doc(id).get();
     
     if (!userDoc.exists) {
@@ -282,7 +289,7 @@ router.get(
     limit: z.coerce.number().min(1).max(50).default(20),
   })),
   async (req: Request, res: Response) => {
-    const { q, limit } = req.query as { q: string; limit: number };
+    const { q, limit } = req.query as unknown as { q: string; limit: number };
     
     // Search by name (Firestore doesn't support full-text search natively)
     // In production, use Algolia or Typesense

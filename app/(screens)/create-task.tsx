@@ -497,7 +497,7 @@ export default function CreateTaskScreen() {
         >
           {isCreating ? (
             <>
-              <Ionicons name="refresh" size={20} color="#fff" style={styles.spinning} />
+              <Ionicons name="refresh" size={20} color="#fff" />
               <Text style={styles.submitButtonText}>Creating...</Text>
             </>
           ) : (
@@ -549,7 +549,6 @@ const styles = StyleSheet.create({
   submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 12, marginTop: 8 },
   submitButtonDisabled: { opacity: 0.7 },
   submitButtonText: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
-  spinning: { animation: 'spin 1s linear infinite' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },

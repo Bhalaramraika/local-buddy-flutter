@@ -294,7 +294,7 @@ export default function ChatDetailScreen() {
             disabled={!messageText.trim() || isSending}
           >
             {isSending ? (
-              <Ionicons name="refresh" size={22} color="#fff" style={styles.spinning} />
+              <Ionicons name="refresh" size={22} color="#fff" />
             ) : (
               <Ionicons name="send-outline" size={22} color={messageText.trim() ? '#fff' : (isDark ? '#666' : '#999')} />
             )}
@@ -381,7 +381,6 @@ const styles = StyleSheet.create({
   sendButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   sendButtonActive: {},
   sendButtonInactive: {},
-  spinning: { animation: 'spin 1s linear infinite' },
   authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
   authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },

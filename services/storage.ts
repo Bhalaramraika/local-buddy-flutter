@@ -9,6 +9,11 @@ import { STORAGE_KEYS } from '@/constants/app';
 
 // Generic storage functions
 export const storage = {
+  // Zustand-compatible storage methods
+  getItem: (key: string) => AsyncStorage.getItem(key),
+  setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
+  removeItem: (key: string) => AsyncStorage.removeItem(key),
+
   // Get item with type safety
   get: async <T>(key: string): Promise<T | null> => {
     try {

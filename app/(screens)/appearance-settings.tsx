@@ -194,7 +194,7 @@ export default function AppearanceSettingsScreen() {
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Preview</Text>
           
-          <View style={styles.previewCard}>
+          <View style={[styles.previewCard, { backgroundColor: isDark ? '#1a1a1a' : '#fafafa' }]}>
             <View style={styles.previewHeader}>
               <View style={styles.previewAvatar}>
                 <Text style={styles.previewAvatarText}>JB</Text>
@@ -311,7 +311,6 @@ const styles = StyleSheet.create({
   settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
   settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
   previewCard: { 
-    backgroundColor: isDark ? '#1a1a1a' : '#fafafa', 
     borderRadius: 12, 
     padding: 16,
     borderWidth: 1,

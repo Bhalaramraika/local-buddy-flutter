@@ -10,7 +10,8 @@ import { useChatStore } from '@/store/chatStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useLocationStore } from '@/store/locationStore';
-import { API_CONFIG } from '@/config';
+import { SOCKET_CONFIG } from '@/config';
+import { isMockApiEnabled } from '@/services/api';
 
 interface SocketContextType {
   // State
@@ -53,11 +54,11 @@ interface SocketContextType {
 
 const SocketContext = createContext<SocketContextType | null>(null);
 
-const SOCKET_URL = API_CONFIG.SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = SOCKET_CONFIG.URL;
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, tokens } = useAuthStore();
-  const { isConnected: storedConnected, setConnected } = useChatStore();
+  const { isSubscribed: storedConnected, setSubscribed: setConnected } = useChatStore();
   
   const [isConnected, setIsConnected] = useState(storedConnected);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -71,7 +72,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   // Initialize socket connection
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
-    if (!user || !tokens?.accessToken) return;
+    if (isMockApiEnabled || !user || !tokens?.accessToken) return;
     
     setIsConnecting(true);
     setConnectionError(null);
@@ -84,7 +85,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: maxReconnectAttempts,
-        reconnectionDelay,
+        reconnectionDelay: reconnectDelay,
         timeout: 10000,
         autoConnect: true,
       });

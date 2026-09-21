@@ -4,14 +4,35 @@
  */
 
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
-import { Platform, Linking, AppState, AppStateStatus } from 'react-native';
+import { Platform, Linking, AppState, AppStateStatus, NativeModules } from 'react-native';
 import messaging, { 
   FirebaseMessagingTypes,
   RemoteMessage 
 } from '@react-native-firebase/messaging';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuthStore } from '@/store/authStore';
+import { authService } from '@/services/auth';
 import { useRouter } from 'expo-router';
+
+// Check if native Firebase app is initialized
+const isFirebaseAppInitialized = (): boolean => {
+  try {
+    // Check if the native Firebase module exists
+    const { RNFirebase } = NativeModules;
+    return !!RNFirebase;
+  } catch {
+    return false;
+  }
+};
+
+// Safe messaging getter that handles uninitialized Firebase
+const getMessagingSafe = () => {
+  if (!isFirebaseAppInitialized()) {
+    console.warn('[NotificationContext] Firebase app not initialized. Push notifications unavailable.');
+    return null;
+  }
+  return messaging();
+};
 
 interface NotificationContextType {
   // State
@@ -40,33 +61,38 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     fcmToken: storedToken, 
     setFCMToken, 
     addNotification,
-    setPermissionGranted,
-    permissionGranted,
+    setNotificationPermission,
+    hasNotificationPermission,
   } = useNotificationStore();
   
-  const { user, updateFCMToken } = useAuthStore();
+  const { user } = useAuthStore();
   
   const [fcmToken, setFcmToken] = useState<string | null>(storedToken);
-  const [isPermissionGranted, setIsPermissionGranted] = useState(permissionGranted);
+  const [isPermissionGranted, setIsPermissionGranted] = useState(hasNotificationPermission);
   const [isLoading, setIsLoading] = useState(false);
 
   // Request notification permission
   const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
+
+    const messagingInstance = getMessagingSafe();
+    if (!messagingInstance) return false;
+
     try {
       setIsLoading(true);
       
-      const authStatus = await messaging().requestPermission({
+      const authStatus = await messagingInstance.requestPermission({
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       });
       
-      const granted = authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-                     authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      const granted = authStatus === messagingInstance.AuthorizationStatus.AUTHORIZED ||
+                     authStatus === messagingInstance.AuthorizationStatus.PROVISIONAL;
       
       setIsPermissionGranted(granted);
-      setPermissionGranted(granted);
+      setNotificationPermission(granted, granted ? 'granted' : 'denied');
       
       if (granted) {
         await registerForPushNotifications();
@@ -79,16 +105,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } finally {
       setIsLoading(false);
     }
-  }, [setIsPermissionGranted, setPermissionGranted]);
+  }, [setIsPermissionGranted, setNotificationPermission]);
 
   // Register for push notifications
   const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
+    if (Platform.OS === 'web') return null;
+
+    const messagingInstance = getMessagingSafe();
+    if (!messagingInstance) return null;
+
     try {
       // Check if already registered
       if (fcmToken) return fcmToken;
       
       // Get FCM token
-      const token = await messaging().getToken();
+      const token = await messagingInstance.getToken();
       
       if (token) {
         setFcmToken(token);
@@ -96,7 +127,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         
         // Send to backend if user is logged in
         if (user) {
-          await updateFCMToken(token);
+          await authService.updateFCMToken(token);
         }
         
         return token;
@@ -107,12 +138,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       console.error('FCM registration failed:', error);
       return null;
     }
-  }, [fcmToken, user, setFcmToken, setFCMToken, updateFCMToken]);
+  }, [fcmToken, user, setFcmToken, setFCMToken]);
 
   // Unregister from push notifications
   const unregisterForPushNotifications = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+
+    const messagingInstance = getMessagingSafe();
+    if (!messagingInstance) return;
+
     try {
-      await messaging().deleteToken();
+      await messagingInstance.deleteToken();
       setFcmToken(null);
       setFCMToken(null);
     } catch (error) {
@@ -121,7 +157,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [setFcmToken, setFCMToken]);
 
   // Handle notification opened from background/quit state
-  const onNotificationOpened = useCallback((remoteMessage: RemoteMessage) => {
+  const onNotificationOpened = useCallback((remoteMessage: RemoteMessage | null) => {
+    if (!remoteMessage) return;
     console.log('Notification opened:', remoteMessage);
     
     // Add to notification store
@@ -224,28 +261,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Set up listeners
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const messagingInstance = getMessagingSafe();
+    if (!messagingInstance) return;
+
     // Foreground message handler
-    const unsubscribeForeground = messaging().onMessage(onNotificationReceived);
+    const unsubscribeForeground = messagingInstance.onMessage(onNotificationReceived);
     
     // Background/quit state message handler
-    const unsubscribeBackground = messaging().onNotificationOpenedApp(onNotificationOpened);
+    const unsubscribeBackground = messagingInstance.onNotificationOpenedApp(onNotificationOpened);
     
     // Quit state message handler
-    messaging().getInitialNotification().then(onNotificationOpened);
+    messagingInstance.getInitialNotification().then(onNotificationOpened);
     
     // Token refresh handler
-    const unsubscribeTokenRefresh = messaging().onTokenRefresh(async (token) => {
+    const unsubscribeTokenRefresh = messagingInstance.onTokenRefresh(async (token) => {
       setFcmToken(token);
       setFCMToken(token);
       if (user) {
-        await updateFCMToken(token);
+        await authService.updateFCMToken(token);
       }
     });
     
     // App state listener for badge management
     const appStateListener = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
-        messaging().setBadgeCount(0);
       }
     });
     
@@ -255,18 +296,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       unsubscribeTokenRefresh();
       appStateListener.remove();
     };
-  }, [onNotificationReceived, onNotificationOpened, user, setFCMToken, updateFCMToken]);
+  }, [onNotificationReceived, onNotificationOpened, user, setFCMToken]);
 
   // Initialize on mount
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     const initialize = async () => {
+      const messagingInstance = getMessagingSafe();
+      if (!messagingInstance) return;
+      
       // Check existing permission
-      const authStatus = await messaging().hasPermission();
+      const authStatus = await messagingInstance.hasPermission();
       const granted = authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
                      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
       
       setIsPermissionGranted(granted);
-      setPermissionGranted(granted);
+      setNotificationPermission(granted, granted ? 'granted' : 'denied');
       
       // Register if permission granted
       if (granted) {
@@ -274,11 +320,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
       
       // Set badge count to 0 on start
-      messaging().setBadgeCount(0);
     };
     
     initialize();
-  }, [registerForPushNotifications, setIsPermissionGranted, setPermissionGranted]);
+  }, [registerForPushNotifications, setIsPermissionGranted, setNotificationPermission]);
 
   // Deep linking listener
   useEffect(() => {
@@ -328,6 +373,6 @@ export function useNotificationBadge() {
 
 // Hook for notification permission status
 export function useNotificationPermission() {
-  const { permissionGranted, isLoading } = useNotifications();
-  return { permissionGranted, isLoading };
+  const { isPermissionGranted, isLoading } = useNotifications();
+  return { permissionGranted: isPermissionGranted, isLoading };
 }

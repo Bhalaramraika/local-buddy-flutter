@@ -294,6 +294,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 12 },
   sectionContent: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
   quickLinks: { gap: 12, marginTop: 8 },
-  quickLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: isDark ? '#333' : '#fafafa', borderRadius: 12 },
+  quickLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
   quickLinkText: { fontSize: 15, fontFamily: 'Inter_500Medium', flex: 1 },
 });

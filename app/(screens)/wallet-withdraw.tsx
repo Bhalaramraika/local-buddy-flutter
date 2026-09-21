@@ -112,7 +112,7 @@ export default function WalletWithdrawScreen() {
     if (!validateAmount()) return;
     if (!isAuthenticated) {
       showToast('Please login to withdraw money', 'error');
-      router.push('/(auth)/login');
+      router.push('/login');
       return;
     }
 
@@ -260,7 +260,7 @@ export default function WalletWithdrawScreen() {
         <Text style={styles.authSubtitle}>
           Please login to withdraw money from your wallet
         </Text>
-        <TouchableOpacity style={styles.authButton} onPress={() => router.push('/(auth)/login')}>
+        <TouchableOpacity style={styles.authButton} onPress={() => router.push('/login')}>
           <Text style={styles.authButtonText}>Login / Sign Up</Text>
         </TouchableOpacity>
       </View>

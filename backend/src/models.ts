@@ -49,6 +49,11 @@ export interface UserDocument {
   phone: string;
   email?: string;
   name: string;
+  bio?: string;
+  skills?: string[];
+  dateOfBirth?: string;
+  profileCompleted?: boolean;
+  referralCode?: string;
   avatar?: string;
   role: UserRole;
   status: 'active' | 'inactive' | 'suspended' | 'banned';
@@ -89,7 +94,6 @@ export interface UserDocument {
   preferences: Record<string, any>;
   fcmTokens: string[];
   currentLocation?: { latitude: number; longitude: number; updatedAt: string };
-  referralCode?: string;
   referredBy?: string;
   commissionDue: number;
   createdAt: string;

@@ -237,7 +237,7 @@ export default function NotificationsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" style={styles.spinning} />
+          <Ionicons name="refresh" size={32} color="#4F46E5" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading notifications...</Text>
         </View>
       </View>
@@ -341,7 +341,6 @@ const styles = StyleSheet.create({
   markAllReadText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  spinning: { animation: 'spin 1s linear infinite' },
   listContent: { padding: 16, paddingBottom: 40 },
   notificationItem: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   notificationUnread: { backgroundColor: '#4F46E508' },

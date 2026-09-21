@@ -95,7 +95,7 @@ export default function WalletScreen() {
       contentContainerStyle={styles.content}
     >
       {/* Balance Card */}
-      <View style={[styles.balanceCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <View style={[styles.balanceCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
         <Text style={[styles.balanceLabel, { color: isDark ? '#aaa' : '#666' }]}>Available Balance</Text>
         <Text style={[styles.balanceAmount, { color: isDark ? '#fff' : '#000' }]}>{formatCurrency(wallet?.balance || 0)}</Text>
         <View style={styles.balanceActions}>
@@ -133,7 +133,7 @@ export default function WalletScreen() {
           {['all', 'credit', 'debit'].map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.filterTab, activeTab === tab && styles.filterTabActive]}
+                style={[styles.filterTab, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }, activeTab === tab && styles.filterTabActive]}
               onPress={() => setActiveTab(tab as any)}
             >
               <Text style={[styles.filterTabText, { color: activeTab === tab ? '#fff' : isDark ? '#aaa' : '#666' }]}>
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   filterContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   filterLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
   filterTabs: { flexDirection: 'row', gap: 8 },
-  filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' },
+     filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   filterTabActive: { backgroundColor: '#4F46E5' },
   filterTabText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   listContent: { padding: 16, paddingBottom: 30 },

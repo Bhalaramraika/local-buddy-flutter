@@ -3,10 +3,10 @@
  * Bridges Zustand authStore with React Context for provider pattern
  */
 
-import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
+import React, { createContext, useContext, useCallback, useState } from 'react';
 import { User, AuthTokens } from '@/types';
 import { useAuthStore } from '@/store/authStore';
-import { authService } from '@/services/api';
+import { authService } from '@/services/auth';
 
 interface AuthContextType {
   // State
@@ -25,7 +25,7 @@ interface AuthContextType {
   refreshToken: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   updateFCMToken: (token: string) => Promise<void>;
-  enableBiometric: () => Promise<void>;
+  enableBiometric: () => Promise<boolean>;
   disableBiometric: () => Promise<void>;
   clearError: () => void;
 }

@@ -13,6 +13,11 @@ export interface User {
   phone: string;
   email?: string;
   name: string;
+  bio?: string;
+  skills?: string[];
+  dateOfBirth?: string;
+  profileCompleted?: boolean;
+  referralCode?: string;
   avatar?: string;
   role: UserRole;
   status: UserStatus;
