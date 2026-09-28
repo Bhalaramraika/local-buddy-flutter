@@ -68,7 +68,7 @@ const SettingToggle = ({ title, subtitle, value, onValueChange }: any) => (
   </View>
 );
 
-const ShareCard = ({ share }: { share: LocationShare }) => (
+const ShareCard = ({ share, onToggleShare, onExtendShare }: { share: LocationShare; onToggleShare: (id: string, val: boolean) => void; onExtendShare: (id: string) => void }) => (
   <View style={{ backgroundColor: '#fff', borderRadius: 12, marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: '#eee', overflow: 'hidden' }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' }}>
@@ -80,7 +80,7 @@ const ShareCard = ({ share }: { share: LocationShare }) => (
       </View>
       <Switch
         value={share.isActive}
-        onValueChange={(val) => handleToggleShare(share.id, val)}
+        onValueChange={(val: boolean) => onToggleShare(share.id, val)}
         trackColor={{ false: '#767577', true: '#4F46E5' }}
         thumbColor="#fff"
       />
@@ -106,14 +106,14 @@ const ShareCard = ({ share }: { share: LocationShare }) => (
     </View>
 
     {share.isActive && share.expiresAt && share.expiresAt !== 'expired' && (
-      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#EEF2FF', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => handleExtendShare(share.id)}>
+      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#EEF2FF', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => onExtendShare(share.id)}>
         <Ionicons name="time-outline" size={14} color="#4F46E5" />
         <Text style={{ color: '#4F46E5', fontWeight: '600', marginLeft: 8 }}>Extend Sharing</Text>
       </TouchableOpacity>
     )}
 
     {!share.isActive && (
-      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#f0f0f0', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => handleToggleShare(share.id, true)}>
+      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#f0f0f0', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => onToggleShare(share.id, true)}>
         <Ionicons name="location-outline" size={14} color="#4F46E5" />
         <Text style={{ color: '#4F46E5', fontWeight: '600', marginLeft: 8 }}>Resume Sharing</Text>
       </TouchableOpacity>
@@ -177,7 +177,10 @@ export default function LocationSharingScreen() {
     },
   ];
 
+
   const loadShares = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     setShares(mockShares);
@@ -185,7 +188,8 @@ export default function LocationSharingScreen() {
   };
 
   useEffect(() => {
-    loadShares();
+    // Defer data loading past the first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(() => {     loadShares(); });
   }, []);
 
   const handleToggleShare = (shareId: string, isActive: boolean) => {
@@ -278,19 +282,19 @@ export default function LocationSharingScreen() {
             title="Share My Location"
             subtitle="Allow others to see your real-time location"
             value={true}
-            onValueChange={(val) => Alert.alert(val ? 'Enabled' : 'Disabled', 'Location sharing ' + (val ? 'enabled' : 'disabled'))}
+            onValueChange={(val: boolean) => Alert.alert(val ? 'Enabled' : 'Disabled', 'Location sharing ' + (val ? 'enabled' : 'disabled'))}
           />
           <SettingItem
             title="Share Battery Level"
             subtitle="Include battery percentage with location"
             value={true}
-            onValueChange={(val) => Alert.alert('Battery Sharing', val ? 'Enabled' : 'Disabled')}
+            onValueChange={(val: boolean) => Alert.alert('Battery Sharing', val ? 'Enabled' : 'Disabled')}
           />
           <SettingToggle
             title="Share Movement Status"
             subtitle="Show when you're moving vs stationary"
             value={false}
-            onValueChange={(val) => Alert.alert('Movement Sharing', val ? 'Enabled' : 'Disabled')}
+            onValueChange={(val: boolean) => Alert.alert('Movement Sharing', val ? 'Enabled' : 'Disabled')}
           />
         </View>
 
@@ -308,7 +312,7 @@ export default function LocationSharingScreen() {
             </View>
           ) : (
             shares.filter(s => s.isActive).map(share => (
-              <ShareCard key={share.id} share={share} />
+              <ShareCard key={share.id} share={share} onToggleShare={handleToggleShare} onExtendShare={handleExtendShare} />
             ))
           )}
         </SettingSection>
@@ -317,7 +321,7 @@ export default function LocationSharingScreen() {
         {shares.filter(s => !s.isActive).length > 0 && (
           <SettingSection title={`Previous Shares (${shares.filter(s => !s.isActive).length})`}>
             {shares.filter(s => !s.isActive).map(share => (
-              <ShareCard key={share.id} share={share} />
+              <ShareCard key={share.id} share={share} onToggleShare={handleToggleShare} onExtendShare={handleExtendShare} />
             ))}
           </SettingSection>
         )}

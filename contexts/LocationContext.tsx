@@ -5,9 +5,26 @@
 
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
 import { Platform, PermissionsAndroid, AppState, AppStateStatus } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
 import { useLocationStore } from '@/store/locationStore';
 import { useAuthStore } from '@/store/authStore';
+import { Geofence, NearbyBuddy } from '@/types';
+
+// @react-native-community/geolocation is a native-only module that throws at
+// import time inside Expo Go. Lazy-require it so the app stays bootable as a
+// dev build and gracefully degrades everywhere else.
+type GeolocationType = typeof import('@react-native-community/geolocation').default;
+let _geolocation: GeolocationType | null = null;
+export function getGeolocation(): GeolocationType | null {
+  if (_geolocation) return _geolocation;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _geolocation = require('@react-native-community/geolocation').default;
+    return _geolocation;
+  } catch {
+    console.warn('[Location] @react-native-community/geolocation unavailable (needs dev build)');
+    return null;
+  }
+}
 
 interface LocationContextType {
   // State
@@ -27,28 +44,13 @@ interface LocationContextType {
   updateLocation: (location: { latitude: number; longitude: number }) => void;
   
   // Geofences
-  geofences: Array<{
-    id: string;
-    latitude: number;
-    longitude: number;
-    radius: number;
-    type: 'task' | 'buddy' | 'zone' | 'custom';
-    metadata?: Record<string, any>;
-  }>;
+  geofences: Geofence[];
   addGeofence: (geofence: Omit<Geofence, 'id'>) => string;
   removeGeofence: (id: string) => void;
   clearGeofences: () => void;
   
   // Nearby buddies
-  nearbyBuddies: Array<{
-    id: string;
-    name: string;
-    avatar?: string;
-    distance: number;
-    location: { latitude: number; longitude: number };
-    lastSeen: string;
-    isOnline: boolean;
-  }>;
+  nearbyBuddies: NearbyBuddy[];
   refreshNearbyBuddies: (radius?: number) => Promise<void>;
   
   // City/Area
@@ -91,6 +93,45 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const watchIdRef = React.useRef<number | null>(null);
   const backgroundTaskRef = React.useRef<any>(null);
 
+  // Refresh nearby buddies
+  const refreshNearbyBuddies = useCallback(async (radius: number = 5000) => {
+    if (!currentLocation || !user) return;
+    
+    try {
+      // This would typically call an API to get nearby buddies
+      // For now, we'll use mock data
+      const mockBuddies = [
+        {
+          id: 'buddy_1',
+          name: 'Rahul Sharma',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahul',
+          distance: 1200,
+          location: {
+            latitude: currentLocation.latitude + 0.01,
+            longitude: currentLocation.longitude + 0.01,
+          },
+          lastSeen: new Date().toISOString(),
+          isOnline: true,
+        },
+        {
+          id: 'buddy_2',
+          name: 'Priya Patel',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya',
+          distance: 3500,
+          location: {
+            latitude: currentLocation.latitude - 0.02,
+            longitude: currentLocation.longitude - 0.02,
+          },
+          lastSeen: new Date(Date.now() - 300000).toISOString(),
+          isOnline: true,
+        },
+      ].filter(b => b.distance <= radius);
+      
+      setNearbyBuddies(mockBuddies);
+    } catch (err) {
+      console.error('Failed to refresh nearby buddies:', err);
+    }
+  }, [currentLocation, user, setNearbyBuddies]);
   // Request location permission
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
@@ -101,7 +142,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       
       if (Platform.OS === 'ios') {
         // iOS uses Geolocation.requestAuthorization
-        Geolocation.requestAuthorization();
+        getGeolocation()?.requestAuthorization();
         // On iOS, we need to check after a short delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         granted = true; // iOS handles via system dialog
@@ -120,7 +161,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         granted = grantedPermission === PermissionsAndroid.RESULTS.GRANTED;
         
         // Also request background location for Android 10+
-        if (granted && Platform.Version >= 29) {
+        if (granted && Number(Platform.Version) >= 29) {
           await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION
           );
@@ -156,13 +197,15 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Configure Geolocation
-      Geolocation.setRNConfiguration({
+      const geo = getGeolocation();
+      if (!geo) throw new Error('Geolocation unavailable');
+      geo.setRNConfiguration({
         skipPermissionRequests: false,
         authorizationLevel: mode === 'background' ? 'always' : 'whenInUse',
       });
       
       // Start watching position
-      const watchId = Geolocation.watchPosition(
+      const watchId = geo.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           const location = { latitude, longitude };
@@ -218,7 +261,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // Stop location tracking
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
-      Geolocation.clearWatch(watchIdRef.current);
+      getGeolocation()?.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
     
@@ -238,7 +281,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       }
       
       return new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
+        getGeolocation()?.getCurrentPosition(
           (position) => {
             const location = {
               latitude: position.coords.latitude,
@@ -291,45 +334,6 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     storeClearGeofences();
   }, [storeClearGeofences]);
 
-  // Refresh nearby buddies
-  const refreshNearbyBuddies = useCallback(async (radius: number = 5000) => {
-    if (!currentLocation || !user) return;
-    
-    try {
-      // This would typically call an API to get nearby buddies
-      // For now, we'll use mock data
-      const mockBuddies = [
-        {
-          id: 'buddy_1',
-          name: 'Rahul Sharma',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahul',
-          distance: 1200,
-          location: {
-            latitude: currentLocation.latitude + 0.01,
-            longitude: currentLocation.longitude + 0.01,
-          },
-          lastSeen: new Date().toISOString(),
-          isOnline: true,
-        },
-        {
-          id: 'buddy_2',
-          name: 'Priya Patel',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya',
-          distance: 3500,
-          location: {
-            latitude: currentLocation.latitude - 0.02,
-            longitude: currentLocation.longitude - 0.02,
-          },
-          lastSeen: new Date(Date.now() - 300000).toISOString(),
-          isOnline: true,
-        },
-      ].filter(b => b.distance <= radius);
-      
-      setNearbyBuddies(mockBuddies);
-    } catch (err) {
-      console.error('Failed to refresh nearby buddies:', err);
-    }
-  }, [currentLocation, user, setNearbyBuddies]);
 
   // Detect city and area
   const detectCityAndArea = useCallback(async () => {
@@ -365,7 +369,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return () => {
       if (watchIdRef.current !== null) {
-        Geolocation.clearWatch(watchIdRef.current);
+        getGeolocation()?.clearWatch(watchIdRef.current);
       }
     };
   }, []);
@@ -439,14 +443,4 @@ export function useNearbyBuddies() {
 export function useCityArea() {
   const { currentCity, currentArea, detectCityAndArea } = useLocation();
   return { currentCity, currentArea, detectCityAndArea };
-}
-
-// Type for geofence
-interface Geofence {
-  id: string;
-  latitude: number;
-  longitude: number;
-  radius: number;
-  type: 'task' | 'buddy' | 'zone' | 'custom';
-  metadata?: Record<string, any>;
 }

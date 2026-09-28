@@ -1,70 +1,94 @@
 /**
- * Firebase Admin Configuration
- * For push notifications and admin operations
+ * Firebase Admin Configuration — single source of truth.
+ *
+ * Lazy-initializes the Firebase Admin app from:
+ *   - FIREBASE_SERVICE_ACCOUNT_KEY (full JSON), or
+ *   - FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY
+ *
+ * All getters throw a clear error if Firebase is not configured, so the
+ * server can still boot (e.g. health checks) without credentials.
  */
 
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
-import { getMessaging, Messaging } from 'firebase-admin/messaging';
-import { getAuth, Auth } from 'firebase-admin/auth';
+import { getMessaging as adminGetMessaging, Messaging } from 'firebase-admin/messaging';
+import { getAuth as adminGetAuth, Auth, DecodedIdToken } from 'firebase-admin/auth';
+import { getFirestore as adminGetFirestore, Firestore } from 'firebase-admin/firestore';
 
 let firebaseApp: App | null = null;
-let messaging: Messaging | null = null;
-let auth: Auth | null = null;
+
+export function isFirebaseConfigured(): boolean {
+  return Boolean(
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_PROJECT_ID
+  );
+}
 
 export function initializeFirebase(): void {
-  if (getApps().length > 0) {
-    firebaseApp = getApps()[0];
-  } else {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-      : {
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        };
-
-    if (serviceAccount.projectId) {
-      firebaseApp = initializeApp({
-        credential: cert(serviceAccount),
-        projectId: serviceAccount.projectId,
-      });
-    } else {
-      console.warn('Firebase credentials not configured. Push notifications will not work.');
-    }
+  if (firebaseApp || getApps().length > 0) {
+    firebaseApp = firebaseApp || getApps()[0];
+    return;
   }
 
-  if (firebaseApp) {
-    messaging = getMessaging(firebaseApp);
-    auth = getAuth(firebaseApp);
+  if (!isFirebaseConfigured()) {
+    console.warn(
+      '[Firebase] Credentials not configured. Auth/Firestore/FCM calls will fail.'
+    );
+    return;
   }
+
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    firebaseApp = initializeApp({
+      credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)),
+    });
+    return;
+  }
+
+  firebaseApp = initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
 }
 
-export function getMessagingInstance(): Messaging | null {
-  if (!messaging) {
-    initializeFirebase();
-  }
-  return messaging;
-}
+// Initialize on module load (no-op without credentials — see isFirebaseConfigured)
+initializeFirebase();
 
-export function getAuthInstance(): Auth | null {
-  if (!auth) {
-    initializeFirebase();
-  }
-  return auth;
-}
-
-export function getFirebaseApp(): App | null {
+function requireApp(): App {
+  if (!firebaseApp) initializeFirebase();
   if (!firebaseApp) {
-    initializeFirebase();
+    throw new Error(
+      'Firebase Admin is not configured. Set FIREBASE_SERVICE_ACCOUNT_KEY or FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY.'
+    );
   }
   return firebaseApp;
 }
 
-// Initialize on module load
-initializeFirebase();
+export function getAuth(): Auth {
+  return adminGetAuth(requireApp());
+}
+
+export function getMessaging(): Messaging {
+  return adminGetMessaging(requireApp());
+}
+
+export function getFirestore(): Firestore {
+  return adminGetFirestore(requireApp());
+}
+
+export async function verifyIdToken(token: string): Promise<DecodedIdToken> {
+  return getAuth().verifyIdToken(token);
+}
+
+export const getFirebaseAdmin = initializeFirebase;
+export const getFirebaseApp = requireApp;
 
 export default {
-  getMessaging: getMessagingInstance,
-  getAuth: getAuthInstance,
-  getApp: getFirebaseApp,
+  initializeFirebase,
+  getAuth,
+  getMessaging,
+  getFirestore,
+  verifyIdToken,
+  getFirebaseAdmin,
+  getFirebaseApp,
 };

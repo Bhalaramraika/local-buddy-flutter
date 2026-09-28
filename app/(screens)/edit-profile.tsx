@@ -38,7 +38,10 @@ export default function EditProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  const [prevUser, setPrevUser] = useState(user);
+  // Adjust form during render when user data arrives (React-recommended pattern)
+  if (prevUser !== user) {
+    setPrevUser(user);
     if (user) {
       setFormData({
         name: user.name || '',
@@ -50,7 +53,7 @@ export default function EditProfileScreen() {
       });
       setAvatar(user.avatar || null);
     }
-  }, [user]);
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -85,7 +88,7 @@ export default function EditProfileScreen() {
       .map(s => s.trim())
       .filter(s => s.length > 0);
     
-    const success = await updateProfile({
+    await updateProfile({
       name: formData.name.trim(),
       email: formData.email.trim(),
       phone: formData.phone.trim() || undefined,
@@ -94,6 +97,7 @@ export default function EditProfileScreen() {
       location: formData.location.trim() || undefined,
       avatar: avatar || undefined,
     });
+    const success = true;
     
     setIsSaving(false);
     

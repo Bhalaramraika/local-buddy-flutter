@@ -407,7 +407,7 @@ export default function NotificationSettingsScreen() {
             icon="moon-outline"
             color="#4F46E5"
             isDark={isDark}
-            onPress={() => router.push('/quiet-hours')}
+            onPress={() => router.push('/(screens)/settings')}
             showArrow
             trailing="10:00 PM - 8:00 AM"
           />
@@ -418,7 +418,7 @@ export default function NotificationSettingsScreen() {
             icon="time-outline"
             color="#10B981"
             isDark={isDark}
-            onPress={() => router.push('/quiet-hours-schedule')}
+            onPress={() => router.push('/(screens)/settings')}
             showArrow
           />
         </View>

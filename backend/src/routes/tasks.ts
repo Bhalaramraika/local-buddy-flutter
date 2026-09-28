@@ -5,10 +5,11 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { collections, TaskDocument, TaskStatus, runTransaction, timestamp, serverTimestamp } from '../models';
+import { collections, TaskDocument, TaskStatus, runTransaction, timestamp } from '../models';
 import { requireAuth, requireKYC, requireRole } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../middleware/errorHandler';
+import { pushNotificationService } from '../services/pushNotificationService';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const router = Router();
@@ -174,7 +175,7 @@ router.get(
   async (req: Request, res: Response) => {
     const { status, category, minBudget, maxBudget, latitude, longitude, radiusKm, limit, offset, sortBy, sortOrder } = req.query as any;
 
-    let query = collections.tasks;
+    let query: FirebaseFirestore.Query = collections.tasks;
 
     // Apply filters
     if (status) query = query.where('status', '==', status);
@@ -265,6 +266,176 @@ router.put(
 
     const updatedDoc = await taskRef.get();
     res.json({ success: true, task: updatedDoc.data() });
+  }
+);
+
+/**
+ * POST /api/v1/tasks/:id/apply
+ * Buddy applies to an open task (MVP: single-record application)
+ */
+router.post(
+  '/:id/apply',
+  requireAuth,
+  requireKYC,
+  requireRole('buddy', 'customer'),
+  validateParams(z.object({ id: z.string().min(1) })),
+  validateBody(z.object({
+    message: z.string().max(500).optional(),
+    proposedAmount: z.number().positive().optional(),
+  }).partial().optional().default({})),
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const buddyId = req.user!.uid;
+    const body = (req.body as any) || {};
+
+    const taskRef = collections.tasks.doc(id);
+    const taskDoc = await taskRef.get();
+    if (!taskDoc.exists) {
+      throw new NotFoundError('Task not found');
+    }
+    const task = taskDoc.data() as TaskDocument & { applicants?: string[] };
+    if (task.status !== 'open') {
+      throw new BadRequestError('Task is not open');
+    }
+    if (task.posterId === buddyId) {
+      throw new BadRequestError('Cannot apply to your own task');
+    }
+
+    const appRef = taskRef.collection('applications').doc(buddyId);
+    const existing = await appRef.get();
+    if (existing.exists) {
+      throw new ConflictError('Already applied to this task');
+    }
+
+    await appRef.set({
+      buddyId,
+      message: body.message || '',
+      proposedAmount: body.proposedAmount ?? task.budget,
+      status: 'pending',
+      createdAt: timestamp(),
+    });
+
+    await taskRef.update({
+      applicants: FieldValue.arrayUnion(buddyId),
+      updatedAt: timestamp(),
+    });
+
+    pushNotificationService
+      .sendTaskNotification(task.posterId, 'new_applicant', {
+        taskId: id,
+        title: task.title,
+        amount: task.budget,
+        buddyName: req.user!.userDoc?.name || 'A buddy',
+      })
+      .catch((err) => console.error('[FCM] apply notification failed:', err));
+
+    res.status(201).json({ success: true, application: { buddyId, status: 'pending' } });
+  }
+);
+
+/**
+ * GET /api/v1/tasks/:id/applications
+ * List applications for a task (poster only)
+ */
+router.get(
+  '/:id/applications',
+  requireAuth,
+  validateParams(z.object({ id: z.string().min(1) })),
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const taskDoc = await collections.tasks.doc(id).get();
+    if (!taskDoc.exists) {
+      throw new NotFoundError('Task not found');
+    }
+    const task = taskDoc.data() as TaskDocument;
+    if (task.posterId !== req.user!.uid && req.user!.role !== 'admin') {
+      throw new ForbiddenError('Only the poster can view applications');
+    }
+
+    const appsSnap = await collections.tasks.doc(id).collection('applications').orderBy('createdAt', 'desc').get();
+    const applications = appsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    res.json({ success: true, applications });
+  }
+);
+
+/**
+ * POST /api/v1/tasks/:id/applications/:buddyId/decide
+ * Accept or reject an application (poster only). Accept = assign task.
+ */
+router.post(
+  '/:id/applications/:buddyId/decide',
+  requireAuth,
+  requireRole('customer'),
+  validateParams(z.object({ id: z.string().min(1), buddyId: z.string().min(1) })),
+  validateBody(z.object({ action: z.enum(['accept', 'reject']) })),
+  async (req: Request, res: Response) => {
+    const { id, buddyId } = req.params;
+    const { action } = req.body;
+
+    const taskRef = collections.tasks.doc(id);
+    const taskDoc = await taskRef.get();
+    if (!taskDoc.exists) {
+      throw new NotFoundError('Task not found');
+    }
+    const task = taskDoc.data() as TaskDocument;
+    if (task.posterId !== req.user!.uid) {
+      throw new ForbiddenError('Only the poster can decide applications');
+    }
+
+    const appRef = taskRef.collection('applications').doc(buddyId);
+    const appDoc = await appRef.get();
+    if (!appDoc.exists) {
+      throw new NotFoundError('Application not found');
+    }
+
+    if (action === 'reject') {
+      await appRef.update({ status: 'rejected', updatedAt: timestamp() });
+      res.json({ success: true, status: 'rejected' });
+      return;
+    }
+
+    // accept → assign (full assignment rules live in /:id/assign; here we
+    // enforce the basics and reuse the same transaction pattern)
+    if (task.status !== 'open') {
+      throw new BadRequestError('Task is not open for assignment');
+    }
+
+    await runTransaction(async (t) => {
+      const freshTaskSnap = await t.get(taskRef);
+      const freshTask = freshTaskSnap.data() as TaskDocument | undefined;
+      if (!freshTask || freshTask.status !== 'open') {
+        throw new ConflictError('Task is no longer open');
+      }
+
+      const buddySnap = await t.get(collections.users.doc(buddyId));
+      if (!buddySnap.exists) {
+        throw new NotFoundError('Buddy not found');
+      }
+
+      const chatRef = collections.chats.doc();
+      t.set(chatRef, {
+        id: chatRef.id,
+        participants: [req.user!.uid, buddyId],
+        taskId: id,
+        createdAt: timestamp(),
+        updatedAt: timestamp(),
+      });
+
+      t.update(taskRef, {
+        buddyId,
+        status: 'assigned',
+        chatId: chatRef.id,
+        updatedAt: timestamp(),
+      });
+
+      t.update(appRef, { status: 'accepted', updatedAt: timestamp() });
+    });
+
+    pushNotificationService
+      .sendTaskNotification(buddyId, 'assigned', { taskId: id, title: task.title, amount: task.budget })
+      .catch((err) => console.error('[FCM] assign notification failed:', err));
+
+    res.json({ success: true, status: 'accepted' });
   }
 );
 

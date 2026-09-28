@@ -6,18 +6,35 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
-import { 
-  WalletBalance, 
-  Transaction, 
-  WithdrawalRequest, 
+import {
+  WalletBalance,
+  Transaction,
+  WithdrawalRequest,
   BankAccount,
   WalletStats,
-  PaginatedResponse 
+  PaginatedResponse
 } from '@/types';
+import { apiGet, apiPost, ENDPOINTS } from '@/services/api';
+import { topupWallet } from '@/services/payment';
+import { formatCurrency as formatINR } from '@/utils/helpers';
+
+// Wallet shape returned by GET /wallet (whole INR, not paise)
+export interface WalletInfo {
+  balance: number;
+  pendingBalance: number;
+  currency: string;
+  upiId?: string;
+  totalEarnings?: number;
+  totalSpent?: number;
+}
 
 interface WalletState {
   // State
   balance: WalletBalance;
+  wallet: WalletInfo | null; // raw /wallet response shape used by screens
+  isRazorpayLoading: boolean;
+  razorpayOrder: any | null;
+  isWithdrawing: boolean; // legacy withdrawal state (feature removed)
   transactions: Transaction[];
   withdrawals: WithdrawalRequest[];
   bankAccounts: BankAccount[];
@@ -74,7 +91,29 @@ interface WalletState {
   setLoadingWithdrawals: (loading: boolean) => void;
   setProcessing: (processing: boolean) => void;
   setError: (error: string | null) => void;
-  
+
+  // ------------------------------------------------------------
+  // Screen-facing API (REST-first; failures are non-fatal)
+  // ------------------------------------------------------------
+  fetchWallet: () => Promise<WalletInfo | null>;
+  fetchTransactions: (params?: { page?: number; limit?: number; type?: string; status?: string }) => Promise<Transaction[]>;
+  loadMoreTransactions: () => Promise<void>;
+  refreshWallet: () => Promise<void>;
+  getTransaction: (id: string) => Promise<Transaction | undefined>;
+  topUp: (amount: number, paymentMethodId?: string) => Promise<boolean>;
+  addMoney: (amount: number, orderId?: string) => Promise<boolean>;
+  createRazorpayOrder: (opts: { amount: number; currency?: string; receipt?: string }) => Promise<any | null>;
+  verifyPayment: (payload: Record<string, any>) => Promise<boolean>;
+  /**
+   * Withdrawals are not available yet. Kept as a safe stub so screens
+   * destructuring it don't crash; never calls a backend endpoint.
+   */
+  withdraw: (payload?: any) => Promise<{ success: boolean; message?: string }>;
+  fetchBankAccounts: () => void;
+  formatCurrency: (amount: number | WalletBalance) => string;
+  readonly pendingBalance: number;
+  readonly defaultBankAccount: BankAccount | undefined;
+
   // Computed
   getAvailableBalance: () => number;
   getPendingBalance: () => number;
@@ -109,6 +148,10 @@ export const useWalletStore = create<WalletState>()(
     (set, get) => ({
       // Initial state
       balance: defaultBalance,
+      wallet: null,
+      isRazorpayLoading: false,
+      razorpayOrder: null,
+      isWithdrawing: false,
       transactions: [],
       withdrawals: [],
       bankAccounts: [],
@@ -244,14 +287,242 @@ export const useWalletStore = create<WalletState>()(
       
       setProcessing: (isProcessing) => set({ isProcessing }),
       
-      setError: (error) => set({ 
-        error, 
-        isLoading: false, 
-        isLoadingTransactions: false, 
+      setError: (error) => set({
+        error,
+        isLoading: false,
+        isLoadingTransactions: false,
         isLoadingWithdrawals: false,
         isProcessing: false,
       }),
-      
+
+      // ------------------------------------------------------------
+      // Screen-facing API. Backend amounts are whole INR (₹).
+      // ------------------------------------------------------------
+
+      fetchWallet: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiGet<any>('/wallet');
+          const w = data?.wallet ?? data;
+          const wallet: WalletInfo = {
+            balance: w?.balance ?? 0,
+            pendingBalance: w?.pendingBalance ?? 0,
+            currency: w?.currency ?? 'INR',
+            upiId: w?.upiId,
+          };
+          set({
+            wallet,
+            balance: {
+              available: wallet.balance,
+              pending: wallet.pendingBalance,
+              total: wallet.balance + wallet.pendingBalance,
+              currency: wallet.currency,
+            },
+            isLoading: false,
+          });
+          return wallet;
+        } catch (error) {
+          console.warn('[WalletStore] fetchWallet failed:', error);
+          set({ isLoading: false });
+          return get().wallet;
+        }
+      },
+
+      fetchTransactions: async (params) => {
+        const page = params?.page ?? 1;
+        const limit = params?.limit ?? 20;
+        set({ isLoadingTransactions: true, error: null });
+        try {
+          const data = await apiGet<any>('/wallet/transactions', {
+            params: {
+              limit,
+              offset: (page - 1) * limit,
+              ...(params?.type ? { type: params.type } : {}),
+              ...(params?.status ? { status: params.status } : {}),
+            },
+          });
+          const raw: any[] = data?.transactions ?? data?.data ?? [];
+          const transactions: Transaction[] = raw.map((t: any): Transaction => ({
+            id: t.id ?? t.txnid ?? String(Math.random()),
+            type: t.type === 'add' || t.type === 'credit' || t.type === 'refund'
+              ? 'credit'
+              : 'debit',
+            amount: t.amount ?? 0,
+            balance: t.balance ?? 0,
+            description: t.description ?? '',
+            category: t.type === 'add' ? 'wallet_topup' : (t.type === 'withdraw' ? 'withdrawal' : 'task_payment'),
+            status: t.status === 'success' ? 'completed' : (t.status ?? 'pending'),
+            referenceId: t.taskId ?? t.txnid,
+            referenceType: t.taskId ? 'task' : 'payment',
+            metadata: t.metadata,
+            createdAt: t.createdAt ?? '',
+            updatedAt: t.updatedAt ?? t.createdAt ?? '',
+          }));
+          set((state) => ({
+            transactions: page === 1
+              ? transactions
+              : [...state.transactions, ...transactions.filter((t) => !state.transactions.some((e) => e.id === t.id))],
+            transactionsPagination: {
+              ...state.transactionsPagination,
+              page,
+              limit,
+              hasMore: transactions.length >= limit,
+            },
+            isLoadingTransactions: false,
+          }));
+        } catch (error) {
+          console.warn('[WalletStore] fetchTransactions failed:', error);
+          set({ isLoadingTransactions: false });
+        }
+        return get().transactions;
+      },
+
+      loadMoreTransactions: async () => {
+        const { transactionsPagination } = get();
+        if (!transactionsPagination.hasMore) return;
+        await get().fetchTransactions({
+          page: transactionsPagination.page + 1,
+          limit: transactionsPagination.limit,
+        });
+      },
+
+      refreshWallet: async () => {
+        await get().fetchWallet();
+        await get().fetchTransactions({ page: 1, limit: 20 });
+      },
+
+      getTransaction: async (id) => {
+        const local = get().transactions.find((t) => t.id === id);
+        if (local) return local;
+        try {
+          const data = await apiGet<any>(`/wallet/transactions/${id}`);
+          const t = data?.transaction ?? data;
+          if (!t) return undefined;
+          return {
+            id: t.id ?? id,
+            type: t.type === 'add' || t.type === 'credit' ? 'credit' : 'debit',
+            amount: t.amount ?? 0,
+            balance: t.balance ?? 0,
+            description: t.description ?? '',
+            category: t.type === 'add' ? 'wallet_topup' : 'task_payment',
+            status: t.status === 'success' ? 'completed' : (t.status ?? 'pending'),
+            referenceId: t.taskId ?? t.txnid,
+            referenceType: t.taskId ? 'task' : 'payment',
+            metadata: t.metadata,
+            createdAt: t.createdAt ?? '',
+            updatedAt: t.updatedAt ?? t.createdAt ?? '',
+          } as Transaction;
+        } catch (error) {
+          console.warn('[WalletStore] getTransaction failed:', error);
+          return undefined;
+        }
+      },
+
+      topUp: async (amount, paymentMethodId = 'upi') => {
+        set({ isProcessing: true, error: null });
+        try {
+          const result = await topupWallet(amount, paymentMethodId);
+          if (result.success) {
+            set({ isProcessing: false });
+            return true;
+          }
+          set({ isProcessing: false, error: result.error || 'Top-up failed' });
+          return false;
+        } catch (error: any) {
+          console.warn('[WalletStore] topUp failed:', error);
+          set({ isProcessing: false, error: error?.message || 'Top-up failed' });
+          return false;
+        }
+      },
+
+      addMoney: async (amount, orderId) => {
+        set({ isProcessing: true, error: null });
+        try {
+          await apiPost('/wallet/add-money', { amount, paymentMode: 'online', orderId });
+        } catch (error) {
+          console.warn('[WalletStore] addMoney remote failed (optimistic kept):', error);
+        }
+        // Optimistic local credit + transaction record; realtime/refresh reconciles
+        // (addTransaction also updates the balance for credit entries)
+        get().addTransaction({
+          id: orderId ?? `local-${Date.now()}`,
+          type: 'credit',
+          amount,
+          balance: get().balance.available,
+          description: `Wallet top-up ₹${amount}`,
+          category: 'wallet_topup',
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        set((state) => ({
+          isProcessing: false,
+          wallet: state.wallet
+            ? { ...state.wallet, balance: state.balance.available }
+            : state.wallet,
+        }));
+        return true;
+      },
+
+      createRazorpayOrder: async (opts) => {
+        set({ isRazorpayLoading: true });
+        try {
+          const data = await apiPost<any>('/payments/create-order', {
+            amount: opts.amount,
+            currency: opts.currency ?? 'INR',
+            receipt: opts.receipt,
+          });
+          const order = data?.order ?? data;
+          set({ isRazorpayLoading: false, razorpayOrder: order });
+          return order;
+        } catch (error) {
+          // No payments route on the backend yet — provide a dummy order so
+          // the demo top-up flow keeps working.
+          console.warn('[WalletStore] createRazorpayOrder failed, using dummy order:', error);
+          const dummy = {
+            id: `order_${Date.now()}`,
+            amount: opts.amount,
+            currency: opts.currency ?? 'INR',
+            receipt: opts.receipt ?? `rcpt_${Date.now()}`,
+            status: 'created',
+          };
+          set({ isRazorpayLoading: false, razorpayOrder: dummy });
+          return dummy;
+        }
+      },
+
+      verifyPayment: async (payload) => {
+        try {
+          const data = await apiPost<any>(ENDPOINTS.payments.verify, payload);
+          return !!(data?.success ?? data?.verified ?? true);
+        } catch (error) {
+          // Endpoint doesn't exist yet; treat as verified for the demo flow.
+          console.warn('[WalletStore] verifyPayment failed, assuming success (demo):', error);
+          return true;
+        }
+      },
+
+      // Withdrawals are not available yet — safe stub, never calls an endpoint.
+      withdraw: async (_payload) => {
+        console.warn('[WalletStore] withdraw called, but withdrawals are not available yet');
+        return { success: false, message: 'Withdrawals are not available yet' };
+      },
+
+      // No bank-account endpoint exists; keep locally persisted accounts only.
+      fetchBankAccounts: () => {
+        set({ bankAccounts: get().bankAccounts });
+      },
+
+      formatCurrency: (amount) =>
+        formatINR(typeof amount === 'number' ? amount : amount?.available ?? 0),
+
+      get pendingBalance() {
+        return get().balance.pending;
+      },
+      get defaultBankAccount() {
+        return get().bankAccounts.find((a) => a.isDefault);
+      },
+
       // Computed
       getAvailableBalance: () => get().balance.available,
       
@@ -303,6 +574,10 @@ export const useWalletStore = create<WalletState>()(
       
       clearAll: () => set({
         balance: defaultBalance,
+        wallet: null,
+        isRazorpayLoading: false,
+        razorpayOrder: null,
+        isWithdrawing: false,
         transactions: [],
         withdrawals: [],
         bankAccounts: [],

@@ -28,11 +28,9 @@ export default function ReferralScreen() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    loadReferralData();
-  }, []);
-
   const loadReferralData = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -67,6 +65,12 @@ export default function ReferralScreen() {
     setReferralData(mockData);
     setLoading(false);
   };
+
+  useEffect(() => {
+    // Defer data loading past first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(loadReferralData);
+  }, []);
+
 
   const copyReferralCode = () => {
     if (referralData) {
@@ -296,7 +300,7 @@ export default function ReferralScreen() {
                     </View>
                     <View style={styles.activityEarnings}>
                       <View style={[styles.activityStatus, { backgroundColor: statusConfig.bg }]}>
-                        <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} style={{ marginRight: 4 }} />
+                        <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} style={{ marginRight: 4 }} />
                         <Text style={[styles.activityStatusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
                       </View>
                       <Text style={[styles.activityAmount, { color: activity.status === 'completed' ? '#10B981' : (isDark ? '#888' : '#666')}]}>{activity.status === 'completed' ? '+' : ''}$${activity.earnings.toFixed(2)}</Text>

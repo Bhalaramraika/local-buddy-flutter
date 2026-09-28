@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Image,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -88,7 +89,7 @@ export default function AboutScreen() {
             ].map((feature, index) => (
               <View key={index} style={styles.featureItem}>
                 <View style={[styles.featureIcon, { backgroundColor: '#4F46E515' }]}>
-                  <Ionicons name={feature.icon} size={24} color="#4F46E5" />
+                  <Ionicons name={feature.icon as any} size={24} color="#4F46E5" />
                 </View>
                 <View style={styles.featureContent}>
                   <Text style={[styles.featureTitle, { color: isDark ? '#fff' : '#000' }]}>{feature.title}</Text>

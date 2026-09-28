@@ -74,7 +74,7 @@ export default function WalletHistoryScreen() {
   const renderTransaction = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.transactionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-      onPress={() => router.push(`/(screens)/transaction-detail/${item.id}`)}
+      onPress={() => router.push({ pathname: `/(screens)/transaction-detail`, params: { id: item.id } })}
     >
       <View style={styles.transactionIconContainer}>
         <View style={[
@@ -209,11 +209,11 @@ export default function WalletHistoryScreen() {
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loadingMore && (
+          loadingMore ? (
             <View style={styles.loadingMore}>
               <Text style={[styles.loadingMoreText, { color: isDark ? '#888' : '#666' }]}>Loading more...</Text>
             </View>
-          )
+          ) : null
         }
       />
     </View>

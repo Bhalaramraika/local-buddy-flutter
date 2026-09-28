@@ -244,7 +244,7 @@ export default function FAQScreen() {
         {/* Still need help? */}
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
           <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>Still need help?</Text>
-          <Text style={[styles.helpDesc, { color: isDark ? '#888' : '#666' }, { marginBottom: 16 }]}>Can't find what you're looking for? Our support team is here to help.</Text>
+          <Text style={[styles.helpDesc, { color: isDark ? '#888' : '#666' }, { marginBottom: 16 }]}>Can&apos;t find what you&apos;re looking for? Our support team is here to help.</Text>
           <TouchableOpacity style={styles.contactButton} onPress={() => router.push('/contact-support')}>
             <Text style={styles.contactButtonText}>Contact Support</Text>
           </TouchableOpacity>

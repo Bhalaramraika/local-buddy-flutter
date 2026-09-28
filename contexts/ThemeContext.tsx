@@ -3,7 +3,7 @@
  * Supports light, dark, and system themes with persistence
  */
 
-import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useMemo, useState } from 'react';
 import { useColorScheme, Appearance } from 'react-native';
 import { useUIStore } from '@/store/uiStore';
 
@@ -19,63 +19,41 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-const THEME_STORAGE_KEY = 'app-theme-mode';
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme: storedTheme, setTheme: setStoredTheme, fontSize, setFontSize } = useUIStore();
   const systemColorScheme = useColorScheme();
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
-  const [isMounted, setIsMounted] = useState(false);
 
-  // Resolve theme based on mode and system preference
-  const resolveTheme = useCallback((mode: ThemeMode): 'light' | 'dark' => {
-    if (mode === 'system') {
-      return systemColorScheme || 'light';
+  // Resolve theme purely during render (no effect-setState needed)
+  const resolvedTheme = useMemo<'light' | 'dark'>(() => {
+    if (storedTheme === 'system') {
+      return systemColorScheme === 'dark' ? 'dark' : 'light';
     }
-    return mode;
-  }, [systemColorScheme]);
+    return storedTheme;
+  }, [storedTheme, systemColorScheme]);
 
-  // Apply theme to document (for web) and update state
-  const applyTheme = useCallback((mode: ThemeMode) => {
-    const resolved = resolveTheme(mode);
-    setResolvedTheme(resolved);
-    
-    // Apply to document for web
+  // Keep the DOM (web) & NativeWind theme classes in sync as a side effect
+  useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(resolved);
+      document.documentElement.classList.add(resolvedTheme);
     }
-    
-    // Update NativeWind
     if (typeof window !== 'undefined' && (window as any).__NEXT_THEME__) {
-      (window as any).__NEXT_THEME__.setTheme(resolved);
+      (window as any).__NEXT_THEME__.setTheme(resolvedTheme);
     }
-  }, [resolveTheme]);
+  }, [resolvedTheme]);
 
-  // Initialize theme on mount
+  // Listen to system theme changes (hook ordering/derivation handles the rest)
   useEffect(() => {
-    setIsMounted(true);
-    applyTheme(storedTheme);
-  }, [storedTheme, applyTheme]);
-
-  // Listen to system theme changes
-  useEffect(() => {
-    if (!isMounted) return;
-    
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      if (storedTheme === 'system') {
-        applyTheme('system');
-      }
+    const subscription = Appearance.addChangeListener(() => {
+      // systemColorScheme updates trigger the useMemo above
     });
-
     return () => subscription?.remove();
-  }, [isMounted, storedTheme, applyTheme]);
+  }, [storedTheme]);
 
   // Set theme mode
   const setTheme = useCallback((mode: ThemeMode) => {
     setStoredTheme(mode);
-    applyTheme(mode);
-  }, [setStoredTheme, applyTheme]);
+  }, [setStoredTheme]);
 
   // Toggle between light and dark (skipping system)
   const toggleTheme = useCallback(() => {
@@ -85,15 +63,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Font size helpers
   const increaseFontSize = useCallback(() => {
-    setFontSize(Math.min(fontSize + 1, 4));
+    const order: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+    const idx = Math.max(0, order.indexOf(fontSize));
+    setFontSize(order[Math.min(idx + 1, order.length - 1)]);
   }, [fontSize, setFontSize]);
 
   const decreaseFontSize = useCallback(() => {
-    setFontSize(Math.max(fontSize - 1, 1));
+    const order: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
+    const idx = Math.max(0, order.indexOf(fontSize));
+    setFontSize(order[Math.max(idx - 1, 0)]);
   }, [fontSize, setFontSize]);
 
   const resetFontSize = useCallback(() => {
-    setFontSize(2);
+    setFontSize('medium');
   }, [setFontSize]);
 
   const value: ThemeContextType = {
@@ -120,17 +102,23 @@ export function useTheme() {
 }
 
 // Hook for font size management
+const FONT_SIZE_ORDER = ['small', 'medium', 'large'] as const;
+type FontSizeName = (typeof FONT_SIZE_ORDER)[number];
+const FONT_SIZE_SCALE: Record<FontSizeName, number> = { small: 0.9, medium: 1, large: 1.1 };
+
 export function useFontSize() {
   const { fontSize, setFontSize } = useUIStore();
-  
+
+  const index = Math.max(0, FONT_SIZE_ORDER.indexOf(fontSize));
+
   return {
     fontSize,
     setFontSize,
-    increaseFontSize: () => setFontSize(Math.min(fontSize + 1, 4)),
-    decreaseFontSize: () => setFontSize(Math.max(fontSize - 1, 1)),
-    resetFontSize: () => setFontSize(2),
+    increaseFontSize: () => setFontSize(FONT_SIZE_ORDER[Math.min(index + 1, FONT_SIZE_ORDER.length - 1)]),
+    decreaseFontSize: () => setFontSize(FONT_SIZE_ORDER[Math.max(index - 1, 0)]),
+    resetFontSize: () => setFontSize('medium'),
     // Scale factors for different sizes
-    scale: [0.85, 0.925, 1, 1.075, 1.15][fontSize],
+    scale: FONT_SIZE_SCALE[fontSize],
   };
 }
 

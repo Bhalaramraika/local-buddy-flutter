@@ -353,3 +353,7 @@ export const STORAGE_KEYS = {
   walletBalance: 'wallet_balance',
   theme: 'theme',
 } as const;
+// Payment (MVP: PayU only)
+export const PAYMENT_CONFIG = {
+  currency: 'INR',
+} as const;

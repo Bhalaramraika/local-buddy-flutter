@@ -199,7 +199,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={task.id}
                 style={[styles.taskCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-                onPress={() => router.push(`/(screens)/task-detail/${task.id}`)}
+                onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: task.id } })}
               >
                 <View style={styles.taskHeader}>
                   <View style={[styles.taskCategory, { backgroundColor: '#4F46E520' }]}>
@@ -245,7 +245,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={buddy.id}
                 style={styles.buddyCard}
-                onPress={() => router.push(`/(screens)/chat-detail/${buddy.id}`)}
+                onPress={() => router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: buddy.id } })}
               >
                 <View style={styles.buddyAvatar}>
                   {buddy.avatar ? (

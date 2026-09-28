@@ -70,7 +70,7 @@ export default function TaskApplicationsScreen() {
   };
 
   const handleViewProfile = (applicantId: string) => {
-    router.push(`/profile?userId=${applicantId}`);
+    router.push({ pathname: `/(screens)/user-profile`, params: { userId: applicantId } });
   };
 
   const getStatusColor = (status: string) => {

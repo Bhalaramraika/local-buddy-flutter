@@ -173,20 +173,20 @@ export const ENDPOINTS = {
   
   // User Profile
   user: {
-    profile: '/user/profile',
+    profile: '/users/me/profile',
     updateProfile: '/users/me/profile',
-    updateLocation: '/user/location',
-    updateLanguage: '/user/language',
+    updateLocation: '/users/me/location',
+    updateLanguage: '/users/me/language',
     updateFcmToken: '/users/me/fcm-token',
-    deleteAccount: '/user/account',
+    deleteAccount: '/users/me/account',
   },
   
   // KYC
   kyc: {
-    submit: '/kyc/submit',
-    status: '/kyc/status',
-    documents: '/kyc/documents',
-    verify: '/kyc/verify',
+    submit: '/users/me/kyc',
+    status: '/users/me/kyc',
+    documents: '/users/me/kyc',
+    verify: '/users/me/kyc',
   },
   
   // Tasks
@@ -196,16 +196,19 @@ export const ENDPOINTS = {
     get: (id: string) => `/tasks/${id}`,
     update: (id: string) => `/tasks/${id}`,
     delete: (id: string) => `/tasks/${id}`,
-    accept: (id: string) => `/tasks/${id}/accept`,
-    start: (id: string) => `/tasks/${id}/start`,
-    complete: (id: string) => `/tasks/${id}/complete`,
-    cancel: (id: string) => `/tasks/${id}/cancel`,
+    accept: (id: string) => `/tasks/${id}/assign`,
+    apply: (id: string) => `/tasks/${id}/apply`,
+    applications: (id: string) => `/tasks/${id}/applications`,
+    decideApplication: (id: string, buddyId: string) => `/tasks/${id}/applications/${buddyId}/decide`,
+    start: (id: string) => `/tasks/${id}/status`,
+    complete: (id: string) => `/tasks/${id}/status`,
+    cancel: (id: string) => `/tasks/${id}/status`,
     dispute: (id: string) => `/tasks/${id}/dispute`,
     rate: (id: string) => `/tasks/${id}/rate`,
-    nearby: '/tasks/nearby',
-    myTasks: '/tasks/my',
-    postedTasks: '/tasks/posted',
-    buddyTasks: '/tasks/buddy',
+    nearby: '/tasks',
+    myTasks: '/tasks/my/assigned',
+    postedTasks: '/tasks/my/posted',
+    buddyTasks: '/tasks/my/assigned',
   },
   
   // Chat
@@ -221,19 +224,24 @@ export const ENDPOINTS = {
   
   // Wallet
   wallet: {
-    balance: '/wallet/balance',
+    balance: '/wallet',
     transactions: '/wallet/transactions',
-    topup: '/wallet/topup',
+    topup: '/wallet/add-money',
+    payuCallback: '/wallet/payu/callback',
+    release: (taskId: string) => `/wallet/release/${taskId}`,
+    // Withdrawals are removed from the MVP (kept for type-compatibility
+    // with legacy callers; all are no-ops).
     withdraw: '/wallet/withdraw',
     paymentMethods: '/wallet/payment-methods',
     addPaymentMethod: '/wallet/payment-methods',
     removePaymentMethod: (id: string) => `/wallet/payment-methods/${id}`,
   },
   
-  // Payments
+  // Payments (MVP: only PayU top-up hash/callback used)
   payments: {
     createOrder: '/payments/create-order',
     verify: '/payments/verify',
+    verifyPayU: '/payments/verify',
     webhook: '/payments/webhook',
     refund: '/payments/refund',
   },

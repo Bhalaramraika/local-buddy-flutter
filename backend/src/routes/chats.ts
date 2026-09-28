@@ -5,11 +5,11 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { collections, ChatDocument, MessageDocument, runTransaction, timestamp, serverTimestamp } from '../models';
+import { collections, subCollections, getDb, ChatDocument, MessageDocument, timestamp } from '../models';
 import { requireAuth } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
-import { FieldValue } from 'firebase-admin/firestore';
+import { pushNotificationService } from '../services/pushNotificationService';
 
 const router = Router();
 
@@ -272,8 +272,20 @@ router.post(
       updatedAt: timestamp(),
     });
 
-    // TODO: Send push notification to other participant via FCM
-    // TODO: Emit Socket.io event for real-time delivery
+    // Push notification to the other participant (realtime delivery is
+    // handled client-side via Firestore listeners on the messages subcollection)
+    const otherUserId = chat.participants.find(p => p !== req.user!.uid);
+    if (otherUserId) {
+      const senderName = req.user!.userDoc?.name || 'Someone';
+      pushNotificationService
+        .sendChatNotification(otherUserId, {
+          chatId: id,
+          senderName,
+          message: text,
+          senderId: req.user!.uid,
+        })
+        .catch((err) => console.error('[FCM] chat notification failed:', err));
+    }
 
     res.status(201).json({ success: true, message });
   }
@@ -333,7 +345,7 @@ router.delete(
     if (updatedParticipants.length === 0) {
       // Last participant left - delete chat and messages
       const messagesSnap = await subCollections.messages(id).get();
-      const batch = collections.firestore.batch();
+      const batch = getDb().batch();
       messagesSnap.docs.forEach(doc => batch.delete(doc.ref));
       batch.delete(chatDoc.ref);
       await batch.commit();
@@ -347,8 +359,5 @@ router.delete(
     res.json({ success: true, message: 'Chat deleted' });
   }
 );
-
-// Import subCollections helper
-import { subCollections } from '../models';
 
 export default router;

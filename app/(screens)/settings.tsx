@@ -89,7 +89,7 @@ export default function SettingsScreen() {
           label: 'Dark Mode', 
           type: 'switch',
           value: isDark,
-          onValueChange: (value) => setTheme(value ? 'dark' : 'light'),
+          onValueChange: (value: boolean) => setTheme(value ? 'dark' : 'light'),
           iconType: 'Ionicons'
         },
         { 
@@ -198,15 +198,15 @@ export default function SettingsScreen() {
   const renderIcon = (name: string, type: string, color: string) => {
     switch (type) {
       case 'Ionicons':
-        return <Ionicons name={name} size={22} color={color} />;
+        return <Ionicons name={name as any} size={22} color={color} />;
       case 'MaterialCommunityIcons':
-        return <MaterialCommunityIcons name={name} size={22} color={color} />;
+        return <MaterialCommunityIcons name={name as any} size={22} color={color} />;
       case 'Feather':
-        return <Feather name={name} size={22} color={color} />;
+        return <Feather name={name as any} size={22} color={color} />;
       case 'AntDesign':
-        return <AntDesign name={name} size={22} color={color} />;
+        return <AntDesign name={name as any} size={22} color={color} />;
       default:
-        return <Ionicons name={name} size={22} color={color} />;
+        return <Ionicons name={name as any} size={22} color={color} />;
     }
   };
 

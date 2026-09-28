@@ -199,7 +199,7 @@ export default function AchievementsScreen() {
                 style={[styles.categoryTab, selectedCategory === cat.key && styles.categoryTabActive]}
                 onPress={() => setSelectedCategory(cat.key as any)}
               >
-                <Ionicons name={cat.icon} size={20} color={selectedCategory === cat.key ? '#fff' : isDark ? '#ddd' : '#666'} style={{ marginRight: 6 }} />
+                <Ionicons name={cat.icon as any} size={20} color={selectedCategory === cat.key ? '#fff' : isDark ? '#ddd' : '#666'} style={{ marginRight: 6 }} />
                 <Text style={[styles.categoryTabText, selectedCategory === cat.key ? { color: '#fff' } : { color: isDark ? '#ddd' : '#333' }]}>{cat.label}</Text>
               </TouchableOpacity>
             ))}

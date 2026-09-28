@@ -6,10 +6,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
-import { User, UserRole, KYCStatus } from '@/types/user';
+import { User, UserRole, KYCStatus } from '@/types';
 import { AuthTokens } from '@/types';
 
-interface AuthState {
+export interface AuthState {
   // State
   user: User | null;
   tokens: AuthTokens | null;
@@ -31,6 +31,7 @@ interface AuthState {
   setFCMToken: (token: string | null) => void;
   setBiometricEnabled: (enabled: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
   updateKYCStatus: (status: KYCStatus, details?: Partial<User['kyc']>) => void;
   updateWalletBalance: (balance: number) => void;
   logout: () => void;
@@ -82,6 +83,12 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
+      
+      updateProfile: async (updates) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        }));
+      },
       
       updateKYCStatus: (status, details) => set((state) => ({
         user: state.user ? {

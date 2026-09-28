@@ -4,7 +4,7 @@
  * Handles PayU payment gateway integration and cash-based transactions
  */
 
-import { api, ENDPOINTS } from './api';
+import { apiGet, apiPost, apiDelete, ENDPOINTS } from './api';
 import { PAYMENT_CONFIG } from '@/constants/app';
 import { PaymentVerification, PayUFormData, PayUCallbackParams, CashPaymentDetails, PayUConfig } from '@/types';
 
@@ -16,6 +16,7 @@ export interface PaymentOrder {
   status: 'created' | 'attempted' | 'paid' | 'failed';
   attempts: number;
   createdAt: number;
+  notes?: Record<string, any>;
 }
 
 export interface PaymentMethod {
@@ -58,7 +59,7 @@ export const createPaymentOrder = async (
   metadata?: Record<string, any>
 ): Promise<PaymentOrder> => {
   try {
-    const response = await api.post<PaymentOrder>(ENDPOINTS.payments.createOrder, {
+    const response = await apiPost<PaymentOrder>(ENDPOINTS.payments.createOrder, {
       amount: Math.round(amount * 100), // Convert to paise
       currency: PAYMENT_CONFIG.currency,
       receipt: `rcpt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -135,7 +136,7 @@ export const verifyPayUCallback = async (
 ): Promise<{ success: boolean; paymentId?: string; error?: string }> => {
   try {
     // Verify hash on backend
-    const response = await api.post<{ success: boolean; paymentId: string }>(
+    const response = await apiPost<{ success: boolean; paymentId: string }>(
       ENDPOINTS.payments.verifyPayU,
       callbackParams
     );
@@ -173,7 +174,7 @@ export const handlePayUCallback = (
 // Get payment methods
 export const getPaymentMethods = async (): Promise<PaymentMethod[]> => {
   try {
-    const response = await api.get<PaymentMethod[]>(ENDPOINTS.wallet.paymentMethods);
+    const response = await apiGet<PaymentMethod[]>(ENDPOINTS.wallet.paymentMethods);
     return response;
   } catch (error) {
     console.error('[Payment] Get payment methods error:', error);
@@ -187,7 +188,7 @@ export const addPaymentMethod = async (
   details: { upiId?: string; token?: string }
 ): Promise<PaymentMethod> => {
   try {
-    const response = await api.post<PaymentMethod>(ENDPOINTS.wallet.addPaymentMethod, {
+    const response = await apiPost<PaymentMethod>(ENDPOINTS.wallet.addPaymentMethod, {
       type,
       ...details,
     });
@@ -201,7 +202,7 @@ export const addPaymentMethod = async (
 // Remove payment method
 export const removePaymentMethod = async (methodId: string): Promise<boolean> => {
   try {
-    await api.delete(ENDPOINTS.wallet.removePaymentMethod(methodId));
+    await apiDelete(ENDPOINTS.wallet.removePaymentMethod(methodId));
     return true;
   } catch (error) {
     console.error('[Payment] Remove payment method error:', error);
@@ -212,7 +213,7 @@ export const removePaymentMethod = async (methodId: string): Promise<boolean> =>
 // Set default payment method
 export const setDefaultPaymentMethod = async (methodId: string): Promise<boolean> => {
   try {
-    await api.post(`${ENDPOINTS.wallet.paymentMethods}/${methodId}/default`);
+    await apiPost(`${ENDPOINTS.wallet.paymentMethods}/${methodId}/default`);
     return true;
   } catch (error) {
     console.error('[Payment] Set default payment method error:', error);
@@ -278,7 +279,7 @@ export const processWalletTopup = async (
     const { getWalletBalance } = await import('./wallet');
     const balance = await getWalletBalance();
     
-    return { success: true, balance };
+    return { success: true, balance: balance.available };
   } catch (error: any) {
     console.error('[Payment] Process wallet topup error:', error);
     return { 
@@ -294,9 +295,10 @@ export const cashDepositWallet = async (
   cashDetails: CashPaymentDetails
 ): Promise<{ success: boolean; transactionId?: string; error?: string }> => {
   try {
-    const response = await api.post<{ transactionId: string }>(ENDPOINTS.wallet.cashDeposit, {
-      amount: Math.round(amount * 100), // Convert to paise
+    const response = await apiPost<{ transactionId: string }>(ENDPOINTS.wallet.topup, {
       ...cashDetails,
+      amount: Math.round(amount * 100), // Convert to paise
+      paymentMode: 'cash',
     });
     return { success: true, transactionId: response.transactionId };
   } catch (error: any) {
@@ -365,7 +367,7 @@ export const processTaskPayment = async (
     }
 
     // Notify backend of successful payment
-    await api.post(`/tasks/${taskId}/payment-complete`, {
+    await apiPost(`/tasks/${taskId}/payment-complete`, {
       paymentId: verification.paymentId,
     });
 
@@ -386,9 +388,9 @@ export const cashPaymentForTask = async (
   cashDetails: CashPaymentDetails
 ): Promise<{ success: boolean; transactionId?: string; error?: string }> => {
   try {
-    const response = await api.post<{ transactionId: string }>(`/tasks/${taskId}/cash-payment`, {
-      amount: Math.round(amount * 100),
+    const response = await apiPost<{ transactionId: string }>(`/tasks/${taskId}/cash-payment`, {
       ...cashDetails,
+      amount: Math.round(amount * 100),
     });
     return { success: true, transactionId: response.transactionId };
   } catch (error: any) {
@@ -407,7 +409,7 @@ export const requestRefund = async (
   reason: string = 'Customer requested'
 ): Promise<{ success: boolean; refundId?: string; error?: string }> => {
   try {
-    const response = await api.post<{ refundId: string }>(ENDPOINTS.payments.refund, {
+    const response = await apiPost<{ refundId: string }>(ENDPOINTS.payments.refund, {
       paymentId,
       amount: amount ? Math.round(amount * 100) : undefined,
       reason,
@@ -425,7 +427,7 @@ export const requestRefund = async (
 // Get PayU config
 export const getPayUConfig = async (): Promise<PayUConfig | null> => {
   try {
-    const response = await api.get<{ payu: PayUConfig }>(ENDPOINTS.meta.config);
+    const response = await apiGet<{ payu: PayUConfig }>(ENDPOINTS.meta.config);
     return response.payu || null;
   } catch (error) {
     console.error('[Payment] Get PayU config error:', error);
@@ -436,7 +438,7 @@ export const getPayUConfig = async (): Promise<PayUConfig | null> => {
 // Get payment config
 export const getPaymentConfig = async (): Promise<PaymentConfig | null> => {
   try {
-    const response = await api.get<PaymentConfig>(ENDPOINTS.meta.config);
+    const response = await apiGet<{ payment: PaymentConfig }>(ENDPOINTS.meta.config);
     return response.payment || null;
   } catch (error) {
     console.error('[Payment] Get config error:', error);

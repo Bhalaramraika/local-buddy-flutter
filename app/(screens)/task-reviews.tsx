@@ -46,7 +46,7 @@ export default function TaskReviewsScreen() {
   const handleReviewPress = (review: any) => {
     Alert.alert(
       review.type === 'given' ? 'Your Review' : 'Review Received',
-      `${review.comment}\n\nRating: ${getStarRating(review.rating)} (${rating.toFixed(1)})`,
+      `${review.comment}\n\nRating: ${getStarRating(review.rating)} (${review.rating.toFixed(1)})`,
       [{ text: 'OK' }]
     );
   };
@@ -74,7 +74,7 @@ export default function TaskReviewsScreen() {
               filter === tab && styles.filterTabActive,
               { backgroundColor: filter === tab ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
             ]}
-            onPress={() => setFilter(tab)}
+            onPress={() => setFilter(tab as any)}
           >
             <Text style={[
               styles.filterTabText,
@@ -171,7 +171,7 @@ export default function TaskReviewsScreen() {
                       <View style={styles.reviewNameRow}>
                         <Text style={[styles.reviewerName, { color: isDark ? '#fff' : '#000' }]}>{review.reviewerName}</Text>
                         <View style={styles.reviewTypeBadge}>
-                          <Ionicons name={review.type === 'given' ? 'send-outline' : 'receive-outline'} size={12} color="#4F46E5" />
+                          <Ionicons name={review.type === 'given' ? 'send-outline' : 'download-outline'} size={12} color="#4F46E5" />
                           <Text style={[styles.reviewTypeText, { color: '#4F46E5' }]}>{review.type === 'given' ? 'Given' : 'Received'}</Text>
                         </View>
                       </View>
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
   summaryContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
   statCard: { flex: 1, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
   statCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  statCardContent: { flex: 1 },
   statCardValue: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 2 },
   statCardTitle: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   statCardSubtitle: { fontSize: 11, fontFamily: 'Inter_400Regular' },

@@ -40,16 +40,22 @@ export default function EditTaskScreen() {
 
   const task = tasks.find(t => t.id === taskId);
 
-  useEffect(() => {
+  const [prevTask, setPrevTask] = useState(task);
+  if (prevTask !== task) {
+    setPrevTask(task);
     if (task) {
       setTitle(task.title);
       setDescription(task.description);
       setCategory(task.category);
-      setBudget(task.budget?.toString() || '');
-      setLocation(task.location || '');
+      setBudget(task.budget?.amount?.toString() || '');
+      setLocation(task.location?.address || '');
       setDeadline(task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '');
-      setRequirements(task.requirements || '');
-    } else if (taskId) {
+      setRequirements(Array.isArray(task.requirements) ? task.requirements.join(', ') : (task.requirements || ''));
+    }
+  }
+
+  useEffect(() => {
+    if (!task && taskId) {
       fetchTasks();
     }
   }, [task, taskId, fetchTasks]);
@@ -248,7 +254,7 @@ export default function EditTaskScreen() {
                 placeholder="Enter location or use current"
               />
               <TouchableOpacity onPress={() => setLocation('Current Location')}>
-                <Ionicons name="gps-outline" size={22} color="#4F46E5" />
+                <Ionicons name="navigate-outline" size={22} color="#4F46E5" />
               </TouchableOpacity>
             </View>
           </FormField>

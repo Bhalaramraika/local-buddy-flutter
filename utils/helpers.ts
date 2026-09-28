@@ -54,3 +54,15 @@ export function formatDate(date: Date | string | number): string {
     year: 'numeric',
   });
 }
+
+// Format date with time (e.g., "Jan 15, 2024, 2:30 PM")
+export function formatDateTime(date: Date | string | number): string {
+  return new Date(date).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}

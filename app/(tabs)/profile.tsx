@@ -189,7 +189,7 @@ export default function ProfileScreen() {
             )}
             {user?.isVerified && (
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-shield-outline" size={16} color="#fff" />
+                <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
               </View>
             )}
           </View>
@@ -274,7 +274,7 @@ export default function ProfileScreen() {
                 styles.statIcon,
                 { backgroundColor: `${stat.color}20` }
               ]}>
-                <MaterialCommunityIcons name={stat.icon} size={24} color={stat.color} />
+                  <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
               </View>
               <Text style={[
                 styles.statValue,
@@ -390,7 +390,7 @@ export default function ProfileScreen() {
                   styles.menuItemIcon,
                   { backgroundColor: `${item.color}20` }
                 ]}>
-                  <MaterialCommunityIcons name={item.icon} size={22} color={item.color} />
+                  <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color} />
                 </View>
                 <Text style={[
                   styles.menuItemLabel,

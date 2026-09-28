@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Platform, StyleProp, ViewStyle } from 'react-native';
 import { useUIStore } from '@/store/uiStore';
 import { ToastMessage } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -58,7 +58,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, index, onDismiss }) => {
   };
 
   const getToastStyles = () => {
-    const baseStyles = [styles.toast, styles[toast.type]];
+    const baseStyles: StyleProp<ViewStyle>[] = [styles.toast, styles[toast.type]];
     if (theme === 'dark') {
       baseStyles.push(styles.dark);
     }
@@ -90,7 +90,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, index, onDismiss }) => {
         <View style={styles.iconContainer}>
           <Text style={styles.iconText}>{getIcon()}</Text>
         </View>
-        <View style={styles.textContainer} flex={1}>
+        <View style={[styles.textContainer, { flex: 1 }]}>
           <Text style={styles.title} numberOfLines={1}>{toast.title}</Text>
           {toast.message && (
             <Text style={styles.message} numberOfLines={2}>{toast.message}</Text>
@@ -103,7 +103,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, index, onDismiss }) => {
       {toast.action && (
         <TouchableOpacity 
           onPress={() => {
-            toast.action.onPress();
+            toast.action?.onPress();
             dismiss();
           }}
           style={styles.actionButton}
@@ -223,7 +223,7 @@ export const ToastContainer: React.FC = () => {
   }
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View style={containerStyles.container} pointerEvents="box-none">
       {toasts.map((toast, index) => (
         <ToastItem
           key={toast.id}

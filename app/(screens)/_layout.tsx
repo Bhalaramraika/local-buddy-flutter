@@ -13,20 +13,18 @@ export default function ScreensLayout() {
       screenOptions={{
         headerStyle: {
           backgroundColor: 'transparent',
-          elevation: 0,
-          shadowOpacity: 0,
         },
         headerTitleStyle: {
           fontFamily: 'Inter_600SemiBold',
           fontSize: 18,
         },
         headerTintColor: '#000',
-        cardStyle: styles.card,
+        contentStyle: styles.card,
         gestureEnabled: true,
       }}
     >
       {/* Profile Screens */}
-      <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+      <Stack.Screen name="user-profile" options={{ title: 'Profile' }} />
       <Stack.Screen name="edit-profile" options={{ title: 'Edit Profile' }} />
       <Stack.Screen name="kyc-status" options={{ title: 'KYC Status' }} />
       <Stack.Screen name="kyc-documents" options={{ title: 'KYC Documents' }} />

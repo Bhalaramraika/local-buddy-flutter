@@ -20,13 +20,12 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { NotificationProvider, useNotifications } from '@/contexts/NotificationContext';
 import { LocationProvider, useLocation } from '@/contexts/LocationContext';
-import { SocketProvider, useSocket } from '@/contexts/SocketContext';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLocationStore } from '@/store/locationStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { initializeStores } from '@/store';
-import { initializeServices } from '@/services';
+import { initializeServices, startRealtimeSync, stopRealtimeSync } from '@/services';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import * as SplashScreen from 'expo-splash-screen';
@@ -62,7 +61,7 @@ function useLoadFonts() {
 // Auth initialization hook
 function AuthInitializer() {
   const { initializeAuth, isInitialized } = useAuth();
-  const { setUser, setTokens, setLoading: setAuthLoading } = useAuthStore();
+  const { setLoading: setAuthLoading } = useAuthStore();
   const { setGlobalLoading } = useUIStore();
   const setUILoading = useCallback((isLoading: boolean) => {
     setGlobalLoading({ isLoading });
@@ -85,27 +84,26 @@ function AuthInitializer() {
     if (!isInitialized) {
       initAuth();
     }
-  }, [isInitialized, initializeAuth, setAuthLoading, setUILoading, setUser, setTokens]);
+  }, [isInitialized, initializeAuth, setAuthLoading, setUILoading]);
 
   return null;
 }
 
 // Location initialization hook
 function LocationInitializer() {
-  const { requestPermissions, startTracking } = useLocation();
-  const { setPermissions, setTrackingMode } = useLocationStore();
+  const { requestPermission, startTracking } = useLocation();
+  const { setPermissionStatus, setTrackingMode } = useLocationStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
     const initLocation = async () => {
       if (user) {
         try {
-          const permissions = await requestPermissions();
-          setPermissions(permissions);
-          
-          if (permissions.foreground === 'granted') {
-            await startTracking('balanced');
-            setTrackingMode('balanced');
+          const granted = await requestPermission();
+          setPermissionStatus(granted ? 'granted' : 'denied');
+
+          if (granted) {
+            await startTracking('foreground');
           }
         } catch (error) {
           console.error('Location initialization failed:', error);
@@ -114,26 +112,26 @@ function LocationInitializer() {
     };
 
     initLocation();
-  }, [user, requestPermissions, startTracking, setPermissions, setTrackingMode]);
+  }, [user, requestPermission, startTracking, setPermissionStatus, setTrackingMode]);
 
   return null;
 }
 
 // Notification initialization hook
 function NotificationInitializer() {
-  const { registerForPushNotifications, getFCMToken } = useNotifications();
-  const { setFCMToken, setTokenRegistered, setPermission } = useNotificationStore();
+  const { requestPermission, registerForPushNotifications } = useNotifications();
+  const { setFCMToken, setTokenRegistered, setNotificationPermission } = useNotificationStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
     const initNotifications = async () => {
       if (user) {
         try {
-          const permission = await registerForPushNotifications();
-          setPermission(permission);
-          
-          if (permission === 'granted') {
-            const token = await getFCMToken();
+          const granted = await requestPermission();
+          setNotificationPermission(granted, granted ? 'granted' : 'denied');
+
+          if (granted) {
+            const token = await registerForPushNotifications();
             if (token) {
               setFCMToken(token);
               setTokenRegistered(true);
@@ -146,28 +144,26 @@ function NotificationInitializer() {
     };
 
     initNotifications();
-  }, [user, registerForPushNotifications, getFCMToken, setFCMToken, setTokenRegistered, setPermission]);
+  }, [user, requestPermission, registerForPushNotifications, setFCMToken, setTokenRegistered, setNotificationPermission]);
 
   return null;
 }
 
-// Socket initialization hook
-function SocketInitializer() {
-  const { connect, disconnect } = useSocket();
+// Firestore realtime sync (replaces the old Socket.IO layer)
+function RealtimeInitializer() {
   const { user } = useAuthStore();
-  const { isOnline } = useUIStore();
 
   useEffect(() => {
-    if (user && isOnline) {
-      connect();
+    if (user?.id) {
+      startRealtimeSync(user.id);
     } else {
-      disconnect();
+      stopRealtimeSync();
     }
 
     return () => {
-      disconnect();
+      stopRealtimeSync();
     };
-  }, [user, isOnline, connect, disconnect]);
+  }, [user?.id]);
 
   return null;
 }
@@ -218,10 +214,10 @@ function GlobalErrorHandler() {
 
     // Set up global error handlers
     // For React Native, we use the global ErrorUtils
-    const originalHandler = global.ErrorUtils?.getGlobalHandler?.();
+    const originalHandler = (globalThis as any).ErrorUtils?.getGlobalHandler?.();
     
-    if (global.ErrorUtils) {
-      global.ErrorUtils.setGlobalHandler(handleGlobalError);
+    if ((globalThis as any).ErrorUtils) {
+      (globalThis as any).ErrorUtils.setGlobalHandler(handleGlobalError);
     }
 
     // For unhandled promise rejections (works in React Native with proper polyfill)
@@ -236,8 +232,8 @@ function GlobalErrorHandler() {
 
     // Cleanup
     return () => {
-      if (global.ErrorUtils && originalHandler) {
-        global.ErrorUtils.setGlobalHandler(originalHandler);
+      if ((globalThis as any).ErrorUtils && originalHandler) {
+        (globalThis as any).ErrorUtils.setGlobalHandler(originalHandler);
       }
       if (typeof window !== 'undefined') {
         window.removeEventListener('unhandledrejection', rejectionHandler);
@@ -287,7 +283,6 @@ function AppProviders({ children }: { children: React.ReactNode }) {
           <ThemeProvider>
             <NotificationProvider>
               <LocationProvider>
-                <SocketProvider>
                   <SafeAreaProvider>
                     <ErrorBoundary>
                       <ThemedStatusBar />
@@ -298,12 +293,11 @@ function AppProviders({ children }: { children: React.ReactNode }) {
                         <AuthInitializer />
                         <LocationInitializer />
                         <NotificationInitializer />
-                        <SocketInitializer />
+                        <RealtimeInitializer />
                         {children}
                       </FontLoader>
                     </ErrorBoundary>
                   </SafeAreaProvider>
-                </SocketProvider>
               </LocationProvider>
             </NotificationProvider>
           </ThemeProvider>

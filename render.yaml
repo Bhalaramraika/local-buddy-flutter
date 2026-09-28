@@ -1,10 +1,8 @@
-# Render.com Blueprint Configuration for LocalBuddy Backend
-# Deploy: Connect GitHub repo → Render auto-detects this file
-# Free Tier: 750 hrs/mo, spins down after 15min inactivity
-# Region: singapore (closest to India) or oregon/frankfurt
+# Render.com Blueprint — LocalBuddy MVP backend
+# Single web service (Express API). Realtime is handled client-side via
+# Firestore listeners, so no worker/socket process is needed.
 
 services:
-  # Backend API Service (Free Tier)
   - type: web
     name: localbuddy-api
     runtime: docker
@@ -15,7 +13,7 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      # Required - Node Environment
+      # Node
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -23,23 +21,21 @@ services:
       - key: HOST
         value: "0.0.0.0"
 
-      # Required - Firebase Admin (from Firebase Console > Service Accounts)
+      # Firebase Admin (Firebase Console > Service Accounts)
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
-      - key: FIREBASE_DATABASE_URL
-        sync: false
 
-      # Required - JWT Configuration
+      # JWT (internal use)
       - key: JWT_SECRET
-        generateValue: true  # Render auto-generates secure secret
+        generateValue: true
       - key: JWT_EXPIRY
         value: "7d"
 
-      # Required - PayU Payment Gateway (Test Mode from PayU Merchant Dashboard)
+      # PayU (Test Mode from PayU Merchant Dashboard)
       - key: PAYU_MERCHANT_KEY
         sync: false
       - key: PAYU_MERCHANT_SALT
@@ -47,7 +43,7 @@ services:
       - key: PAYU_BASE_URL
         value: "https://test.payu.in"
 
-      # Required - AuthKey.io for OTP
+      # AuthKey.io — the only OTP channel
       - key: AUTHKEY_API_KEY
         sync: false
       - key: AUTHKEY_SENDER_ID
@@ -55,27 +51,7 @@ services:
       - key: AUTHKEY_ROUTE
         value: "4"
 
-      # Required - Fast2SMS for OTP (DEPRECATED - use AuthKey.io)
-      - key: FAST2SMS_API_KEY
-        sync: false
-
-      # Required - Cloudinary for Image Upload
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-
-      # Optional - Brevo (Sendinblue) for Email
-      - key: BREVO_API_KEY
-        sync: false
-
-      # Optional - FCM Server Key (from Firebase Console > Cloud Messaging)
-      - key: FCM_SERVER_KEY
-        sync: false
-
-      # Rate Limiting
+      # Rate limiting
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
       - key: RATE_LIMIT_MAX_REQUESTS
@@ -83,106 +59,10 @@ services:
       - key: OTP_RATE_LIMIT_MAX
         value: "3"
 
-      # CORS & Security
+      # Security
       - key: CORS_ORIGIN
         sync: false
-      - key: WS_MAX_CONNECTIONS
-        value: "10000"
 
-      # App URLs (update after frontend deploy)
+      # App URL used for PayU redirect deep-links
       - key: APP_URL
         sync: false
-      - key: FRONTEND_URL
-        sync: false
-
-      # Supabase (for database)
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-
-  # Background Worker for Jobs (Free Tier - limited hours)
-  - type: worker
-    name: localbuddy-worker
-    runtime: docker
-    plan: free
-    region: singapore
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    envVars:
-      - key: NODE_ENV
-        value: production
-      # Firebase Admin SDK
-      - key: FIREBASE_PROJECT_ID
-        sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-      - key: FIREBASE_DATABASE_URL
-        sync: false
-      # JWT
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_EXPIRY
-        value: "7d"
-      # PayU
-      - key: PAYU_MERCHANT_KEY
-        sync: false
-      - key: PAYU_MERCHANT_SALT
-        sync: false
-      - key: PAYU_BASE_URL
-        value: "https://test.payu.in"
-      # AuthKey.io for OTP
-      - key: AUTHKEY_API_KEY
-        sync: false
-      - key: AUTHKEY_SENDER_ID
-        value: "LBUDDY"
-      - key: AUTHKEY_ROUTE
-        value: "4"
-      # Fast2SMS (DEPRECATED)
-      - key: FAST2SMS_API_KEY
-        sync: false
-      # Cloudinary
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      # Brevo
-      - key: BREVO_API_KEY
-        sync: false
-      # Supabase
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      # FCM
-      - key: FCM_SERVER_KEY
-        sync: false
-
-# Optional: PostgreSQL Database (Free tier available)
-# databases:
-#   - name: localbuddy-db
-#     plan: free
-#     region: singapore
-#     databaseName: localbuddy
-#     user: localbuddy_user
-
-# Optional: Redis for caching/sessions (Paid only on Render)
-# databases:
-#   - name: localbuddy-redis
-#     plan: starter
-#     region: singapore
-
-# Optional: Cron Jobs for background tasks
-# cronJobs:
-#   - name: cleanup-expired-otps
-#     schedule: "0 * * * *"  # Every hour
-#     command: "node dist/jobs/cleanup-otps.js"
-#     plan: free

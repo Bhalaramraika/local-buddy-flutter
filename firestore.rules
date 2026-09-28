@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helpers
+    function signedIn() { return request.auth != null; }
+
+    // OTP sessions: only server (Admin SDK bypasses rules). Clients never touch.
+    match /otp_sessions/{id} { allow read, write: if false; }
+    match /user_locks/{id} { allow read, write: if false; }
+    match /jobs/{id} { allow read, write: if false; }
+    match /verifications/{id} { allow read: if false; allow create: if signedIn(); allow update, delete: if false; }
+    match /transactions/{id} { allow read: if signedIn() && resource.data.userId == request.auth.uid; allow write: if false; }
+
+    // Users: anyone signed-in can read public profile data; only owner writes own doc (balance guarded server-side)
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      // Money/Trust fields mutated ONLY via backend (Admin SDK bypasses rules)
+      allow update: if signedIn() && request.auth.uid == userId
+        && !('wallet' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('stats' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('kyc' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('fcmTokens' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('commissionDue' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('rating' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('role' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('status' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if signedIn() && request.auth.uid == userId;
+
+      match /notifications/{id} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
+      match /chats/{id} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // Tasks: public read; only poster/buddy/admin writes (via backend for trust-critical steps)
+    match /tasks/{taskId} {
+      allow read: if signedIn();
+      // Task creation status/posterId/budget enforced by backend; client may create open tasks
+      allow create: if signedIn() && request.resource.data.posterId == request.auth.uid;
+      // Only status-agnostic fields editable by poster; status transitions happen via backend
+      allow update: if signedIn() && (
+        (request.auth.uid == resource.data.posterId &&
+         !('status' in request.resource.data.diff(resource.data).affectedKeys()) &&
+         !('buddyId' in request.resource.data.diff(resource.data).affectedKeys()))
+      );
+      allow delete: if signedIn() && request.auth.uid == resource.data.posterId;
+
+      match /applications/{buddyId} {
+        allow read: if signedIn() && (request.auth.uid == resource.data.posterId || request.auth.uid == buddyId);
+        allow create: if signedIn() && request.auth.uid == buddyId;
+        allow update, delete: if signedIn() && (request.auth.uid == resource.data.posterId);
+      }
+    }
+
+    // Chats: participants only
+    match /chats/{chatId} {
+      allow read, create, update: if signedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if signedIn() && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow update, delete: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+
+    // Reviews
+    match /reviews/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.reviewerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.reviewerId == request.auth.uid;
+    }
+  }
+}

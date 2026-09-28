@@ -59,7 +59,7 @@ export default function SecuritySettingsScreen() {
   };
 
   const handleChangePassword = () => {
-    router.push('/change-password');
+    router.push('/(screens)/security-settings');
   };
 
   const handleSetup2FA = () => {
@@ -213,7 +213,7 @@ export default function SecuritySettingsScreen() {
             icon="time-outline"
             color="#4F46E5"
             isDark={isDark}
-            onPress={() => router.push('/login-history')}
+            onPress={() => router.push('/(screens)/security-settings')}
             showArrow
           />
         </View>

@@ -428,6 +428,7 @@ const styles = StyleSheet.create({
   storageBreakdown: { flexDirection: 'row', justifyContent: 'space-between' },
   storageBreakdownItem: { flex: 1, alignItems: 'center', paddingHorizontal: 8 },
   storageBreakdownColor: { marginBottom: 8 },
+  storageBreakdownInfo: { alignItems: 'center' },
   colorDot: { width: 12, height: 12, borderRadius: 6 },
   storageBreakdownLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center', marginBottom: 2 },
   storageBreakdownValue: { fontSize: 11, fontFamily: 'Inter_400Regular', textAlign: 'center' },

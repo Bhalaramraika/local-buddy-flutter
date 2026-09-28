@@ -1,55 +1,61 @@
 /**
  * Notification Context - Push notification handling
  * FCM token management, foreground/background handling, deep linking
+ * Native Firebase module is lazy-required so the app runs in Expo Go/web.
  */
 
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
-import { Platform, Linking, AppState, AppStateStatus, NativeModules } from 'react-native';
-import messaging, { 
+import { Platform, Linking, AppState, AppStateStatus } from 'react-native';
+import type {
   FirebaseMessagingTypes,
-  RemoteMessage 
+  RemoteMessage,
 } from '@react-native-firebase/messaging';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth';
 import { useRouter } from 'expo-router';
 
-// Check if native Firebase app is initialized
-const isFirebaseAppInitialized = (): boolean => {
+type MessagingModule = typeof import('@react-native-firebase/messaging').default;
+type MessagingInstance = FirebaseMessagingTypes.Module;
+
+let _messaging: MessagingModule | null = null;
+const getMessagingModule = (): MessagingModule | null => {
+  if (_messaging) return _messaging;
   try {
-    // Check if the native Firebase module exists
-    const { RNFirebase } = NativeModules;
-    return !!RNFirebase;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _messaging = require('@react-native-firebase/messaging').default;
+    return _messaging;
   } catch {
-    return false;
+    return null;
   }
 };
 
-// Safe messaging getter that handles uninitialized Firebase
-const getMessagingSafe = () => {
-  if (!isFirebaseAppInitialized()) {
-    console.warn('[NotificationContext] Firebase app not initialized. Push notifications unavailable.');
+// Safe messaging getter — returns null when native FCM is unavailable
+const getMessagingSafe = (): MessagingInstance | null => {
+  const mod = getMessagingModule();
+  if (!mod) return null;
+  try {
+    return mod();
+  } catch {
+    console.warn('[NotificationContext] Firebase not initialized. Push unavailable.');
     return null;
   }
-  return messaging();
+};
+
+const getAuthStatus = () => {
+  const mod: any = getMessagingModule();
+  return mod?.AuthorizationStatus ?? { AUTHORIZED: 1, PROVISIONAL: 2 };
 };
 
 interface NotificationContextType {
-  // State
   fcmToken: string | null;
   isPermissionGranted: boolean;
   isLoading: boolean;
-  
-  // Actions
   requestPermission: () => Promise<boolean>;
   registerForPushNotifications: () => Promise<string | null>;
   unregisterForPushNotifications: () => Promise<void>;
-  
-  // Handlers
-  onNotificationOpened: (remoteMessage: RemoteMessage) => void;
+  onNotificationOpened: (remoteMessage: RemoteMessage | null) => void;
   onNotificationReceived: (remoteMessage: RemoteMessage) => void;
-  
-  // Deep linking
   handleDeepLink: (url: string) => void;
 }
 
@@ -57,57 +63,129 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { 
-    fcmToken: storedToken, 
-    setFCMToken, 
+  const {
+    fcmToken: storedToken,
+    setFCMToken,
     addNotification,
     setNotificationPermission,
     hasNotificationPermission,
   } = useNotificationStore();
-  
+
   const { user } = useAuthStore();
-  
+
   const [fcmToken, setFcmToken] = useState<string | null>(storedToken);
   const [isPermissionGranted, setIsPermissionGranted] = useState(hasNotificationPermission);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Request notification permission
-  const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (Platform.OS === 'web') return false;
+  // ------------- navigation helpers -------------
 
-    const messagingInstance = getMessagingSafe();
-    if (!messagingInstance) return false;
-
-    try {
-      setIsLoading(true);
-      
-      const authStatus = await messagingInstance.requestPermission({
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      });
-      
-      const granted = authStatus === messagingInstance.AuthorizationStatus.AUTHORIZED ||
-                     authStatus === messagingInstance.AuthorizationStatus.PROVISIONAL;
-      
-      setIsPermissionGranted(granted);
-      setNotificationPermission(granted, granted ? 'granted' : 'denied');
-      
-      if (granted) {
-        await registerForPushNotifications();
+  const navigateToScreen = useCallback(
+    (screen: string, params?: Record<string, any>) => {
+      switch (screen) {
+        case 'task-detail':
+        case 'task_detail':
+        case 'task':
+          router.push({
+            pathname: '/(screens)/task-detail',
+            params: { taskId: String(params?.taskId ?? '') },
+          });
+          break;
+        case 'chat':
+        case 'chat-detail':
+          router.push({
+            pathname: '/(screens)/chat-detail',
+            params: { conversationId: String(params?.chatId ?? params?.conversationId ?? '') },
+          });
+          break;
+        case 'wallet':
+          router.push('/(tabs)/wallet');
+          break;
+        case 'profile':
+          router.push({
+            pathname: '/(screens)/user-profile',
+            params: { userId: String(params?.userId ?? user?.id ?? '') },
+          });
+          break;
+        case 'notifications':
+          router.push('/(screens)/notifications');
+          break;
+        case 'settings':
+          router.push('/(screens)/settings');
+          break;
+        default:
+          router.push('/(tabs)/home');
       }
-      
-      return granted;
-    } catch (error) {
-      console.error('Permission request failed:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setIsPermissionGranted, setNotificationPermission]);
+    },
+    [router, user]
+  );
 
-  // Register for push notifications
+  const handleDeepLink = useCallback(
+    (url: string) => {
+      try {
+        const normalized = url.replace(/^localbuddy:\/\//, '/');
+        const [pathPart, queryPart] = normalized.split('?');
+        const params = queryPart
+          ? Object.fromEntries(new URLSearchParams(queryPart).entries())
+          : {};
+        const segments = pathPart.split('/').filter(Boolean);
+        const head = segments[0];
+        const id = segments[1];
+
+        if (head === 'task' && id) {
+          router.push({ pathname: '/(screens)/task-detail', params: { taskId: id } });
+        } else if (head === 'chat' && id) {
+          router.push({ pathname: '/(screens)/chat-detail', params: { conversationId: id } });
+        } else if (head === 'wallet') {
+          router.push('/(tabs)/wallet');
+        } else if (head === 'profile' && id) {
+          router.push({ pathname: '/(screens)/user-profile', params: { userId: id } });
+        } else if (head === 'notifications') {
+          router.push('/(screens)/notifications');
+        } else {
+          router.push('/(tabs)/home');
+        }
+      } catch (error) {
+        console.error('Deep link parsing failed:', error);
+        router.push('/(tabs)/home');
+      }
+    },
+    [router]
+  );
+
+  // ------------- FCM message handlers -------------
+
+  const onNotificationReceived = useCallback(
+    (remoteMessage: RemoteMessage) => {
+      addNotification({
+        id: remoteMessage.messageId || Date.now().toString(),
+        title: remoteMessage.notification?.title || 'Notification',
+        body: remoteMessage.notification?.body || '',
+        data: (remoteMessage.data as Record<string, any>) || {},
+        type: (remoteMessage.data?.type as any) || 'general',
+        priority: (remoteMessage.data?.priority as any) || 'normal',
+        read: false,
+        createdAt: new Date().toISOString(),
+      } as any);
+    },
+    [addNotification]
+  );
+
+  const onNotificationOpened = useCallback(
+    (remoteMessage: RemoteMessage | null) => {
+      if (!remoteMessage) return;
+      onNotificationReceived(remoteMessage);
+      const data = remoteMessage.data || {};
+      if (data.url) {
+        handleDeepLink(String(data.url));
+      } else if (data.screen) {
+        navigateToScreen(String(data.screen), data.params as Record<string, any> | undefined);
+      }
+    },
+    [onNotificationReceived, handleDeepLink, navigateToScreen]
+  );
+
+  // ------------- token registration -------------
+
   const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
     if (Platform.OS === 'web') return null;
 
@@ -115,24 +193,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!messagingInstance) return null;
 
     try {
-      // Check if already registered
       if (fcmToken) return fcmToken;
-      
-      // Get FCM token
+
       const token = await messagingInstance.getToken();
-      
       if (token) {
         setFcmToken(token);
         setFCMToken(token);
-        
-        // Send to backend if user is logged in
         if (user) {
           await authService.updateFCMToken(token);
         }
-        
         return token;
       }
-      
       return null;
     } catch (error) {
       console.error('FCM registration failed:', error);
@@ -140,7 +211,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [fcmToken, user, setFcmToken, setFCMToken]);
 
-  // Unregister from push notifications
   const unregisterForPushNotifications = useCallback(async () => {
     if (Platform.OS === 'web') return;
 
@@ -156,126 +226,60 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [setFcmToken, setFCMToken]);
 
-  // Handle notification opened from background/quit state
-  const onNotificationOpened = useCallback((remoteMessage: RemoteMessage | null) => {
-    if (!remoteMessage) return;
-    console.log('Notification opened:', remoteMessage);
-    
-    // Add to notification store
-    addNotification({
-      id: remoteMessage.messageId || Date.now().toString(),
-      title: remoteMessage.notification?.title || '',
-      body: remoteMessage.notification?.body || '',
-      data: remoteMessage.data,
-      type: (remoteMessage.data?.type as any) || 'general',
-      priority: (remoteMessage.data?.priority as any) || 'normal',
-      read: false,
-      createdAt: new Date().toISOString(),
-    });
-    
-    // Handle deep linking
-    if (remoteMessage.data?.url) {
-      handleDeepLink(remoteMessage.data.url);
-    } else if (remoteMessage.data?.screen) {
-      navigateToScreen(remoteMessage.data.screen, remoteMessage.data.params);
-    }
-  }, [addNotification]);
+  // ------------- permissions -------------
 
-  // Handle notification received in foreground
-  const onNotificationReceived = useCallback((remoteMessage: RemoteMessage) => {
-    console.log('Notification received:', remoteMessage);
-    
-    // Add to notification store
-    addNotification({
-      id: remoteMessage.messageId || Date.now().toString(),
-      title: remoteMessage.notification?.title || '',
-      body: remoteMessage.notification?.body || '',
-      data: remoteMessage.data,
-      type: (remoteMessage.data?.type as any) || 'general',
-      priority: (remoteMessage.data?.priority as any) || 'normal',
-      read: false,
-      createdAt: new Date().toISOString(),
-    });
-    
-    // Show local notification if app is in foreground
-    // This is handled by the notification service
-  }, [addNotification]);
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
 
-  // Handle deep links
-  const handleDeepLink = useCallback((url: string) => {
-    console.log('Deep link received:', url);
-    
+    const messagingInstance = getMessagingSafe();
+    if (!messagingInstance) return false;
+
     try {
-      const parsed = new URL(url);
-      const path = parsed.pathname;
-      const params = Object.fromEntries(parsed.searchParams);
-      
-      // Route based on path
-      if (path.startsWith('/task/')) {
-        const taskId = path.split('/')[2];
-        router.push(`/tabs/tasks/${taskId}?${new URLSearchParams(params).toString()}`);
-      } else if (path.startsWith('/chat/')) {
-        const chatId = path.split('/')[2];
-        router.push(`/tabs/chat/${chatId}?${new URLSearchParams(params).toString()}`);
-      } else if (path.startsWith('/wallet/')) {
-        router.push(`/tabs/wallet${path.replace('/wallet', '')}?${new URLSearchParams(params).toString()}`);
-      } else if (path.startsWith('/profile/')) {
-        router.push(`/(screens)/profile${path.replace('/profile', '')}?${new URLSearchParams(params).toString()}`);
-      } else {
-        // Default to home
-        router.push(`/(tabs)/?${new URLSearchParams(params).toString()}`);
+      setIsLoading(true);
+
+      const authStatus = await messagingInstance.requestPermission({
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      });
+
+      const AuthorizationStatus = getAuthStatus();
+      const granted =
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
+
+      setIsPermissionGranted(granted);
+      setNotificationPermission(granted, granted ? 'granted' : 'denied');
+
+      if (granted) {
+        await registerForPushNotifications();
       }
+
+      return granted;
     } catch (error) {
-      console.error('Deep link parsing failed:', error);
-      router.push('/(tabs)');
+      console.error('Permission request failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-  }, [router]);
+  }, [setIsPermissionGranted, setNotificationPermission, registerForPushNotifications]);
 
-  // Navigate to specific screen
-  const navigateToScreen = useCallback((screen: string, params?: Record<string, any>) => {
-    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
-    
-    switch (screen) {
-      case 'task-detail':
-        router.push(`/tabs/tasks/${params?.taskId}${queryString}`);
-        break;
-      case 'chat':
-        router.push(`/tabs/chat/${params?.chatId}${queryString}`);
-        break;
-      case 'wallet':
-        router.push(`/tabs/wallet${queryString}`);
-        break;
-      case 'profile':
-        router.push(`/(screens)/profile${queryString}`);
-        break;
-      case 'notifications':
-        router.push(`/(screens)/notifications${queryString}`);
-        break;
-      case 'settings':
-        router.push(`/(screens)/settings${queryString}`);
-        break;
-      default:
-        router.push(`/(tabs)${queryString}`);
-    }
-  }, [router]);
+  // ------------- wiring -------------
 
-  // Set up listeners
+  // Set up message listeners
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
     const messagingInstance = getMessagingSafe();
     if (!messagingInstance) return;
 
-    // Foreground message handler
     const unsubscribeForeground = messagingInstance.onMessage(onNotificationReceived);
-    
-    // Background/quit state message handler
-    const unsubscribeBackground = messagingInstance.onNotificationOpenedApp(onNotificationOpened);
-    
-    // Quit state message handler
+    const unsubscribeBackground =
+      messagingInstance.onNotificationOpenedApp(onNotificationOpened);
+
     messagingInstance.getInitialNotification().then(onNotificationOpened);
-    
-    // Token refresh handler
+
     const unsubscribeTokenRefresh = messagingInstance.onTokenRefresh(async (token) => {
       setFcmToken(token);
       setFCMToken(token);
@@ -283,13 +287,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         await authService.updateFCMToken(token);
       }
     });
-    
-    // App state listener for badge management
-    const appStateListener = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') {
-      }
+
+    const appStateListener = AppState.addEventListener('change', (_state: AppStateStatus) => {
+      // Reserved: badge bookkeeping can go here
     });
-    
+
     return () => {
       unsubscribeForeground();
       unsubscribeBackground();
@@ -298,43 +300,44 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
   }, [onNotificationReceived, onNotificationOpened, user, setFCMToken]);
 
-  // Initialize on mount
+  // Initialize on mount: check current permission + register if granted
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
     const initialize = async () => {
       const messagingInstance = getMessagingSafe();
       if (!messagingInstance) return;
-      
-      // Check existing permission
-      const authStatus = await messagingInstance.hasPermission();
-      const granted = authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-                     authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-      
-      setIsPermissionGranted(granted);
-      setNotificationPermission(granted, granted ? 'granted' : 'denied');
-      
-      // Register if permission granted
-      if (granted) {
-        await registerForPushNotifications();
+
+      try {
+        const authStatus = await messagingInstance.hasPermission();
+        const AuthorizationStatus = getAuthStatus();
+        const granted =
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL;
+
+        setIsPermissionGranted(granted);
+        setNotificationPermission(granted, granted ? 'granted' : 'denied');
+
+        if (granted) {
+          await registerForPushNotifications();
+        }
+      } catch (error) {
+        console.error('[NotificationContext] init failed:', error);
       }
-      
-      // Set badge count to 0 on start
     };
-    
+
     initialize();
   }, [registerForPushNotifications, setIsPermissionGranted, setNotificationPermission]);
 
-  // Deep linking listener
+  // Deep link listener
   useEffect(() => {
-    const handleUrl = (url: string) => handleDeepLink(url);
-    
-    // Initial URL
-    Linking.getInitialURL().then(handleUrl).catch(console.error);
-    
-    // URL listener
-    const subscription = Linking.addEventListener('url', ({ url }) => handleUrl(url));
-    
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) handleDeepLink(url);
+      })
+      .catch(console.error);
+
+    const subscription = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
     return () => subscription.remove();
   }, [handleDeepLink]);
 

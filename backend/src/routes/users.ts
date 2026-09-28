@@ -10,7 +10,7 @@ import { collections, UserDocument, KYCStatus, runTransaction, timestamp } from 
 import { requireAuth, requireRole, requireKYC, optionalAuth } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
-import { getAuth } from '../firebase';
+import { getAuth } from '../config/firebase';
 
 const router = Router();
 
@@ -58,44 +58,8 @@ const fcmTokenSchema = z.object({
 });
 
 // ============================================================
-// Routes
+// Routes (note: static /me/* and /search paths are registered before /:id)
 // ============================================================
-
-/**
- * GET /api/v1/users/:id
- * Get public user profile
- */
-router.get(
-  '/:id',
-  validateParams(z.object({ id: z.string().min(1) })),
-  optionalAuth,
-  async (req: Request, res: Response) => {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const userDoc = await collections.users.doc(id).get();
-    
-    if (!userDoc.exists) {
-      throw new NotFoundError('User not found');
-    }
-
-    const user = userDoc.data() as UserDocument;
-    
-    // Return public profile (hide sensitive fields)
-    const publicProfile = {
-      id: user.id,
-      name: user.name,
-      avatar: user.avatar,
-      role: user.role,
-      city: user.city,
-      area: user.area,
-      rating: user.rating,
-      stats: user.stats,
-      kyc: { status: user.kyc.status },
-      createdAt: user.createdAt,
-    };
-
-    res.json({ success: true, user: publicProfile });
-  }
-);
 
 /**
  * GET /api/v1/users/me/profile

@@ -10,6 +10,7 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -288,7 +289,7 @@ Last updated: ${lastUpdated} | Version ${version}`,
           <View key={section.id} style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: index === 0 ? 16 : 16 }]}>
             <View style={styles.sectionHeader}>
               <View style={[styles.iconBadge, { backgroundColor: `${section.color}20` }]}>
-                <Ionicons name={section.icon} size={24} color={section.color} />
+                <Ionicons name={section.icon as any} size={24} color={section.color} />
               </View>
               <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>{section.title}</Text>
             </View>

@@ -169,7 +169,7 @@ export default function AccountSettingsScreen() {
             icon="lock-outline"
             color="#EF4444"
             isDark={isDark}
-            onPress={() => router.push('/change-password')}
+            onPress={() => router.push('/(screens)/security-settings')}
             showArrow
           />
           
@@ -189,7 +189,7 @@ export default function AccountSettingsScreen() {
             icon="time-outline"
             color="#4F46E5"
             isDark={isDark}
-            onPress={() => router.push('/login-history')}
+            onPress={() => router.push('/(screens)/security-settings')}
             showArrow
           />
           
@@ -199,7 +199,7 @@ export default function AccountSettingsScreen() {
             icon="devices-outline"
             color="#10B981"
             isDark={isDark}
-            onPress={() => router.push('/active-sessions')}
+            onPress={() => router.push('/(screens)/security-settings')}
             showArrow
           />
         </View>
@@ -214,7 +214,7 @@ export default function AccountSettingsScreen() {
             icon="person-outline"
             color="#4F46E5"
             isDark={isDark}
-            onPress={() => router.push('/profile-visibility')}
+            onPress={() => router.push('/(screens)/privacy-settings')}
             showArrow
             trailing="Public"
           />
@@ -225,7 +225,7 @@ export default function AccountSettingsScreen() {
             icon="shield-checkmark-outline"
             color="#10B981"
             isDark={isDark}
-            onPress={() => router.push('/data-privacy')}
+            onPress={() => router.push('/(screens)/privacy-settings')}
             showArrow
           />
           

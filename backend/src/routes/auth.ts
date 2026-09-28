@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { getAuth } from '../firebase';
+import { getAuth } from '../config/firebase';
 import { collections, OTPSession, runTransaction, timestamp } from '../models';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validation';
@@ -59,7 +59,7 @@ async function sendSMS(phone: string, otp: string): Promise<void> {
     const url = `https://api.authkey.io/request?authkey=${authKeyApiKey}&mobile=${mobile}&message=${encodeURIComponent(message)}&sender=${senderId}&route=${route}`;
     
     const response = await fetch(url);
-    const data = await response.json();
+    const data = (await response.json()) as { Message?: string };
     
     if (data.Message && data.Message !== 'Success') {
       console.error('[SMS] AuthKey.io error:', data);

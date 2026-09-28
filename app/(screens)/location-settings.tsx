@@ -181,7 +181,7 @@ export default function LocationSettingsScreen() {
             icon="map-outline"
             color="#10B981"
             isDark={isDark}
-            onPress={() => router.push('/location-history')}
+            onPress={() => router.push('/(screens)/location-settings')}
             showArrow
             disabled={!locationEnabled || !locationHistory}
           />
@@ -209,7 +209,7 @@ export default function LocationSettingsScreen() {
             icon="lock-closed-outline"
             color="#4F46E5"
             isDark={isDark}
-            onPress={() => router.push('/location-privacy')}
+            onPress={() => router.push('/(screens)/location-settings')}
             showArrow
           />
           
@@ -219,7 +219,7 @@ export default function LocationSettingsScreen() {
             icon="analytics-outline"
             color="#10B981"
             isDark={isDark}
-            onPress={() => router.push('/location-data-usage')}
+            onPress={() => router.push('/(screens)/data-usage')}
             showArrow
           />
         </View>

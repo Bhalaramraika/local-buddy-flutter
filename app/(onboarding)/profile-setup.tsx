@@ -12,7 +12,7 @@ export default function ProfileSetupScreen() {
   const [localError, setLocalError] = useState<string | null>(null);
   const submit = async () => {
     if (!city.trim()) { setLocalError('Tell us which city you are in.'); return; }
-    try { setLocalError(null); await updateProfile({ city: city.trim(), area: area.trim() || undefined, profileCompleted: false }); router.replace('/onboarding-referral'); }
+    try { setLocalError(null); await updateProfile({ city: city.trim(), area: area.trim() || undefined }); router.replace('/onboarding-referral'); }
     catch { /* AuthContext exposes the server error. */ }
   };
   return (

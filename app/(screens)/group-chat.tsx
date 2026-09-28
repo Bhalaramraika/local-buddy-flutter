@@ -24,7 +24,8 @@ export default function GroupChatScreen() {
   const router = useRouter();
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { theme } = useUIStore();
-  const { messages, sendMessage, fetchMessages, isLoading } = useChatStore();
+  const { messages: messagesMap, sendMessage, fetchMessages, isLoading } = useChatStore();
+  const messages = (chatId && messagesMap[chatId]) || [];
   
   const isDark = theme === 'dark';
   const [messageText, setMessageText] = useState('');
@@ -75,7 +76,7 @@ export default function GroupChatScreen() {
 
   const renderMessage = (message: any, index: number) => {
     const isOwn = message.senderId === 'current-user';
-    const showDate = index === 0 || formatDate(messages[index - 1]?.createdAt) !== formatDate(message.createdAt);
+    const showDate = index === 0 || formatDate(new Date(messages[index - 1]?.createdAt || message.createdAt)) !== formatDate(new Date(message.createdAt));
     
     return (
       <View key={message.id} style={styles.messageContainer}>
@@ -117,7 +118,7 @@ export default function GroupChatScreen() {
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Task Group Chat</Text>
           <Text style={[styles.headerSubtitle, { color: isDark ? '#888' : '#666' }]}>8 members • Active now</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push(`/chat-settings?chatId=${chatId}`)}>
+        <TouchableOpacity onPress={() => router.push({ pathname: `/(screens)/chat-settings`, params: { chatId } })}>
           <Ionicons name="people-outline" size={28} color={isDark ? '#fff' : '#000'} />
         </TouchableOpacity>
       </View>

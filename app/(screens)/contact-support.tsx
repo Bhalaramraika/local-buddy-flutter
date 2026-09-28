@@ -121,7 +121,7 @@ export default function ContactSupportScreen() {
                 onPress={() => handleQuickAction(action.id)}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
-                  <Ionicons name={action.icon} size={24} color={action.color} />
+                  <Ionicons name={action.icon as any} size={24} color={action.color} />
                 </View>
                 <Text style={[styles.quickActionTitle, { color: isDark ? '#fff' : '#000' }]}>{action.title}</Text>
                 <Text style={[styles.quickActionDesc, { color: isDark ? '#888' : '#666' }]}>{action.desc}</Text>
@@ -151,7 +151,7 @@ export default function ContactSupportScreen() {
                 onPress={() => setCategory(cat.id)}
               >
                 <Ionicons 
-                  name={cat.icon} 
+                  name={cat.icon as any} 
                   size={18} 
                   color={category === cat.id ? '#fff' : (isDark ? '#888' : '#666')} 
                   style={{ marginRight: 6 }}

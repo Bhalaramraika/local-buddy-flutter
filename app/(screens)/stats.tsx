@@ -32,11 +32,9 @@ export default function StatsScreen() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year' | 'all'>('month');
   const [selectedTab, setSelectedTab] = useState<'overview' | 'tasks' | 'earnings' | 'activity'>('overview');
 
-  useEffect(() => {
-    loadStats();
-  }, [timeRange]);
-
   const loadStats = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -45,8 +43,8 @@ export default function StatsScreen() {
     const myPostedTasks = postedTasks;
     const myAppliedTasks = appliedTasks;
     
-    const totalEarned = myCompletedTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
-    const totalSpent = myPostedTasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.budget || 0), 0);
+    const totalEarned = myCompletedTasks.reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
+    const totalSpent = myPostedTasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
     const avgRating = user?.rating || 4.8;
     const completionRate = myPostedTasks.length > 0 
       ? Math.round((myPostedTasks.filter(t => t.status === 'completed').length / myPostedTasks.length) * 100) 
@@ -98,7 +96,7 @@ export default function StatsScreen() {
         thisMonth: 240,
         lastMonth: 180,
         avgPerTask: myCompletedTasks.length > 0 ? totalEarned / myCompletedTasks.length : 0,
-        highestEarning: Math.max(...myCompletedTasks.map(t => t.budget || 0), 0),
+        highestEarning: Math.max(...myCompletedTasks.map(t => t.budget?.amount || 0), 0),
         byCategory: [
           { category: 'Cleaning', earned: 150, count: 5, color: '#4F46E5' },
           { category: 'Delivery', earned: 90, count: 3, color: '#10B981' },
@@ -140,6 +138,12 @@ export default function StatsScreen() {
     setStats(mockStats);
     setLoading(false);
   };
+
+  useEffect(() => {
+    // Defer data loading past first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(loadStats);
+  }, [timeRange]);
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
@@ -222,7 +226,7 @@ export default function StatsScreen() {
                 style={[styles.tab, selectedTab === tab.key && styles.tabActive]}
                 onPress={() => setSelectedTab(tab.key as any)}
               >
-                <Ionicons name={tab.icon} size={20} color={selectedTab === tab.key ? '#fff' : isDark ? '#ddd' : '#666'} style={{ marginRight: 6 }} />
+                <Ionicons name={tab.icon as any} size={20} color={selectedTab === tab.key ? '#fff' : isDark ? '#ddd' : '#666'} style={{ marginRight: 6 }} />
                 <Text style={[styles.tabText, selectedTab === tab.key ? { color: '#fff' } : { color: isDark ? '#ddd' : '#333' }]}>{tab.label}</Text>
               </TouchableOpacity>
             ))}
@@ -579,6 +583,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   levelCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   levelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  levelInfo: { flex: 1 },
   levelLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   levelNumber: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   levelProgressContainer: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },

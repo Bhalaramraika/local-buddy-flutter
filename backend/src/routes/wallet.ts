@@ -1,15 +1,17 @@
 /**
  * Wallet Routes
- * Balance, transactions, PayU integration, withdrawals
+ * Balance, transactions, PayU top-up and in-app payment release.
+ * NOTE: Withdrawals are removed from the MVP.
  */
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { collections, TransactionDocument, TransactionType, TransactionStatus, runTransaction, timestamp } from '../models';
-import { requireAuth, requireKYC, requireRole } from '../middleware/auth';
+import { collections, TransactionDocument, runTransaction, timestamp } from '../models';
+import { requireAuth, requireKYC } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { config } from '../config';
+import { pushNotificationService } from '../services/pushNotificationService';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -17,6 +19,7 @@ const router = Router();
 
 // ============================================================
 // Schemas
+// NOTE: All money amounts are in whole INR (₹), not paise.
 // ============================================================
 
 const addMoneySchema = z.object({
@@ -24,11 +27,8 @@ const addMoneySchema = z.object({
   paymentMode: z.enum(['payu']).default('payu'),
 });
 
-const withdrawSchema = z.object({
-  amount: z.number().positive(),
-  upiId: z.string().min(1),
-});
-
+// PayU sends response hash in REVERSE sequence:
+// salt|status||||||udf10|udf9|...|udf1|email|firstname|productinfo|amount|txnid|key
 const payuCallbackSchema = z.object({
   mihpayid: z.string(),
   status: z.string(),
@@ -37,13 +37,22 @@ const payuCallbackSchema = z.object({
   productinfo: z.string(),
   firstname: z.string(),
   email: z.string(),
-  phone: z.string(),
+  phone: z.string().optional().default(''),
   hash: z.string(),
-  // ... other PayU fields
+  udf1: z.string().optional().default(''),
+  udf2: z.string().optional().default(''),
+  udf3: z.string().optional().default(''),
+  udf4: z.string().optional().default(''),
+  udf5: z.string().optional().default(''),
+  udf6: z.string().optional().default(''),
+  udf7: z.string().optional().default(''),
+  udf8: z.string().optional().default(''),
+  udf9: z.string().optional().default(''),
+  udf10: z.string().optional().default(''),
 });
 
 const transactionQuerySchema = z.object({
-  type: z.enum(['add', 'release', 'commission_payment', 'lock', 'withdraw']).optional(),
+  type: z.enum(['add', 'release', 'commission_payment', 'lock']).optional(),
   status: z.enum(['pending', 'success', 'failed', 'refunded']).optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
   offset: z.coerce.number().min(0).default(0),
@@ -58,7 +67,7 @@ function generateTxnId(): string {
 }
 
 function generatePayUHash(params: Record<string, string>, salt: string): string {
-  // PayU hash sequence: key|txnid|amount|productinfo|firstname|email|udf1|...|udf10|salt
+  // PayU request hash sequence: key|txnid|amount|productinfo|firstname|email|udf1|...|udf10|salt
   const sequence = [
     config.payu.merchantKey,
     params.txnid,
@@ -82,11 +91,40 @@ function generatePayUHash(params: Record<string, string>, salt: string): string 
   return crypto.createHash('sha512').update(hashString).digest('hex');
 }
 
-function verifyPayUHash(params: Record<string, string>, salt: string): boolean {
+/**
+ * Verify PayU response hash.
+ * Sequence: salt|status|udf10|udf9|...|udf1|email|firstname|productinfo|amount|txnid|key
+ * (response hash is the REVERSE of the request hash)
+ */
+function verifyPayUResponseHash(params: Record<string, string>, salt: string): boolean {
   const receivedHash = params.hash;
-  delete params.hash;
-  const calculatedHash = generatePayUHash(params, salt);
-  return receivedHash === calculatedHash;
+  if (!receivedHash) return false;
+
+  const sequence = [
+    salt,
+    params.status,
+    params.udf10 || '',
+    params.udf9 || '',
+    params.udf8 || '',
+    params.udf7 || '',
+    params.udf6 || '',
+    params.udf5 || '',
+    params.udf4 || '',
+    params.udf3 || '',
+    params.udf2 || '',
+    params.udf1 || '',
+    params.email,
+    params.firstname,
+    params.productinfo,
+    params.amount,
+    params.txnid,
+    config.payu.merchantKey,
+  ];
+  const calculatedHash = crypto
+    .createHash('sha512')
+    .update(sequence.join('|'))
+    .digest('hex');
+  return receivedHash.toLowerCase() === calculatedHash.toLowerCase();
 }
 
 // ============================================================
@@ -174,18 +212,21 @@ router.post(
 
 /**
  * POST /api/v1/wallet/payu/callback
- * PayU payment callback (server-to-server)
+ * PayU payment callback (browser redirect after payment).
+ * The response hash is verified before crediting anything (idempotent
+ * via the transaction's pending->success transition).
  */
 router.post(
   '/payu/callback',
   validateBody(payuCallbackSchema),
   async (req: Request, res: Response) => {
     const params = req.body;
+    const failureUrl = `${config.server.isDev ? 'http://localhost:8081' : 'https://app.localbuddy.app'}/wallet?status=failed`;
 
-    // Verify hash
-    if (!verifyPayUHash(params, config.payu.merchantSalt)) {
-      console.error('[PayU] Invalid hash');
-      return res.redirect(`${config.server.isDev ? 'http://localhost:8081' : 'https://app.localbuddy.app'}/wallet?status=failed`);
+    // Verify response hash
+    if (!verifyPayUResponseHash(params, config.payu.merchantSalt)) {
+      console.error('[PayU] Invalid response hash for txnid:', params.txnid);
+      return res.redirect(failureUrl);
     }
 
     const txnid = params.txnid;
@@ -196,116 +237,52 @@ router.post(
     const txnSnap = await collections.transactions.where('txnid', '==', txnid).limit(1).get();
     if (txnSnap.empty) {
       console.error('[PayU] Transaction not found:', txnid);
-      return res.redirect(`${config.server.isDev ? 'http://localhost:8081' : 'https://app.localbuddy.app'}/wallet?status=failed`);
+      return res.redirect(failureUrl);
     }
 
     const txnDoc = txnSnap.docs[0];
     const transaction = txnDoc.data() as TransactionDocument;
 
+    // Idempotency: only process once
     if (transaction.status !== 'pending') {
       console.warn('[PayU] Transaction already processed:', txnid);
       return res.redirect(`${config.server.isDev ? 'http://localhost:8081' : 'https://app.localbuddy.app'}/wallet?status=${status}`);
     }
 
-    await runTransaction(async (t) => {
-      if (status === 'success') {
-        // Update wallet balance
-        t.update(collections.users.doc(transaction.userId), {
-          'wallet.balance': FieldValue.increment(amount),
-          updatedAt: timestamp(),
-        });
+    let newBalance = 0;
 
-        t.update(txnDoc.ref, {
-          status: 'success',
+    await runTransaction(async (t) => {
+      const userRef = collections.users.doc(transaction.userId);
+      const userSnap = await t.get(userRef);
+      const currentBalance = (userSnap.data() as any)?.wallet?.balance || 0;
+      newBalance = status === 'success' ? currentBalance + amount : currentBalance;
+
+      if (status === 'success') {
+        t.update(userRef, {
+          'wallet.balance': newBalance,
           updatedAt: timestamp(),
-          metadata: { ...transaction.metadata, payuResponse: params },
-        });
-      } else {
-        t.update(txnDoc.ref, {
-          status: 'failed',
-          updatedAt: timestamp(),
-          metadata: { ...transaction.metadata, payuResponse: params },
         });
       }
+
+      t.update(txnDoc.ref, {
+        status,
+        updatedAt: timestamp(),
+        metadata: { ...transaction.metadata, payuResponse: params },
+      });
     });
 
-    // Redirect to app
+    if (status === 'success') {
+      pushNotificationService
+        .sendWalletNotification(transaction.userId, 'add_money', {
+          amount,
+          balance: newBalance,
+          transactionId: txnDoc.id,
+        })
+        .catch((err) => console.error('[FCM] wallet notification failed:', err));
+    }
+
     const redirectUrl = `${config.server.isDev ? 'http://localhost:8081' : 'https://app.localbuddy.app'}/wallet?status=${status}&txnid=${txnid}`;
     res.redirect(redirectUrl);
-  }
-);
-
-/**
- * POST /api/v1/wallet/withdraw
- * Request withdrawal to UPI
- */
-router.post(
-  '/withdraw',
-  requireAuth,
-  requireKYC,
-  requireRole('buddy'),
-  validateBody(withdrawSchema),
-  async (req: Request, res: Response) => {
-    const { amount, upiId } = req.body;
-    const userId = req.user!.uid;
-
-    const userDoc = await collections.users.doc(userId).get();
-    const user = userDoc.data() as any;
-
-    const availableBalance = (user.wallet?.balance || 0) - (user.wallet?.pendingBalance || 0);
-    if (amount > availableBalance) {
-      throw new BadRequestError('Insufficient balance');
-    }
-
-    if (amount < 100) {
-      throw new BadRequestError('Minimum withdrawal amount is ₹100');
-    }
-
-    const txnid = generateTxnId();
-    const txnRef = collections.transactions.doc();
-
-    await runTransaction(async (t) => {
-      // Lock amount
-      t.update(collections.users.doc(userId), {
-        'wallet.pendingBalance': FieldValue.increment(amount),
-        updatedAt: timestamp(),
-      });
-
-      // Create withdrawal transaction
-      t.set(txnRef, {
-        id: txnRef.id,
-        userId,
-        type: 'withdraw',
-        amount,
-        gateway: 'wallet',
-        status: 'pending',
-        txnid,
-        description: `Withdraw ₹${amount} to ${upiId}`,
-        metadata: { upiId },
-        createdAt: timestamp(),
-        updatedAt: timestamp(),
-      });
-    });
-
-    // TODO: Trigger actual UPI payout via payment gateway
-    // For now, auto-approve in development
-    if (config.server.isDev) {
-      setTimeout(async () => {
-        await runTransaction(async (t) => {
-          t.update(collections.users.doc(userId), {
-            'wallet.balance': FieldValue.increment(-amount),
-            'wallet.pendingBalance': FieldValue.increment(-amount),
-            updatedAt: timestamp(),
-          });
-          t.update(txnRef, {
-            status: 'success',
-            updatedAt: timestamp(),
-          });
-        });
-      }, 2000);
-    }
-
-    res.json({ success: true, transactionId: txnRef.id, message: 'Withdrawal request submitted' });
   }
 );
 
@@ -363,13 +340,13 @@ router.get(
 
 /**
  * POST /api/v1/wallet/release/:taskId
- * Release payment for completed task (customer only)
+ * Release escrow payment for a completed task (poster only).
+ * Runs in a single Firestore transaction with an upfront balance check.
  */
 router.post(
   '/release/:taskId',
   requireAuth,
   requireKYC,
-  requireRole('customer'),
   validateParams(z.object({ taskId: z.string().min(1) })),
   async (req: Request, res: Response) => {
     const { taskId } = req.params;
@@ -395,25 +372,45 @@ router.post(
     const totalAmount = task.budget + (task.tip || 0);
     const platformFee = Math.round(totalAmount * 0.1); // 10% platform fee
     const buddyAmount = totalAmount - platformFee;
+    let buddyNewBalance = 0;
 
     await runTransaction(async (t) => {
-      // Deduct from customer wallet
-      t.update(collections.users.doc(req.user!.uid), {
-        'wallet.balance': FieldValue.increment(-totalAmount),
+      const posterRef = collections.users.doc(req.user!.uid);
+      const buddyRef = collections.users.doc(task.buddyId);
+
+      // Read docs INSIDE the transaction so the balance check is atomic
+      const [posterSnap, buddySnap] = await Promise.all([t.get(posterRef), t.get(buddyRef)]);
+      const posterBalance = (posterSnap.data() as any)?.wallet?.balance || 0;
+      const posterPending = (posterSnap.data() as any)?.wallet?.pendingBalance || 0;
+
+      // Escrow model: the amount was locked at task creation, so deduct
+      // from pending first; fall back to available balance check.
+      if (posterBalance - posterPending < totalAmount && posterBalance < totalAmount) {
+        throw new BadRequestError('Insufficient wallet balance to release payment');
+      }
+
+      const buddyBalance = (buddySnap.data() as any)?.wallet?.balance || 0;
+      const buddyPending = (buddySnap.data() as any)?.wallet?.pendingBalance || 0;
+      buddyNewBalance = buddyBalance + buddyAmount;
+
+      // Deduct from poster wallet (clamp at 0 to avoid negatives)
+      t.update(posterRef, {
+        'wallet.balance': Math.max(0, posterBalance - totalAmount),
+        'wallet.pendingBalance': Math.max(0, posterPending - totalAmount),
         'stats.totalSpent': FieldValue.increment(totalAmount),
         updatedAt: timestamp(),
       });
 
       // Credit buddy wallet (minus platform fee)
-      t.update(collections.users.doc(task.buddyId), {
-        'wallet.balance': FieldValue.increment(buddyAmount),
-        'wallet.pendingBalance': FieldValue.increment(-buddyAmount), // Release pending
+      t.update(buddyRef, {
+        'wallet.balance': buddyNewBalance,
+        'wallet.pendingBalance': Math.max(0, buddyPending - buddyAmount),
         'stats.totalEarnings': FieldValue.increment(buddyAmount),
         'commissionDue': FieldValue.increment(platformFee),
         updatedAt: timestamp(),
       });
 
-      // Create release transaction for customer
+      // Ledger entries
       const customerTxnRef = collections.transactions.doc();
       t.set(customerTxnRef, {
         id: customerTxnRef.id,
@@ -430,7 +427,6 @@ router.post(
         updatedAt: timestamp(),
       });
 
-      // Create credit transaction for buddy
       const buddyTxnRef = collections.transactions.doc();
       t.set(buddyTxnRef, {
         id: buddyTxnRef.id,
@@ -447,13 +443,19 @@ router.post(
         updatedAt: timestamp(),
       });
 
-      // Update task status
       t.update(taskDoc.ref, {
         status: 'paid',
         paidAt: timestamp(),
         updatedAt: timestamp(),
       });
     });
+
+    pushNotificationService
+      .sendWalletNotification(task.buddyId, 'money_released', {
+        amount: buddyAmount,
+        balance: buddyNewBalance,
+      })
+      .catch((err) => console.error('[FCM] release notification failed:', err));
 
     res.json({ success: true, message: 'Payment released successfully' });
   }

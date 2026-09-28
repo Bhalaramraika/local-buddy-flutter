@@ -6,18 +6,60 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
-import { 
-  Chat, 
-  Message, 
-  MessageType, 
+import {
+  Chat,
+  Message,
+  MessageType,
   ChatParticipant,
-  PaginatedResponse 
+  PaginatedResponse
 } from '@/types';
+import { apiGet, apiPost, apiDelete } from '@/services/api';
+
+// Conversation view-model expected by the chat-detail screen
+export interface ConversationView {
+  id: string;
+  taskId?: string;
+  otherUser?: {
+    id: string;
+    name?: string;
+    avatar?: string;
+    phone?: string;
+    isOnline?: boolean;
+    lastSeen?: string;
+  };
+  lastMessage?: Message;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+// Build the conversation view-model from a Chat (best-effort other-user)
+function chatToConversation(chat: Chat): ConversationView {
+  const other = (chat.participants || [])[0] as any;
+  return {
+    id: chat.id,
+    taskId: chat.taskId,
+    otherUser: other
+      ? {
+          id: other.id,
+          name: other.name,
+          avatar: other.avatar,
+          phone: other.phone,
+          isOnline: other.isOnline,
+          lastSeen: other.lastSeen,
+        }
+      : undefined,
+    lastMessage: chat.lastMessage,
+    unreadCount: chat.unreadCount ?? 0,
+    updatedAt: chat.updatedAt ?? '',
+  };
+}
 
 interface ChatState {
   // State
   chats: Chat[];
   currentChat: Chat | null;
+  currentConversation: ConversationView | null;
+  users: any[]; // directory of users for the new-chat screen
   messages: Record<string, Message[]>; // chatId -> messages
   unreadCounts: Record<string, number>; // chatId -> count
   isLoading: boolean;
@@ -54,7 +96,21 @@ interface ChatState {
   setSending: (sending: boolean) => void;
   setError: (error: string | null) => void;
   setSubscribed: (subscribed: boolean) => void;
-  
+
+  // ------------------------------------------------------------
+  // Screen-facing API (REST-first; optimistic, non-fatal failures)
+  // ------------------------------------------------------------
+  createConversation: (participantId: string, taskId?: string) => Promise<Chat | null>;
+  sendMessage: (chatId: string, text: string, type?: MessageType | string) => Promise<Message | null>;
+  fetchMessages: (chatId: string) => Promise<Message[]>;
+  fetchUsers: () => Promise<any[]>;
+  markAsRead: (chatId: string | undefined) => void;
+  updateChatSettings: (chatId: string | undefined, settings: Record<string, any>) => void;
+  leaveGroup: (chatId: string | undefined) => void;
+  deleteChat: (chatId: string | undefined) => Promise<void>;
+  clearHistory: (chatId: string | undefined) => void;
+  clearError: () => void;
+
   // Real-time handlers
   handleNewMessage: (message: Message) => void;
   handleMessageUpdated: (message: Message) => void;
@@ -84,6 +140,8 @@ export const useChatStore = create<ChatState>()(
       // Initial state
       chats: [],
       currentChat: null,
+      currentConversation: null,
+      users: [],
       messages: {},
       unreadCounts: {},
       isLoading: false,
@@ -117,7 +175,10 @@ export const useChatStore = create<ChatState>()(
         currentChat: state.currentChat?.id === chatId ? null : state.currentChat,
       })),
       
-      setCurrentChat: (currentChat) => set({ currentChat }),
+      setCurrentChat: (currentChat) => set({
+        currentChat,
+        currentConversation: currentChat ? chatToConversation(currentChat) : null,
+      }),
       
       setMessages: (chatId, messages) => set((state) => ({
         messages: { ...state.messages, [chatId]: messages },
@@ -213,7 +274,188 @@ export const useChatStore = create<ChatState>()(
       setError: (error) => set({ error, isLoading: false, isLoadingMore: false, isSending: false }),
       
       setSubscribed: (isSubscribed) => set({ isSubscribed }),
-      
+
+      // ------------------------------------------------------------
+      // Screen-facing API. REST first; the Firestore subscription
+      // re-syncs authoritative data. Failures are non-fatal.
+      // ------------------------------------------------------------
+
+      createConversation: async (participantId, taskId) => {
+        // Reuse an existing 1:1 chat if present
+        const existing = get().chats.find(
+          (c) => !c.isGroup && (c.participants || []).some((p: any) => p.id === participantId)
+        );
+        if (existing) {
+          get().setCurrentChat(existing);
+          return existing;
+        }
+
+        try {
+          const data = await apiPost<any>('/chats', { participantId, taskId });
+          const raw = data?.chat ?? data;
+          if (raw && raw.id) {
+            const chat: Chat = {
+              id: raw.id,
+              taskId: raw.taskId ?? taskId,
+              participants: (raw.participants ?? [participantId]).map((p: any) =>
+                typeof p === 'string' ? ({ id: p, name: '' } as any) : p
+              ),
+              unreadCount: 0,
+              isGroup: raw.isGroup ?? false,
+              createdAt: raw.createdAt ?? new Date().toISOString(),
+              updatedAt: raw.updatedAt ?? new Date().toISOString(),
+            } as Chat;
+            get().addChat(chat);
+            get().setCurrentChat(chat);
+            return chat;
+          }
+        } catch (error) {
+          console.warn('[ChatStore] createConversation remote failed (local fallback):', error);
+        }
+
+        // Optimistic local conversation — keeps navigation working offline
+        const chat = {
+          id: `local-${Date.now()}`,
+          taskId,
+          participants: [{ id: participantId, name: '' }],
+          unreadCount: 0,
+          isGroup: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as unknown as Chat;
+        get().addChat(chat);
+        get().setCurrentChat(chat);
+        return chat;
+      },
+
+      sendMessage: async (chatId, text, type = 'text') => {
+        if (!text?.trim()) return null;
+        set({ isSending: true, error: null });
+
+        const tempId = `local-${Date.now()}`;
+        const optimistic = {
+          id: tempId,
+          chatId,
+          senderId: 'current-user',
+          senderName: 'You',
+          type,
+          content: text,
+          createdAt: new Date().toISOString(),
+          isRead: true,
+        } as unknown as Message;
+        get().addMessage(chatId, optimistic);
+
+        try {
+          const data = await apiPost<any>(`/chats/${chatId}/messages`, { text, type });
+          const raw = data?.message ?? data;
+          if (raw && raw.id) {
+            const serverMessage = {
+              id: raw.id,
+              chatId,
+              senderId: raw.senderId ?? 'current-user',
+              senderName: raw.senderName ?? 'You',
+              senderAvatar: raw.senderAvatar,
+              type: raw.type ?? type,
+              content: raw.text ?? raw.content ?? text,
+              metadata: raw.metadata,
+              createdAt: raw.timestamp ?? raw.createdAt ?? new Date().toISOString(),
+              isRead: true,
+            } as unknown as Message;
+            get().removeMessage(chatId, tempId);
+            get().addMessage(chatId, serverMessage);
+            set({ isSending: false });
+            return serverMessage;
+          }
+        } catch (error) {
+          // Backend may reject (e.g. local chat) — keep the optimistic copy.
+          console.warn('[ChatStore] sendMessage remote failed (optimistic kept):', error);
+        }
+        set({ isSending: false });
+        return optimistic;
+      },
+
+      fetchMessages: async (chatId) => {
+        set({ isLoading: true, error: null });
+        // Ensure the header (currentConversation) is populated
+        const chat = get().getChatById(chatId);
+        if (chat) get().setCurrentChat(chat);
+
+        try {
+          const data = await apiGet<any>(`/chats/${chatId}/messages`, {
+            params: { limit: 200 },
+          });
+          const raw: any[] = data?.messages ?? data?.data ?? [];
+          const messages: Message[] = raw.map((m: any) => ({
+            id: m.id,
+            chatId,
+            senderId: m.senderId ?? '',
+            senderName: m.senderName ?? '',
+            senderAvatar: m.senderAvatar,
+            type: m.type ?? 'text',
+            content: m.text ?? m.content ?? '',
+            metadata: m.metadata,
+            createdAt: m.timestamp ?? m.createdAt ?? '',
+            isRead: m.isRead ?? false,
+          })) as unknown as Message[];
+          get().setMessages(chatId, messages);
+        } catch (error) {
+          console.warn('[ChatStore] fetchMessages failed:', error);
+        }
+        set({ isLoading: false });
+        return get().messages[chatId] || [];
+      },
+
+      fetchUsers: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiGet<any>('/users', { params: { limit: 50 } });
+          const users = data?.users ?? data?.data ?? [];
+          set({ users: Array.isArray(users) ? users : [], isLoading: false });
+        } catch (error) {
+          console.warn('[ChatStore] fetchUsers failed:', error);
+          set({ isLoading: false });
+        }
+        return get().users;
+      },
+
+      markAsRead: (chatId) => {
+        if (!chatId) return;
+        get().clearUnreadCount(chatId);
+        apiPost(`/chats/${chatId}/read`).catch((error) => {
+          console.warn('[ChatStore] markAsRead failed:', error);
+        });
+      },
+
+      updateChatSettings: (chatId, settings) => {
+        if (!chatId) return;
+        const chat = get().getChatById(chatId);
+        if (chat) {
+          get().updateChat({ ...chat, ...settings } as Chat);
+        }
+      },
+
+      leaveGroup: (chatId) => {
+        if (!chatId) return;
+        get().removeChat(chatId);
+      },
+
+      deleteChat: async (chatId) => {
+        if (!chatId) return;
+        get().removeChat(chatId);
+        try {
+          await apiDelete(`/chats/${chatId}`);
+        } catch (error) {
+          console.warn('[ChatStore] deleteChat remote failed (local kept):', error);
+        }
+      },
+
+      clearHistory: (chatId) => {
+        if (!chatId) return;
+        get().setMessages(chatId, []);
+      },
+
+      clearError: () => set({ error: null }),
+
       // Real-time handlers
       handleNewMessage: (message) => {
         const { chats, currentChat } = get();
@@ -313,6 +555,8 @@ export const useChatStore = create<ChatState>()(
       clearAll: () => set({
         chats: [],
         currentChat: null,
+        currentConversation: null,
+        users: [],
         messages: {},
         unreadCounts: {},
         isLoading: false,

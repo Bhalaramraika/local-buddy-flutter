@@ -6,75 +6,73 @@
 export { useAuthStore } from './authStore';
 export type { AuthState } from './authStore';
 export {
+  selectUser as selectAuthUser,
   selectIsAuthenticated,
-  selectIsLoading,
-  selectAuthError,
-  selectTokens,
+  selectIsLoading as selectAuthLoading,
+  selectUserRole,
+  selectKYCStatus as selectAuthKYCStatus,
   selectWalletBalance,
+  selectIsKYCVerified,
+  selectCanAcceptTasks,
 } from './authStore';
 
 // Task Store
 export { useTaskStore } from './taskStore';
-export type { TaskState } from './taskStore';
+import { useTaskStore } from './taskStore';
+export type TaskState = ReturnType<typeof useTaskStore.getState>;
 export {
   selectTasks,
   selectMyTasks,
   selectAssignedTasks,
   selectNearbyTasks,
+  selectCurrentTask,
   selectTaskFilters,
-  selectTaskSort,
+  selectTaskSortOptions,
   selectTaskPagination,
-  selectSelectedTask,
   selectTaskLoading,
+  selectTaskLoadingMore,
   selectTaskError,
-  selectAvailableTasks,
-  selectActiveTasks,
-  selectCompletedTasks,
-  selectPendingTasks,
+  selectFilteredTasks,
+  selectOpenTasks,
+  selectAssignedTasksCount,
+  selectMyTasksCount,
 } from './taskStore';
 
 // Chat Store
 export { useChatStore } from './chatStore';
-export type { ChatState } from './chatStore';
+import { useChatStore } from './chatStore';
+export type ChatState = ReturnType<typeof useChatStore.getState>;
 export {
   selectChats,
+  selectCurrentChat,
   selectMessages,
-  selectActiveChat,
-  selectUnreadCounts,
-  selectTypingUsers,
+  selectUnreadCount as selectChatUnreadCount,
+  selectTotalUnreadCount,
   selectChatLoading,
+  selectChatSending,
   selectChatError,
-  selectUnreadChatsCount,
-  selectActiveChatMessages,
-  selectActiveChatTypingUsers,
+  selectTypingUsers,
+  selectSortedChats,
 } from './chatStore';
 
 // Wallet Store
 export { useWalletStore } from './walletStore';
-export type { WalletState } from './walletStore';
+import { useWalletStore } from './walletStore';
+export type WalletState = ReturnType<typeof useWalletStore.getState>;
 export {
-  selectWallet,
-  selectBalance,
-  selectPendingBalance,
+  selectWalletBalance as selectBalance,
   selectAvailableBalance,
+  selectPendingBalance,
+  selectTotalBalance,
   selectTransactions,
-  selectTransactionsPagination,
-  selectTransactionsFilter,
   selectWithdrawals,
-  selectPendingWithdrawal,
-  selectEarningsSummary,
-  selectPaymentMethods,
-  selectDefaultPaymentMethod,
+  selectBankAccounts,
+  selectWalletStats,
   selectWalletLoading,
-  selectWalletRefreshing,
+  selectWalletProcessing,
   selectWalletError,
-  selectCompletedTransactions,
-  selectPendingTransactions,
-  selectFailedTransactions,
-  selectPendingWithdrawals,
-  selectCompletedWithdrawals,
-  selectUPIPaymentMethods,
-  selectBankPaymentMethods,
+  selectDefaultBankAccount,
+  selectRecentTransactions,
 } from './walletStore';
 
 // Location Store
@@ -100,7 +98,8 @@ export {
 
 // UI Store
 export { useUIStore } from './uiStore';
-export type { UIState } from './uiStore';
+import { useUIStore } from './uiStore';
+export type UIState = ReturnType<typeof useUIStore.getState>;
 export {
   selectModals,
   selectToasts,
@@ -183,7 +182,11 @@ export {
   selectAvatarUrl,
   selectIsProfileComplete,
   selectReferralLink,
+  selectLanguage as selectUserLanguage,
   selectCurrency,
+  selectTheme as selectUserTheme,
+  selectFontSize as selectUserFontSize,
+  selectNotifications as selectUserNotifications,
   selectPrivacy,
   selectAccessibility,
   selectAutoAcceptTasks,
@@ -195,16 +198,13 @@ export {
   selectSOSContacts,
   selectEmergencyContacts,
   selectTwoFactorEnabled,
+  selectBiometricEnabled,
   selectPinEnabled,
 } from './userStore';
 
 // Store initialization helper
 import { useAuthStore } from './authStore';
-import { useTaskStore } from './taskStore';
-import { useChatStore } from './chatStore';
-import { useWalletStore } from './walletStore';
 import { useLocationStore } from './locationStore';
-import { useUIStore } from './uiStore';
 import { useNotificationStore } from './notificationStore';
 import { useKYCStore } from './kycStore';
 import { useUserStore } from './userStore';

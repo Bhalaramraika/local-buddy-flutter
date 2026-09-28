@@ -108,11 +108,13 @@ export const withErrorBoundary = <T extends React.ComponentType<any>>(
   WrappedComponent: T,
   fallback?: ReactNode
 ): React.FC<React.ComponentProps<T>> => {
-  return (props) => (
+  const WithErrorBoundary: React.FC<React.ComponentProps<T>> = (props) => (
     <ErrorBoundary fallback={fallback}>
       <WrappedComponent {...props} />
     </ErrorBoundary>
   );
+  WithErrorBoundary.displayName = `withErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+  return WithErrorBoundary;
 };
 
 const styles = StyleSheet.create({

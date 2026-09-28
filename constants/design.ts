@@ -93,8 +93,8 @@ export const BorderRadius = {
 // Typography
 export const Typography = {
   fontFamily: {
-    sans: 'PlusJakartaSans',
-    heading: 'Outfit',
+    sans: 'Inter',
+    heading: 'Inter',
   },
   
   fontSize: {

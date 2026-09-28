@@ -54,11 +54,14 @@ export default function WalletTopupScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  useEffect(() => {
+  const [prevParamAmount, setPrevParamAmount] = useState(paramAmount);
+  // Seed amount from route param when it arrives (render-time adjust pattern)
+  if (prevParamAmount !== paramAmount) {
+    setPrevParamAmount(paramAmount);
     if (paramAmount && !amount) {
       setAmount(paramAmount);
     }
-  }, [paramAmount, amount]);
+  }
 
   const handleQuickAmount = (quickAmount: number) => {
     setAmount(String(quickAmount));
@@ -161,7 +164,7 @@ export default function WalletTopupScreen() {
         onPress={() => setSelectedMethod(method.id)}
       >
         <View style={[styles.paymentMethodIcon, { backgroundColor: `${method.color}20` }]}>
-          <MaterialCommunityIcons name={method.icon} size={24} color={method.color} />
+          <MaterialCommunityIcons name={method.icon as any} size={24} color={method.color} />
         </View>
         <Text style={[
           styles.paymentMethodName,
@@ -253,7 +256,7 @@ export default function WalletTopupScreen() {
           <TouchableOpacity 
             style={[
               styles.customAmountBtn,
-              showCustomAmount && styles.customAmountBtnActive,
+              showCustomInput && styles.customAmountBtnActive,
             ]}
             onPress={() => setShowCustomInput(!showCustomInput)}
           >

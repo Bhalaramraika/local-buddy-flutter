@@ -12,12 +12,15 @@ import {
   NearbyBuddy 
 } from '@/types';
 
-interface LocationState {
+export interface LocationState {
   // Current location
   currentLocation: LocationData | null;
   lastKnownLocation: LocationData | null;
   city: string | null;
   area: string | null;
+  // Aliases used by LocationContext / screens
+  currentCity: string | null;
+  currentArea: string | null;
   
   // Tracking
   isTracking: boolean;
@@ -46,6 +49,10 @@ interface LocationState {
   setLastKnownLocation: (location: LocationData) => void;
   setCity: (city: string | null) => void;
   setArea: (area: string | null) => void;
+  setCurrentCity: (city: string | null) => void;
+  setCurrentArea: (area: string | null) => void;
+  setPermissionStatus: (status: LocationState['permissionStatus']) => void;
+  requestLocationPermission: () => Promise<boolean>;
   
   setTracking: (isTracking: boolean) => void;
   setTrackingMode: (mode: LocationState['trackingMode']) => void;
@@ -55,6 +62,7 @@ interface LocationState {
   addGeofence: (geofence: Geofence) => void;
   updateGeofence: (geofence: Geofence) => void;
   removeGeofence: (geofenceId: string) => void;
+  clearGeofences: () => void;
   setActiveGeofence: (geofence: Geofence | null) => void;
   
   setNearbyBuddies: (buddies: NearbyBuddy[]) => void;
@@ -88,6 +96,8 @@ export const useLocationStore = create<LocationState>()(
       lastKnownLocation: null,
       city: null,
       area: null,
+      currentCity: null,
+      currentArea: null,
       isTracking: false,
       trackingMode: 'off',
       trackingAccuracy: 'balanced',
@@ -113,9 +123,27 @@ export const useLocationStore = create<LocationState>()(
       
       setLastKnownLocation: (lastKnownLocation) => set({ lastKnownLocation }),
       
-      setCity: (city) => set({ city }),
+      setCity: (city) => set({ city, currentCity: city }),
       
-      setArea: (area) => set({ area }),
+      setArea: (area) => set({ area, currentArea: area }),
+      
+      setCurrentCity: (currentCity) => set({ currentCity, city: currentCity }),
+      
+      setCurrentArea: (currentArea) => set({ currentArea, area: currentArea }),
+      
+      setPermissionStatus: (permissionStatus) => set({
+        permissionStatus,
+        hasLocationPermission: permissionStatus === 'granted',
+        hasBackgroundPermission: permissionStatus === 'granted'
+          ? get().hasBackgroundPermission
+          : false,
+      }),
+      
+      requestLocationPermission: async () => {
+        // Actual OS-level permission prompts are handled by LocationContext;
+        // this simply reflects the current status for store consumers.
+        return get().permissionStatus === 'granted';
+      },
       
       setTracking: (isTracking) => set({ isTracking }),
       
@@ -138,6 +166,8 @@ export const useLocationStore = create<LocationState>()(
         geofences: state.geofences.filter((g) => g.id !== geofenceId),
         activeGeofence: state.activeGeofence?.id === geofenceId ? null : state.activeGeofence,
       })),
+      
+      clearGeofences: () => set({ geofences: [], activeGeofence: null }),
       
       setActiveGeofence: (activeGeofence) => set({ activeGeofence }),
       
@@ -204,6 +234,8 @@ export const useLocationStore = create<LocationState>()(
         lastKnownLocation: null,
         city: null,
         area: null,
+        currentCity: null,
+        currentArea: null,
         isTracking: false,
         trackingMode: 'off',
         trackingAccuracy: 'balanced',

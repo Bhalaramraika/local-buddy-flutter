@@ -15,7 +15,7 @@ import {
   UserStats 
 } from '@/types';
 
-interface UserState {
+export interface UserState {
   // User data
   user: User | null;
   profile: UserProfile | null;

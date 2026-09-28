@@ -50,7 +50,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-location",
       "expo-camera",
       "expo-image-picker",
       "expo-notifications",

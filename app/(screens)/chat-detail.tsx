@@ -25,8 +25,8 @@ import { formatRelativeTime, formatTime } from '@/utils/helpers';
 export default function ChatDetailScreen() {
   const router = useRouter();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
-  const { 
-    messages, 
+  const {
+    messages: messagesMap,
     currentConversation,
     fetchMessages,
     sendMessage,
@@ -34,6 +34,7 @@ export default function ChatDetailScreen() {
     isLoading: chatLoading,
     isSending,
   } = useChatStore();
+  const messages = (conversationId && messagesMap[conversationId]) || [];
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
   
@@ -90,7 +91,7 @@ export default function ChatDetailScreen() {
 
   const handleViewProfile = () => {
     if (currentConversation?.otherUser?.id) {
-      router.push(`/(screens)/profile/${currentConversation.otherUser.id}`);
+      router.push({ pathname: `/(screens)/user-profile`, params: { userId: currentConversation.otherUser.id } });
     }
   };
 
@@ -227,12 +228,12 @@ export default function ChatDetailScreen() {
                 {currentConversation?.otherUser?.name || 'Loading...'}
               </Text>
               <Text style={[styles.headerUserStatus, { color: isDark ? '#888' : '#666' }]}>
-                {currentConversation?.otherUser?.isOnline ? 'Online' : `Last seen ${formatRelativeTime(currentConversation?.otherUser?.lastSeen)}`}
+                {currentConversation?.otherUser?.isOnline ? 'Online' : `Last seen ${formatRelativeTime(currentConversation?.otherUser?.lastSeen ?? new Date().toISOString())}`}
               </Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowOptions(true)}>
-            <Ionicons name="more-vert-outline" size={28} color={isDark ? '#fff' : '#000'} />
+            <Ionicons name="ellipsis-vertical-outline" size={28} color={isDark ? '#fff' : '#000'} />
           </TouchableOpacity>
         </View>
       </View>

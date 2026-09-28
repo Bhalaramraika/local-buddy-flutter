@@ -65,21 +65,23 @@ export default function CreateTaskScreen() {
     'Administrative', 'Customer Service', 'Event Planning', 'Decorating'
   ];
 
-  useEffect(() => {
-    let mounted = true;
-    if (isAuthenticated && currentLocation) {
-      if (mounted) {
-        setFormData(prev => ({
-          ...prev,
-          location: currentLocation.address || '',
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-        }));
-      }
+  const [prevLocation, setPrevLocation] = useState(currentLocation);
+  // Seed form location when it becomes available
+  if (prevLocation !== currentLocation) {
+    setPrevLocation(currentLocation);
+    if (currentLocation) {
+      setFormData(prev => ({
+        ...prev,
+        location: currentLocation.address || '',
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      }));
     }
+  }
+
+  useEffect(() => {
     requestLocationPermission();
-    return () => { mounted = false; };
-  }, [isAuthenticated, currentLocation, requestLocationPermission]);
+  }, [requestLocationPermission]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -388,7 +390,7 @@ export default function CreateTaskScreen() {
               }));
             }
           }}>
-            <Ionicons name="gps-outline" size={16} color="#4F46E5" />
+            <Ionicons name="navigate-outline" size={16} color="#4F46E5" />
             <Text style={styles.useLocationText}>Use Current Location</Text>
           </TouchableOpacity>
           {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}

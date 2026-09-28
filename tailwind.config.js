@@ -46,8 +46,8 @@ module.exports = {
         overlay: 'rgba(15, 23, 42, 0.5)', // Slate-900/50
       },
       fontFamily: {
-        sans: ['PlusJakartaSans_400Regular', 'PlusJakartaSans_500Medium', 'PlusJakartaSans_600SemiBold', 'PlusJakartaSans_700Bold'],
-        heading: ['Outfit_400Regular', 'Outfit_500Medium', 'Outfit_600SemiBold', 'Outfit_700Bold'],
+        sans: ['Inter-Regular', 'Inter-Medium', 'Inter-SemiBold', 'Inter-Bold'],
+        heading: ['Inter-Regular', 'Inter-Medium', 'Inter-SemiBold', 'Inter-Bold'],
       },
       fontSize: {
         'display-lg': ['48px', { lineHeight: '56px', fontWeight: '700', letterSpacing: '-0.02em' }],

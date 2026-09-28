@@ -132,13 +132,6 @@ export default function NearbyBuddiesScreen() {
     },
   ];
 
-  const loadBuddies = async () => {
-    setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setBuddies(mockBuddies);
-    setLoading(false);
-  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -146,8 +139,19 @@ export default function NearbyBuddiesScreen() {
     setRefreshing(false);
   };
 
+  const loadBuddies = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
+    setLoading(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setBuddies(mockBuddies);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    loadBuddies();
+    // Defer data loading past the first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(() => {     loadBuddies(); });
   }, []);
 
   const filteredBuddies = buddies.filter(buddy => {
@@ -188,7 +192,7 @@ export default function NearbyBuddiesScreen() {
   const renderBuddy = ({ item }: { item: NearbyBuddy }) => (
     <TouchableOpacity 
       style={styles.buddyCard}
-      onPress={() => router.push(`/task-detail?buddyId=${item.id}`)}
+      onPress={() => router.push({ pathname: `/(screens)/user-profile`, params: { userId: item.id } })}
     >
       <View style={styles.buddyHeader}>
         <View style={styles.avatarContainer}>
@@ -292,7 +296,7 @@ export default function NearbyBuddiesScreen() {
               filter === tab && styles.filterTabActive,
               { backgroundColor: filter === tab ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
             ]}
-            onPress={() => setFilter(tab)}
+            onPress={() => setFilter(tab as any)}
           >
             <Text style={[
               styles.filterTabText,

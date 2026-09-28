@@ -10,6 +10,7 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,16 +21,10 @@ export default function NotificationDetailScreen() {
   const router = useRouter();
   const { theme } = useUIStore();
   const { notifications, markAsRead } = useNotificationStore();
-  const { id } = useLocalSearchParams();
-  
-  const isDark = theme === 'dark';
-  const notification = notifications.find(n => n.id === id) || getMockNotification(id);
+  const params = useLocalSearchParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  React.useEffect(() => {
-    if (notification && !notification.read) {
-      markAsRead(notification.id);
-    }
-  }, [notification]);
+  const isDark = theme === 'dark';
 
   const getMockNotification = (id: string) => ({
     id,
@@ -41,6 +36,14 @@ export default function NotificationDetailScreen() {
     data: { taskId: 'task_123', userId: 'user_456' },
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
   });
+
+  const notification: any = notifications.find(n => n.id === id) || getMockNotification(id);
+
+  React.useEffect(() => {
+    if (notification && !notification.read) {
+      markAsRead(notification.id);
+    }
+  }, [notification]);
 
   const getTypeConfig = (type: string) => {
     const configs: Record<string, { icon: string; color: string; bgColor: string }> = {
@@ -58,11 +61,11 @@ export default function NotificationDetailScreen() {
 
   const handleAction = () => {
     if (notification.data?.taskId) {
-      router.push(`/task-detail?id=${notification.data.taskId}`);
+      router.push({ pathname: `/(screens)/task-detail`, params: { taskId: notification.data.taskId } });
     } else if (notification.data?.chatId) {
-      router.push(`/chat-detail?id=${notification.data.chatId}`);
+      router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: notification.data.chatId } });
     } else if (notification.data?.walletId) {
-      router.push(`/wallet-details?id=${notification.data.walletId}`);
+      router.push({ pathname: `/(screens)/wallet-details`, params: { id: notification.data.walletId } });
     }
   };
 
@@ -87,7 +90,7 @@ export default function NotificationDetailScreen() {
         <View style={[styles.notificationCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
           {/* Type Badge */}
           <View style={[styles.typeBadge, { backgroundColor: typeConfig.bgColor }]}>
-            <Ionicons name={typeConfig.icon} size={20} color={typeConfig.color} />
+            <Ionicons name={typeConfig.icon as any} size={20} color={typeConfig.color} />
           </View>
 
           {/* Title */}

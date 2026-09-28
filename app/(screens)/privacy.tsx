@@ -10,6 +10,7 @@ import {
   TouchableOpacity, 
   StyleSheet,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -258,7 +259,7 @@ Last updated: ${lastUpdated} | Version ${version}`,
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
           <View style={styles.quickLinks}>
-            <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/data-settings')}>
+            <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/(screens)/data-usage')}>
               <Ionicons name="settings-outline" size={22} color="#4F46E5" style={{ marginRight: 12 }} />
               <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Manage Your Data</Text>
               <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />

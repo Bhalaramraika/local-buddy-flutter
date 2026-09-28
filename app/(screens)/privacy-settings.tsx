@@ -247,7 +247,7 @@ export default function PrivacySettingsScreen() {
             icon="cookie-outline"
             color="#F59E0B"
             isDark={isDark}
-            onPress={() => router.push('/cookie-policy')}
+            onPress={() => router.push('/(screens)/privacy')}
             showArrow
           />
         </View>

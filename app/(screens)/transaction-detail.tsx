@@ -138,7 +138,7 @@ export default function TransactionDetailScreen() {
           styles.statusIconContainer,
           { backgroundColor: `${typeIcon.color}20` }
         ]}>
-          <Ionicons name={typeIcon.icon} size={32} color={typeIcon.color} />
+          <Ionicons name={typeIcon.icon as any} size={32} color={typeIcon.color} />
         </View>
         <View style={styles.statusInfo}>
           <Text style={styles.statusTitle}>{transaction.description}</Text>
@@ -154,7 +154,7 @@ export default function TransactionDetailScreen() {
           { backgroundColor: `${statusColors[transaction.status] || '#6B7280'}20` }
         ]}>
           <Ionicons 
-            name={getStatusIcon(transaction.status)} 
+            name={getStatusIcon(transaction.status) as any} 
             size={16} 
             color={statusColors[transaction.status] || '#6B7280'} 
           />
@@ -261,7 +261,7 @@ export default function TransactionDetailScreen() {
       {transaction.taskId && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Related Task</Text>
-          <TouchableOpacity style={styles.taskCard} onPress={() => router.push(`/(screens)/task-detail/${transaction.taskId}`)}>
+          <TouchableOpacity style={styles.taskCard} onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: transaction.taskId } })}>
             <View style={styles.taskCardContent}>
               <View style={[
                 styles.taskCategoryIcon,

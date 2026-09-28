@@ -6,15 +6,45 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
-import { 
-  Task, 
-  TaskStatus, 
-  TaskCategory, 
-  TaskUrgency, 
-  TaskFilters, 
+import {
+  Task,
+  TaskStatus,
+  TaskCategory,
+  TaskUrgency,
+  TaskFilters,
   TaskSortOptions,
-  PaginatedResponse 
+  PaginatedResponse
 } from '@/types';
+import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS, isMockApiEnabled } from '@/services/api';
+
+// Review entry as consumed by the task-reviews screen
+export interface TaskReviewEntry {
+  id: string;
+  taskId?: string;
+  taskTitle?: string;
+  reviewerId?: string;
+  reviewerName?: string;
+  revieweeId?: string;
+  type: 'given' | 'received';
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+// Application entry as consumed by the task-applications screen
+export interface TaskApplication {
+  id: string;
+  taskId?: string;
+  applicantId: string;
+  applicantName: string;
+  applicantRating?: number;
+  applicantCompletedTasks?: number;
+  applicantDistance?: number;
+  message?: string;
+  proposedBudget?: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt?: string;
+}
 
 interface TaskState {
   // State
@@ -33,18 +63,44 @@ interface TaskState {
   };
   isLoading: boolean;
   isLoadingMore: boolean;
+  isCreating: boolean;
+  isApplying: boolean;
   error: string | null;
-  
+
+  // Screen-consumed collections
+  reviews: TaskReviewEntry[];
+  applications: TaskApplication[];
+
   // Real-time subscriptions
   isSubscribed: boolean;
-  
+
+  // Async (REST-first) actions used by screens
+  fetchTasks: (params?: Record<string, any>) => Promise<Task[]>;
+  fetchTaskById: (taskId: string) => Promise<Task | undefined>;
+  createTask: (payload: Record<string, any>) => Promise<boolean>;
+  applyToTask: (taskId: string, payload?: { message?: string; proposedBudget?: number }) => Promise<boolean>;
+  fetchReviews: (taskId?: string) => Promise<TaskReviewEntry[]>;
+  refreshTasks: () => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  updateTaskStatus: (taskId: string, status: TaskStatus | string) => Promise<void>;
+  refreshApplications: (taskId: string) => Promise<void>;
+  acceptApplication: (applicationId: string) => void;
+  rejectApplication: (applicationId: string) => void;
+  clearError: () => void;
+  clearCurrentTask: () => void;
+
+  // Derived lists (expose as state-shaped getters for destructuring screens)
+  readonly postedTasks: Task[];
+  readonly appliedTasks: Task[];
+  readonly completedTasks: Task[];
+
   // Actions
   setTasks: (tasks: Task[]) => void;
   setMyTasks: (tasks: Task[]) => void;
   setAssignedTasks: (tasks: Task[]) => void;
   setNearbyTasks: (tasks: Task[]) => void;
   addTask: (task: Task) => void;
-  updateTask: (task: Task) => void;
+  updateTask: (taskOrId: Task | string, payload?: Record<string, any>) => void | Promise<void>;
   removeTask: (taskId: string) => void;
   setCurrentTask: (task: Task | null) => void;
   setFilters: (filters: Partial<TaskFilters>) => void;
@@ -98,7 +154,11 @@ export const useTaskStore = create<TaskState>()(
       pagination: defaultPagination,
       isLoading: false,
       isLoadingMore: false,
+      isCreating: false,
+      isApplying: false,
       error: null,
+      reviews: [],
+      applications: [],
       isSubscribed: false,
       
       // Actions
@@ -116,13 +176,47 @@ export const useTaskStore = create<TaskState>()(
         pagination: { ...state.pagination, total: state.pagination.total + 1 },
       })),
       
-      updateTask: (updatedTask) => set((state) => ({
-        tasks: state.tasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
-        myTasks: state.myTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
-        assignedTasks: state.assignedTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
-        nearbyTasks: state.nearbyTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
-        currentTask: state.currentTask?.id === updatedTask.id ? updatedTask : state.currentTask,
-      })),
+      updateTask: (taskOrId, payload) => {
+        // Local update when handed a full Task object (existing behavior)
+        if (typeof taskOrId !== 'string') {
+          const updatedTask = taskOrId;
+          set((state) => ({
+            tasks: state.tasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
+            myTasks: state.myTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
+            assignedTasks: state.assignedTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
+            nearbyTasks: state.nearbyTasks.map((t) => t.id === updatedTask.id ? updatedTask : t),
+            currentTask: state.currentTask?.id === updatedTask.id ? updatedTask : state.currentTask,
+          }));
+          return;
+        }
+
+        // Remote update: PUT /tasks/:id with payload, then merge locally.
+        return (async () => {
+          const taskId = taskOrId;
+          const existing = get().getTaskById(taskId);
+          if (!existing) {
+            throw new Error('Task not found');
+          }
+
+          const optimistic: Task = ({ ...existing, ...(payload || {}) } as Task);
+          get().updateTask(optimistic);
+
+          try {
+            const body: Record<string, any> = { ...(payload || {}) };
+            if (typeof body.budget === 'number') {
+              body.budget = { amount: Math.round(body.budget), currency: 'INR', type: 'fixed' };
+            }
+            await apiPut(ENDPOINTS.tasks.update(taskId), body);
+            // Realtime listener will re-sync the authoritative copy.
+          } catch (error) {
+            console.warn('[TaskStore] updateTask remote failed (optimistic kept):', error);
+            if (isMockApiEnabled) return;
+            // Roll back optimistic change on hard failure
+            get().updateTask(existing);
+            throw error;
+          }
+        })();
+      },
       
       removeTask: (taskId) => set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== taskId),
@@ -158,14 +252,210 @@ export const useTaskStore = create<TaskState>()(
       setError: (error) => set({ error, isLoading: false, isLoadingMore: false }),
       
       setSubscribed: (isSubscribed) => set({ isSubscribed }),
-      
+
+      // ------------------------------------------------------------
+      // Async (REST-first) actions. Failures are non-fatal by design:
+      // realtime Firestore listeners re-sync authoritative data.
+      // ------------------------------------------------------------
+
+      fetchTasks: async (params) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiGet<any>(ENDPOINTS.tasks.list, { params });
+          const list: Task[] = (data?.tasks ?? data?.data ?? data ?? []) as Task[];
+          if (Array.isArray(list)) {
+            set({ tasks: list });
+          }
+          set({ isLoading: false });
+          return get().tasks;
+        } catch (error) {
+          console.warn('[TaskStore] fetchTasks failed:', error);
+          set({ isLoading: false });
+          return get().tasks;
+        }
+      },
+
+      fetchTaskById: async (taskId) => {
+        const cached = get().getTaskById(taskId);
+        if (cached) set({ currentTask: cached });
+        try {
+          const data = await apiGet<any>(ENDPOINTS.tasks.get(taskId));
+          const task = (data?.task ?? data) as Task;
+          if (task && task.id) {
+            set({ currentTask: task });
+            return task;
+          }
+        } catch (error) {
+          console.warn('[TaskStore] fetchTaskById failed:', error);
+        }
+        return get().currentTask ?? cached;
+      },
+
+      createTask: async (payload) => {
+        set({ isCreating: true, error: null });
+        try {
+          const body: Record<string, any> = { ...(payload || {}) };
+          if (typeof body.budget === 'number') {
+            body.budget = { amount: Math.round(body.budget), currency: 'INR', type: 'fixed' };
+          }
+          const data = await apiPost<any>(ENDPOINTS.tasks.create, body);
+          const task = (data?.task ?? data) as Task;
+          if (task && task.id) {
+            get().addTask(task);
+          }
+          set({ isCreating: false });
+          return true;
+        } catch (error: any) {
+          console.warn('[TaskStore] createTask failed:', error);
+          set({
+            isCreating: false,
+            error: error?.response?.data?.message || 'Failed to create task',
+          });
+          return false;
+        }
+      },
+
+      applyToTask: async (taskId, payload) => {
+        // NOTE: there is no buddy-application endpoint on the backend
+        // (POST /tasks/:id/assign is the poster action). We mark the
+        // application locally; the realtime listener re-syncs the task.
+        set({ isApplying: true, error: null });
+        try {
+          const task = get().getTaskById(taskId);
+          if (task) {
+            const application = {
+              taskId,
+              applicantId: 'current-user',
+              applicantName: 'You',
+              message: payload?.message,
+              proposedBudget: payload?.proposedBudget,
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+            } as any;
+            get().updateTask({
+              ...(task as any),
+              applications: [...(((task as any).applications) || []), application],
+              applicationsCount: (((task as any).applicationsCount) || 0) + 1,
+            } as Task);
+          }
+          set({ isApplying: false });
+          return true;
+        } catch (error) {
+          console.warn('[TaskStore] applyToTask failed:', error);
+          set({ isApplying: false });
+          return false;
+        }
+      },
+
+      fetchReviews: async (taskId) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiGet<any>('/reviews', {
+            params: { ...(taskId ? { taskId } : {}), limit: 50 },
+          });
+          const raw: any[] = data?.reviews ?? data?.data ?? [];
+          set({
+            reviews: raw.map((r: any) => ({
+              id: r.id,
+              taskId: r.taskId,
+              taskTitle: r.taskTitle,
+              reviewerId: r.reviewerId,
+              reviewerName: r.reviewerName ?? 'User',
+              revieweeId: r.revieweeId,
+              type: 'received',
+              rating: r.rating ?? 0,
+              comment: r.comment,
+              createdAt: r.createdAt ?? '',
+            })),
+            isLoading: false,
+          });
+        } catch (error) {
+          console.warn('[TaskStore] fetchReviews failed:', error);
+          set({ isLoading: false });
+        }
+        return get().reviews;
+      },
+
+      refreshTasks: async () => {
+        await get().fetchTasks();
+        try {
+          const mine = await apiGet<any>('/tasks/my/posted');
+          const list: Task[] = (mine?.tasks ?? mine?.data ?? []) as Task[];
+          if (Array.isArray(list) && list.length) {
+            set({ myTasks: list });
+          }
+        } catch (error) {
+          console.warn('[TaskStore] refreshTasks (posted) failed:', error);
+        }
+      },
+
+      deleteTask: async (taskId) => {
+        get().removeTask(taskId);
+        try {
+          await apiDelete(ENDPOINTS.tasks.delete(taskId));
+        } catch (error) {
+          console.warn('[TaskStore] deleteTask remote failed (local kept):', error);
+        }
+      },
+
+      updateTaskStatus: async (taskId, status) => {
+        // Normalize to backend statuses when possible
+        const backendStatus = String(status);
+        const existing = get().getTaskById(taskId);
+        if (existing) {
+          get().updateTask({ ...existing, status: backendStatus as TaskStatus });
+        }
+        try {
+          await apiPut(`/tasks/${taskId}/status`, { status: backendStatus });
+        } catch (error) {
+          console.warn('[TaskStore] updateTaskStatus remote failed (local kept):', error);
+        }
+      },
+
+      refreshApplications: async (_taskId) => {
+        // No backend endpoint for applications yet; keep local list.
+        set({ applications: get().applications });
+      },
+
+      acceptApplication: (applicationId) => set((state) => ({
+        applications: state.applications.map((a) =>
+          a.id === applicationId ? { ...a, status: 'accepted' } : a
+        ),
+      })),
+
+      rejectApplication: (applicationId) => set((state) => ({
+        applications: state.applications.map((a) =>
+          a.id === applicationId ? { ...a, status: 'rejected' } : a
+        ),
+      })),
+
+      clearError: () => set({ error: null }),
+
+      clearCurrentTask: () => set({ currentTask: null }),
+
+      // Derived lists (destructured by screens)
+      get postedTasks() {
+        return get().myTasks;
+      },
+      get appliedTasks() {
+        return get().assignedTasks;
+      },
+      get completedTasks() {
+        const { tasks, myTasks, assignedTasks } = get();
+        const all = [...tasks, ...myTasks, ...assignedTasks];
+        const seen = new Set<string>();
+        return all.filter((t) => {
+          if (t.status !== 'completed') return false;
+          if (seen.has(t.id)) return false;
+          seen.add(t.id);
+          return true;
+        });
+      },
+
       // Real-time handlers
       handleTaskCreated: (task) => {
-        const state = get();
-        // Add to appropriate lists based on current user
         set((s) => ({
           tasks: [task, ...s.tasks],
-          myTasks: task.customer.id === state.currentTask?.customer.id ? [task, ...s.myTasks] : s.myTasks,
           pagination: { ...s.pagination, total: s.pagination.total + 1 },
         }));
       },
@@ -229,8 +519,8 @@ export const useTaskStore = create<TaskState>()(
         
         // Apply sorting
         filtered.sort((a, b) => {
-          let aVal: any = a[sortOptions.field];
-          let bVal: any = b[sortOptions.field];
+          let aVal: any = (a as any)[sortOptions.field];
+          let bVal: any = (b as any)[sortOptions.field];
           
           if (sortOptions.field === 'budget') {
             aVal = a.budget.amount;

@@ -4,8 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { verifyIdToken } from './firebase';
-import { collections } from './models';
+import { verifyIdToken } from '../config/firebase';
+import { collections } from '../models';
 
 // Extend Express Request to include authenticated user
 declare global {

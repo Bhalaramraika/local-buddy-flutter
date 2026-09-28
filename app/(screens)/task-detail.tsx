@@ -61,7 +61,7 @@ export default function TaskDetailScreen() {
 
     const success = await applyToTask(taskId!, {
       message: `Hi, I'm interested in your task "${currentTask?.title}". I believe I can help with this.`,
-      proposedBudget: currentTask?.budget,
+      proposedBudget: currentTask?.budget?.amount,
     });
 
     if (success) {
@@ -92,9 +92,9 @@ export default function TaskDetailScreen() {
       return;
     }
 
-    const conversation = await createConversation(currentTask!.posterId, taskId!);
+    const conversation = await createConversation(currentTask!.posterId!, taskId!);
     if (conversation) {
-      router.push(`/(tabs)/chat/${conversation.id}`);
+      router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: conversation.id } });
     }
   };
 
@@ -168,7 +168,7 @@ export default function TaskDetailScreen() {
         {task.images && task.images.length > 0 && (
           <View style={styles.imageContainer}>
             <Image 
-              source={{ uri: task.images[0] }} 
+              source={{ uri: task.images[0]?.url }} 
               style={styles.taskImage}
               resizeMode="cover"
             />
@@ -197,7 +197,7 @@ export default function TaskDetailScreen() {
               ]}>
                 <Text style={styles.categoryBadgeText}>{task.category}</Text>
               </View>
-              {task.budgetType === 'hourly' && (
+              {task.budget?.type === 'hourly' && (
                 <View style={styles.hourlyBadge}>
                   <Text style={styles.hourlyBadgeText}>/hour</Text>
                 </View>
@@ -207,7 +207,7 @@ export default function TaskDetailScreen() {
             <View style={styles.budgetRow}>
               <Text style={[styles.budgetLabel, { color: isDark ? '#888' : '#666' }]}>Budget</Text>
               <Text style={[styles.budgetAmount, { color: isDark ? '#fff' : '#000' }]}>
-                {formatCurrency(task.budget)}{task.budgetType === 'hourly' ? '/hr' : ''}
+                {formatCurrency(task.budget?.amount ?? 0)}{task.budget?.type === 'hourly' ? '/hr' : ''}
               </Text>
             </View>
           </View>
@@ -217,12 +217,12 @@ export default function TaskDetailScreen() {
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
                 <MaterialCommunityIcons name="map-marker" size={18} color={isDark ? '#888' : '#666'} />
-                <Text style={[styles.metaText, { color: isDark ? '#fff' : '#000' }]}>{task.location}</Text>
+                <Text style={[styles.metaText, { color: isDark ? '#fff' : '#000' }]}>{task.location?.area}, {task.location?.city}</Text>
               </View>
               <View style={styles.metaItem}>
                 <Ionicons name="calendar-outline" size={18} color={isDark ? '#888' : '#666'} />
                 <Text style={[styles.metaText, { color: isDark ? '#fff' : '#000' }]}>
-                  Due {formatRelativeTime(task.deadline)}
+                  {task.deadline ? `Due ${formatRelativeTime(task.deadline)}` : 'No deadline'}
                 </Text>
               </View>
             </View>
@@ -263,7 +263,7 @@ export default function TaskDetailScreen() {
           {/* Poster Info */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Posted by</Text>
-            <TouchableOpacity style={styles.posterCard} onPress={() => router.push(`/(screens)/profile/${task.posterId}`)}>
+            <TouchableOpacity style={styles.posterCard} onPress={() => router.push({ pathname: `/(screens)/user-profile`, params: { userId: task.posterId } })}>
               <View style={styles.posterAvatar}>
                 {task.posterAvatar ? (
                   <Image source={{ uri: task.posterAvatar }} style={styles.posterAvatarImage} />
@@ -342,7 +342,7 @@ export default function TaskDetailScreen() {
             {isPoster ? (
               <>
                 {task.status === 'open' && (
-                  <TouchableOpacity style={styles.editButton} onPress={() => router.push(`/(screens)/edit-task/${task.id}`)}>
+                  <TouchableOpacity style={styles.editButton} onPress={() => router.push({ pathname: `/(screens)/edit-task`, params: { taskId: task.id } })}>
                     <Ionicons name="create-outline" size={20} color="#4F46E5" />
                     <Text style={styles.editButtonText}>Edit Task</Text>
                   </TouchableOpacity>

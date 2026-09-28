@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
-import { PERMISSIONS } from '@/constants/app';
+
 
 export interface ImagePickerOptions {
   mediaTypes?: ImagePicker.MediaTypeOptions;
@@ -131,11 +131,11 @@ export const pickImageFromGallery = async (
       uri: asset.uri,
       width: asset.width,
       height: asset.height,
-      type: asset.mimeType,
-      fileName: asset.fileName,
-      fileSize: asset.fileSize,
-      base64: asset.base64,
-      exif: asset.exif,
+      type: asset.mimeType ?? undefined,
+      fileName: asset.fileName ?? undefined,
+      fileSize: asset.fileSize ?? undefined,
+      base64: asset.base64 ?? undefined,
+      exif: asset.exif ?? undefined,
     };
   } catch (error) {
     console.error('[ImagePicker] Pick from gallery error:', error);
@@ -173,11 +173,11 @@ export const takePhoto = async (
       uri: asset.uri,
       width: asset.width,
       height: asset.height,
-      type: asset.mimeType,
-      fileName: asset.fileName,
-      fileSize: asset.fileSize,
-      base64: asset.base64,
-      exif: asset.exif,
+      type: asset.mimeType ?? undefined,
+      fileName: asset.fileName ?? undefined,
+      fileSize: asset.fileSize ?? undefined,
+      base64: asset.base64 ?? undefined,
+      exif: asset.exif ?? undefined,
     };
   } catch (error) {
     console.error('[ImagePicker] Take photo error:', error);
@@ -213,11 +213,11 @@ export const pickMultipleImages = async (
       uri: asset.uri,
       width: asset.width,
       height: asset.height,
-      type: asset.mimeType,
-      fileName: asset.fileName,
-      fileSize: asset.fileSize,
-      base64: asset.base64,
-      exif: asset.exif,
+      type: asset.mimeType ?? undefined,
+      fileName: asset.fileName ?? undefined,
+      fileSize: asset.fileSize ?? undefined,
+      base64: asset.base64 ?? undefined,
+      exif: asset.exif ?? undefined,
     }));
   } catch (error) {
     console.error('[ImagePicker] Pick multiple images error:', error);
@@ -248,8 +248,8 @@ export const pickDocument = async (
     return {
       uri: asset.uri,
       name: asset.name,
-      size: asset.size,
-      mimeType: asset.mimeType,
+      size: asset.size ?? 0,
+      mimeType: asset.mimeType ?? 'application/octet-stream',
     };
   } catch (error) {
     console.error('[ImagePicker] Pick document error:', error);
@@ -271,11 +271,11 @@ export const pickMultipleDocuments = async (
       return [];
     }
 
-    return result.assets.map(asset => ({
+    return result.assets.map((asset) => ({
       uri: asset.uri,
       name: asset.name,
-      size: asset.size,
-      mimeType: asset.mimeType,
+      size: asset.size ?? 0,
+      mimeType: asset.mimeType ?? 'application/octet-stream',
     }));
   } catch (error) {
     console.error('[ImagePicker] Pick multiple documents error:', error);
@@ -291,11 +291,10 @@ export const compressImage = async (
   const opts = { ...DEFAULT_COMPRESSION, ...options };
   
   try {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: opts.maxWidth, height: opts.maxHeight } }],
-      { compress: opts.quality, format: opts.format, base64: false }
-    );
+    const ctx = ImageManipulator.manipulate(uri)
+      .resize({ width: opts.maxWidth, height: opts.maxHeight });
+    const rendered = await ctx.renderAsync();
+    const result = await rendered.saveAsync({ compress: opts.quality, format: opts.format, base64: false });
 
     // Get file info
     const fileInfo = await getFileInfo(result.uri);
@@ -353,7 +352,8 @@ const getFileInfo = async (uri: string): Promise<{ size: number; name: string }>
 
 export const getImageDimensions = async (uri: string): Promise<{ width: number; height: number }> => {
   try {
-    const result = await ImageManipulator.manipulateAsync(uri, [], { format: SaveFormat.JPEG });
+    const rendered = await ImageManipulator.manipulate(uri).renderAsync();
+    const result = await rendered.saveAsync({ format: SaveFormat.JPEG });
     return { width: result.width, height: result.height };
   } catch (error) {
     console.error('[ImagePicker] Get dimensions error:', error);
@@ -366,11 +366,10 @@ export const createThumbnail = async (
   size: number = 200
 ): Promise<string> => {
   try {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: size, height: size } }],
-      { compress: 0.7, format: SaveFormat.JPEG }
-    );
+    const rendered = await ImageManipulator.manipulate(uri)
+      .resize({ width: size, height: size })
+      .renderAsync();
+    const result = await rendered.saveAsync({ compress: 0.7, format: SaveFormat.JPEG });
     return result.uri;
   } catch (error) {
     console.error('[ImagePicker] Create thumbnail error:', error);
@@ -442,15 +441,15 @@ export const imageToBase64 = async (uri: string): Promise<string> => {
 export const clearImageCache = async (): Promise<void> => {
   try {
     if (Platform.OS !== 'web') {
-      const { FileSystem } = await import('expo-file-system');
+      const FileSystem = await import('expo-file-system/legacy');
       const cacheDir = FileSystem.cacheDirectory;
       if (cacheDir) {
         const files = await FileSystem.readDirectoryAsync(cacheDir);
-        const imageFiles = files.filter(f => 
+        const imageFiles = files.filter((f: string) =>
           f.match(/\.(jpg|jpeg|png|webp|heic)$/i)
         );
         await Promise.all(
-          imageFiles.map(f => FileSystem.deleteAsync(`${cacheDir}${f}`, { idempotent: true }))
+          imageFiles.map((f: string) => FileSystem.deleteAsync(`${cacheDir}${f}`, { idempotent: true }))
         );
       }
     }

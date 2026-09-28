@@ -8,6 +8,27 @@ export type UserRole = 'customer' | 'buddy' | 'admin';
 export type KYCStatus = 'pending' | 'verified' | 'rejected' | 'expired' | 'not_started';
 export type UserStatus = 'active' | 'inactive' | 'suspended' | 'banned';
 
+// KYC document slot identifiers used by the KYC store/screens
+export type DocumentType =
+  | 'aadhaar_front'
+  | 'aadhaar_back'
+  | 'pan_card'
+  | 'selfie'
+  | 'address_proof'
+  | 'driving_license'
+  | 'voter_id'
+  | 'passport';
+
+export type KYCVerificationStatus = 'not_started' | 'pending' | 'approved' | 'verified' | 'rejected' | 'expired';
+
+export interface KYCStatusInfo {
+  status: KYCVerificationStatus;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  documents: KYCDocument[];
+}
+
 export interface User {
   id: string;
   phone: string;
@@ -38,6 +59,16 @@ export interface User {
     rejectionReason?: string;
     expiryDate?: string;
   };
+  // Convenience KYC accessors used by profile/KYC screens
+  kycStatus?: KYCStatus;
+  kycDocuments?: KYCDocument[];
+  kycData?: any;
+  // Denormalized/display fields used by profile & settings screens
+  username?: string;
+  location?: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
+  walletBalance?: number;
   wallet: {
     balance: number;
     pendingBalance: number;
@@ -57,6 +88,10 @@ export interface User {
     totalSpent: number;
     responseTime: number; // in minutes
     completionRate: number; // percentage
+    // Aliases/derived values used by profile screens
+    completedTasks?: number;
+    rating?: number;
+    reviewCount?: number;
   };
   preferences: UserPreferences;
   createdAt: string;
@@ -67,11 +102,15 @@ export interface User {
 export interface KYCDocument {
   id: string;
   type: 'aadhaar' | 'pan' | 'driving_license' | 'voter_id' | 'passport';
+  documentType?: DocumentType;
   frontUrl: string;
   backUrl?: string;
   selfieUrl?: string;
-  status: 'pending' | 'verified' | 'rejected';
+  fileUrl?: string;
+  fileName?: string;
+  status: 'pending' | 'verified' | 'approved' | 'rejected';
   extractedData?: Record<string, any>;
+  uploadedAt?: string;
   verifiedAt?: string;
   rejectionReason?: string;
 }
@@ -88,22 +127,25 @@ export interface BankAccount {
 }
 
 export interface UserPreferences {
+  language?: 'en' | 'hi';
+  currency?: string;
+  timezone?: string;
+  dateFormat?: string;
+  timeFormat?: '12h' | '24h';
+  theme?: 'light' | 'dark' | 'system';
+  fontSize?: 'small' | 'medium' | 'large';
   notifications: {
     push: boolean;
-    inApp: boolean;
     email: boolean;
     sms: boolean;
-    categories: {
-      task: boolean;
-      chat: boolean;
-      wallet: boolean;
-      kyc: boolean;
-      system: boolean;
-      promo: boolean;
-      sos: boolean;
-      review: boolean;
-    };
-    quietHours: {
+    inApp: boolean;
+    taskUpdates?: boolean;
+    chatMessages?: boolean;
+    payments?: boolean;
+    promotions?: boolean;
+    sos?: boolean;
+    categories?: Record<string, boolean>;
+    quietHours?: {
       enabled: boolean;
       start: string; // HH:mm
       end: string; // HH:mm
@@ -113,18 +155,98 @@ export interface UserPreferences {
     showProfile: boolean;
     showRating: boolean;
     showLocation: boolean;
+    showOnlineStatus?: boolean;
     allowDirectMessages: boolean;
   };
-  appearance: {
+  accessibility?: {
+    reduceMotion: boolean;
+    highContrast: boolean;
+    screenReader: boolean;
+    largeText: boolean;
+  };
+  appearance?: {
     theme: 'light' | 'dark' | 'system';
     language: 'en' | 'hi';
     fontSize: 'small' | 'medium' | 'large';
   };
-  location: {
+  location?: {
     shareLocation: boolean;
     autoAcceptNearby: boolean;
     maxDistance: number; // in km
   };
+}
+
+export interface UserProfile {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  bio?: string;
+  avatarUrl?: string;
+  address?: string;
+  city?: string;
+  area?: string;
+  state?: string;
+  pincode?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
+}
+
+export interface SOSContact {
+  id?: string;
+  name: string;
+  phone: string;
+  relation?: string;
+}
+
+export interface UserSettings {
+  autoAcceptTasks: boolean;
+  autoAcceptRadius: number; // in meters
+  minTaskAmount: number; // whole INR
+  maxTaskDistance: number; // in meters
+  preferredCategories: string[];
+  blockedUsers: string[];
+  blockedCategories: string[];
+  workingHours: {
+    enabled: boolean;
+    start: string; // HH:mm
+    end: string; // HH:mm
+    days: number[]; // 0-6, Sunday=0
+  };
+  sosContacts: SOSContact[];
+  emergencyContacts: SOSContact[];
+  twoFactorEnabled: boolean;
+  biometricEnabled: boolean;
+  pinEnabled: boolean;
+}
+
+export interface ReferralData {
+  referralCode: string;
+  referralCount: number;
+  totalEarnings: number; // whole INR
+  pendingEarnings?: number;
+  referrals?: Array<{
+    id: string;
+    name?: string;
+    phone?: string;
+    status: 'pending' | 'completed' | 'expired';
+    reward?: number;
+    joinedAt?: string;
+  }>;
+}
+
+export interface UserStats {
+  tasksCompleted?: number;
+  tasksPosted?: number;
+  completedTasks?: number;
+  totalEarnings?: number;
+  totalSpent?: number;
+  rating?: number;
+  reviewCount?: number;
+  responseTime?: number;
+  completionRate?: number;
 }
 
 // Auth Types
@@ -198,6 +320,31 @@ export interface Task {
     currency: string;
     type: 'fixed' | 'hourly' | 'negotiable';
   };
+  // Denormalized fields used by task detail/list screens
+  budgetType?: 'fixed' | 'hourly' | 'negotiable';
+  posterId?: string;
+  posterName?: string;
+  posterPhone?: string;
+  posterAvatar?: string;
+  posterRating?: number;
+  posterCompletedTasks?: number;
+  posterResponseRate?: number;
+  skills?: string[];
+  applications?: Array<{
+    id: string;
+    applicantId?: string;
+    applicantName?: string;
+    applicantAvatar?: string;
+    applicantRating?: number;
+    message?: string;
+    proposedBudget?: number;
+    status?: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+    createdAt?: string;
+    [key: string]: any;
+  }>;
+  applicationsCount?: number;
+  isUrgent?: boolean;
+  isRemote?: boolean;
   location: {
     address: string;
     area: string;
@@ -308,6 +455,9 @@ export interface Chat {
   isGroup: boolean;
   groupName?: string;
   groupAvatar?: string;
+  // Convenience display fields used by chat screens
+  name?: string;
+  memberCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -419,6 +569,9 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'failed' | 'reversed';
   referenceId?: string;
   referenceType?: 'task' | 'payment' | 'withdrawal' | 'refund';
+  // Display-friendly aliases used by wallet screens
+  reference?: string;
+  date?: string;
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
@@ -454,11 +607,11 @@ export interface WalletStats {
 export interface LocationData {
   latitude: number;
   longitude: number;
-  accuracy: number;
+  accuracy?: number;
   altitude?: number;
   speed?: number;
   heading?: number;
-  timestamp: number;
+  timestamp?: number;
   address?: string;
   city?: string;
   area?: string;
@@ -466,26 +619,32 @@ export interface LocationData {
 
 export interface Geofence {
   id: string;
-  name: string;
+  name?: string;
   latitude: number;
   longitude: number;
   radius: number; // in meters
-  type: 'task' | 'area' | 'restricted';
+  type: 'task' | 'area' | 'restricted' | 'buddy' | 'zone' | 'custom';
   taskId?: string;
-  isActive: boolean;
-  notifyOnEntry: boolean;
-  notifyOnExit: boolean;
-  createdAt: string;
+  isActive?: boolean;
+  notifyOnEntry?: boolean;
+  notifyOnExit?: boolean;
+  metadata?: Record<string, any>;
+  createdAt?: string;
 }
 
 export interface NearbyBuddy {
   id: string;
   name: string;
   avatar?: string;
-  rating: number;
+  rating?: number;
   distance: number; // in meters
-  isAvailable: boolean;
-  categories: TaskCategory[];
+  isAvailable?: boolean;
+  categories?: TaskCategory[];
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  isOnline?: boolean;
   lastSeen: string;
 }
 
@@ -497,25 +656,44 @@ export type NotificationType =
   | 'task_cancelled'
   | 'chat_message'
   | 'payment_received'
+  | 'payment_sent'
   | 'payment_failed'
   | 'wallet_low_balance'
+  | 'withdrawal_initiated'
+  | 'withdrawal_completed'
+  | 'withdrawal_failed'
+  | 'kyc_submitted'
   | 'kyc_approved'
   | 'kyc_rejected'
   | 'kyc_expired'
   | 'sos_alert'
+  | 'sos_resolved'
   | 'buddy_nearby'
   | 'review_received'
+  | 'referral_bonus'
   | 'system_announcement'
-  | 'promo_offer';
+  | 'app_update'
+  | 'promo_offer'
+  | 'promotion'
+  | 'general';
+
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+export type FCMToken = string;
 
 export interface Notification {
   id: string;
   type: NotificationType;
   title: string;
-  body: string;
+  body?: string;
+  // Display aliases used by notification screens
+  message?: string;
+  time?: string;
+  avatar?: string;
   data?: Record<string, any>;
-  read: boolean;
-  priority: 'high' | 'normal' | 'low';
+  read?: boolean;
+  isRead?: boolean;
+  priority: NotificationPriority;
   actionUrl?: string;
   imageUrl?: string;
   createdAt: string;
@@ -563,6 +741,7 @@ export interface PaymentOrder {
   status: 'created' | 'attempted' | 'paid' | 'failed';
   attempts: number;
   createdAt: string;
+  notes?: Record<string, any>;
 }
 
 export interface PaymentMethod {
@@ -594,7 +773,7 @@ export interface PayUFormData {
   udf3?: string;
   udf4?: string;
   udf5?: string;
-  service_provider: string;
+  service_provider?: string;
 }
 
 export interface PayUCallbackParams {
@@ -617,6 +796,7 @@ export interface PayUCallbackParams {
   udf3?: string;
   udf4?: string;
   udf5?: string;
+  error?: string;
 }
 
 export interface PaymentVerification {
@@ -872,7 +1052,9 @@ export const TASK_URGENCIES: TaskUrgency[] = ['low', 'normal', 'high', 'urgent']
 export const MESSAGE_TYPES: MessageType[] = ['text', 'image', 'location', 'voice', 'file', 'system', 'payment', 'task_update'];
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_assigned', 'task_updated', 'task_completed', 'task_cancelled',
-  'chat_message', 'payment_received', 'payment_failed', 'wallet_low_balance',
-  'kyc_approved', 'kyc_rejected', 'kyc_expired', 'sos_alert', 'buddy_nearby',
-  'review_received', 'system_announcement', 'promo_offer'
+  'chat_message', 'payment_received', 'payment_sent', 'payment_failed', 'wallet_low_balance',
+  'withdrawal_initiated', 'withdrawal_completed', 'withdrawal_failed',
+  'kyc_submitted', 'kyc_approved', 'kyc_rejected', 'kyc_expired',
+  'sos_alert', 'sos_resolved', 'buddy_nearby', 'review_received', 'referral_bonus',
+  'system_announcement', 'app_update', 'promo_offer', 'promotion', 'general'
 ];

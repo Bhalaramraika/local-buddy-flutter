@@ -44,7 +44,7 @@ export default function WalletScreen() {
   const renderTransaction = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.transactionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-      onPress={() => router.push(`/(screens)/transaction-detail/${item.id}`)}
+      onPress={() => router.push({ pathname: `/(screens)/transaction-detail`, params: { id: item.id } })}
     >
       <View style={styles.transactionIconContainer}>
         <View style={[styles.transactionIcon, { backgroundColor: item.type === 'credit' ? '#10B98120' : '#EF444420' }]}>
@@ -152,7 +152,7 @@ export default function WalletScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-            <MaterialCommunityIcons name="cash-outline" size={48} color={isDark ? '#555' : '#ccc'} />
+            <MaterialCommunityIcons name="cash" size={48} color={isDark ? '#555' : '#ccc'} />
             <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>No transactions yet</Text>
             <Text style={[styles.emptySubtext, { color: isDark ? '#888' : '#666' }]}>
               {activeTab === 'all' ? 'Your transaction history will appear here' :

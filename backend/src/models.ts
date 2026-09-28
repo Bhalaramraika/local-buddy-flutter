@@ -3,28 +3,31 @@
  * Type-safe collection helpers matching Architecture.md schema
  */
 
-import { getFirestore } from './firebase';
+import { getFirestore } from './config/firebase';
 import { FieldValue, Firestore } from 'firebase-admin/firestore';
 
-const db = getFirestore();
-
-// Export Firestore instance for batch operations
-export const firestore: Firestore = db;
+// Lazy Firestore instance so importing this module never throws,
+// even before Firebase Admin is initialized.
+let _db: Firestore | null = null;
+export function getDb(): Firestore {
+  if (!_db) _db = getFirestore();
+  return _db;
+}
 
 // ============================================================
-// Collection References
+// Collection References (lazy getters)
 // ============================================================
 
 export const collections = {
-  users: db.collection('users'),
-  tasks: db.collection('tasks'),
-  chats: db.collection('chats'),
-  transactions: db.collection('transactions'),
-  reviews: db.collection('reviews'),
-  verifications: db.collection('verifications'),
-  otpSessions: db.collection('otp_sessions'),
-  userLocks: db.collection('user_locks'),
-  jobs: db.collection('jobs'),
+  get users() { return getDb().collection('users'); },
+  get tasks() { return getDb().collection('tasks'); },
+  get chats() { return getDb().collection('chats'); },
+  get transactions() { return getDb().collection('transactions'); },
+  get reviews() { return getDb().collection('reviews'); },
+  get verifications() { return getDb().collection('verifications'); },
+  get otpSessions() { return getDb().collection('otp_sessions'); },
+  get userLocks() { return getDb().collection('user_locks'); },
+  get jobs() { return getDb().collection('jobs'); },
 };
 
 // Sub-collection helpers
@@ -222,7 +225,7 @@ export async function runTransaction<T>(
 ): Promise<T> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await db.runTransaction(updateFn);
+      return await getDb().runTransaction(updateFn);
     } catch (err: any) {
       if (attempt === maxRetries) throw err;
       if (err.code === 'aborted') {

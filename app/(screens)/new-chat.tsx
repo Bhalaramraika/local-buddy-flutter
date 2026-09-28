@@ -2,7 +2,7 @@
  * New Chat Screen - Start a new conversation
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -32,7 +32,7 @@ export default function NewChatScreen() {
   
   const isDark = theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
   useEffect(() => {
@@ -41,14 +41,13 @@ export default function NewChatScreen() {
     }
   }, [isAuthenticated, fetchUsers]);
 
-  useEffect(() => {
-    const filtered = users.filter(u => 
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) =>
       u.id !== user?.id && (
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+        (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ((u as any).email || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
-    setFilteredUsers(filtered);
   }, [users, searchQuery, user?.id]);
 
   const handleStartChat = async (targetUser: any) => {
@@ -60,7 +59,7 @@ export default function NewChatScreen() {
 
     const conversation = await createConversation(targetUser.id);
     if (conversation) {
-      router.push(`/(tabs)/chat/${conversation.id}`);
+      router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: conversation.id } });
     }
   };
 

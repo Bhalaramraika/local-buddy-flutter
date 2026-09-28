@@ -13,7 +13,7 @@ import {
   FCMToken 
 } from '@/types';
 
-interface NotificationState {
+export interface NotificationState {
   // Notifications
   notifications: Notification[];
   unreadCount: number;
@@ -96,18 +96,25 @@ const defaultNotificationSettings = {
     chat_message: true,
     payment_received: true,
     payment_sent: true,
+    payment_failed: true,
+    wallet_low_balance: true,
     withdrawal_initiated: true,
     withdrawal_completed: true,
     withdrawal_failed: true,
     kyc_submitted: true,
     kyc_approved: true,
     kyc_rejected: true,
+    kyc_expired: true,
     sos_alert: true,
     sos_resolved: true,
+    buddy_nearby: true,
+    review_received: true,
     referral_bonus: true,
     system_announcement: true,
     app_update: true,
+    promo_offer: true,
     promotion: true,
+    general: true,
   } as Record<NotificationType, boolean>,
   quietHours: {
     enabled: false,

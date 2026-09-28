@@ -44,7 +44,7 @@ export default function ChatScreen() {
     <TouchableOpacity
       style={[styles.conversationCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
       onPress={() => {
-        router.push(`/(screens)/chat-detail/${item.id}`);
+        router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: item.id } });
         if (item.unreadCount > 0) {
           clearUnreadCount(item.id);
         }

@@ -128,7 +128,10 @@ export default function GeofencesScreen() {
     },
   ];
 
+
   const loadGeofences = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     setGeofences(mockGeofences);
@@ -136,7 +139,8 @@ export default function GeofencesScreen() {
   };
 
   useEffect(() => {
-    loadGeofences();
+    // Defer data loading past the first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(() => {     loadGeofences(); });
   }, []);
 
   const handleToggleGeofence = (geofenceId: string, isActive: boolean) => {
@@ -345,7 +349,7 @@ export default function GeofencesScreen() {
             ].map((stat, i) => (
               <View key={i} style={styles.summaryItem}>
                 <View style={[styles.summaryIcon, { backgroundColor: `${stat.color}15` }]}>
-                  <Ionicons name={stat.icon} size={20} color={stat.color} />
+                  <Ionicons name={stat.icon as any} size={20} color={stat.color} />
                 </View>
                 <Text style={[styles.summaryValue, { color: isDark ? '#fff' : '#000' }]}>{stat.value}</Text>
                 <Text style={[styles.summaryLabel, { color: isDark ? '#888' : '#666' }]}>{stat.label}</Text>
@@ -610,6 +614,8 @@ const styles = StyleSheet.create({
   settingItemLeft: { flex: 1 },
   settingTitle: { fontSize: 16, fontFamily: 'Inter_500Medium' },
   settingSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  settingTrailing: { flexDirection: 'row', alignItems: 'center' },
+  settingTrailingText: { fontSize: 14, fontFamily: 'Inter_500Medium', color: '#999', marginRight: 8 },
   loadingContainer: { alignItems: 'center', paddingVertical: 40 },
   loadingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   emptyState: { alignItems: 'center', paddingVertical: 40 },

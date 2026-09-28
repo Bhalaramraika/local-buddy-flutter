@@ -48,11 +48,11 @@ export default function MyTasksScreen() {
   });
 
   const handleTaskPress = (task: any) => {
-    router.push(`/task-detail?id=${task.id}`);
+    router.push({ pathname: `/(screens)/task-detail`, params: { taskId: task.id } });
   };
 
   const handleEditPress = (task: any) => {
-    router.push(`/edit-task?taskId=${task.id}`);
+    router.push({ pathname: `/(screens)/edit-task`, params: { taskId: task.id } });
   };
 
   const handleDeletePress = (task: any) => {

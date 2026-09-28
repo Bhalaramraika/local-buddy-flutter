@@ -3,7 +3,8 @@
  * Based on Architecture.md - Wallet management with balance, transactions, withdrawals
  */
 
-import { api, ENDPOINTS } from './api';
+import { apiGet, apiPost, apiDelete, ENDPOINTS } from './api';
+import { STORAGE_KEYS } from '@/constants/app';
 import { storage } from './storage';
 
 export interface WalletBalance {
@@ -67,7 +68,7 @@ export interface WalletStats {
 // Get wallet balance
 export const getWalletBalance = async (): Promise<WalletBalance> => {
   try {
-    const response = await api.get<WalletBalance>(ENDPOINTS.wallet.balance);
+    const response = await apiGet<WalletBalance>(ENDPOINTS.wallet.balance);
     
     // Cache balance locally
     await storage.set(STORAGE_KEYS.walletBalance, response.available);
@@ -110,7 +111,7 @@ export const getTransactions = async (
       });
     }
 
-    const response = await api.get<{ transactions: Transaction[]; total: number }>(
+    const response = await apiGet<{ transactions: Transaction[]; total: number }>(
       `${ENDPOINTS.wallet.transactions}?${params.toString()}`
     );
     
@@ -129,7 +130,7 @@ export const getTransactions = async (
 // Get transaction by ID
 export const getTransaction = async (id: string): Promise<Transaction | null> => {
   try {
-    const response = await api.get<Transaction>(`${ENDPOINTS.wallet.transactions}/${id}`);
+    const response = await apiGet<Transaction>(`${ENDPOINTS.wallet.transactions}/${id}`);
     return response;
   } catch (error) {
     console.error('[Wallet] Get transaction error:', error);
@@ -144,7 +145,7 @@ export const requestWithdrawal = async (
   details: { bankAccountId?: string; upiId?: string }
 ): Promise<{ success: boolean; withdrawalId?: string; error?: string }> => {
   try {
-    const response = await api.post<{ withdrawalId: string }>(ENDPOINTS.wallet.withdraw, {
+    const response = await apiPost<{ withdrawalId: string }>(ENDPOINTS.wallet.withdraw, {
       amount: Math.round(amount * 100), // Convert to paise
       method,
       ...details,
@@ -165,7 +166,7 @@ export const getWithdrawals = async (
   limit: number = 20
 ): Promise<{ withdrawals: WithdrawalRequest[]; total: number }> => {
   try {
-    const response = await api.get<{ withdrawals: WithdrawalRequest[]; total: number }>(
+    const response = await apiGet<{ withdrawals: WithdrawalRequest[]; total: number }>(
       `${ENDPOINTS.wallet.withdraw}?page=${page}&limit=${limit}`
     );
     return response;
@@ -178,7 +179,7 @@ export const getWithdrawals = async (
 // Get withdrawal by ID
 export const getWithdrawal = async (id: string): Promise<WithdrawalRequest | null> => {
   try {
-    const response = await api.get<WithdrawalRequest>(`${ENDPOINTS.wallet.withdraw}/${id}`);
+    const response = await apiGet<WithdrawalRequest>(`${ENDPOINTS.wallet.withdraw}/${id}`);
     return response;
   } catch (error) {
     console.error('[Wallet] Get withdrawal error:', error);
@@ -189,7 +190,7 @@ export const getWithdrawal = async (id: string): Promise<WithdrawalRequest | nul
 // Cancel withdrawal (if still pending)
 export const cancelWithdrawal = async (id: string): Promise<boolean> => {
   try {
-    await api.post(`${ENDPOINTS.wallet.withdraw}/${id}/cancel`);
+    await apiPost(`${ENDPOINTS.wallet.withdraw}/${id}/cancel`);
     return true;
   } catch (error) {
     console.error('[Wallet] Cancel withdrawal error:', error);
@@ -200,7 +201,7 @@ export const cancelWithdrawal = async (id: string): Promise<boolean> => {
 // Add bank account
 export const addBankAccount = async (account: Omit<BankAccount, 'id' | 'isVerified' | 'isDefault'>): Promise<BankAccount | null> => {
   try {
-    const response = await api.post<BankAccount>(ENDPOINTS.wallet.paymentMethods, {
+    const response = await apiPost<BankAccount>(ENDPOINTS.wallet.paymentMethods, {
       type: 'bank',
       ...account,
     });
@@ -214,8 +215,8 @@ export const addBankAccount = async (account: Omit<BankAccount, 'id' | 'isVerifi
 // Get bank accounts
 export const getBankAccounts = async (): Promise<BankAccount[]> => {
   try {
-    const response = await api.get<BankAccount[]>(ENDPOINTS.wallet.paymentMethods);
-    return response.filter(m => m.type === 'bank');
+    const response = await apiGet<BankAccount[]>(ENDPOINTS.wallet.paymentMethods);
+    return (response as any[]).filter((m: any) => m.type === 'bank');
   } catch (error) {
     console.error('[Wallet] Get bank accounts error:', error);
     return [];
@@ -225,7 +226,7 @@ export const getBankAccounts = async (): Promise<BankAccount[]> => {
 // Remove bank account
 export const removeBankAccount = async (id: string): Promise<boolean> => {
   try {
-    await api.delete(`${ENDPOINTS.wallet.paymentMethods}/${id}`);
+    await apiDelete(`${ENDPOINTS.wallet.paymentMethods}/${id}`);
     return true;
   } catch (error) {
     console.error('[Wallet] Remove bank account error:', error);
@@ -236,7 +237,7 @@ export const removeBankAccount = async (id: string): Promise<boolean> => {
 // Set default bank account
 export const setDefaultBankAccount = async (id: string): Promise<boolean> => {
   try {
-    await api.post(`${ENDPOINTS.wallet.paymentMethods}/${id}/default`);
+    await apiPost(`${ENDPOINTS.wallet.paymentMethods}/${id}/default`);
     return true;
   } catch (error) {
     console.error('[Wallet] Set default bank account error:', error);
@@ -247,7 +248,7 @@ export const setDefaultBankAccount = async (id: string): Promise<boolean> => {
 // Verify bank account (penny drop)
 export const verifyBankAccount = async (id: string): Promise<boolean> => {
   try {
-    await api.post(`${ENDPOINTS.wallet.paymentMethods}/${id}/verify`);
+    await apiPost(`${ENDPOINTS.wallet.paymentMethods}/${id}/verify`);
     return true;
   } catch (error) {
     console.error('[Wallet] Verify bank account error:', error);
@@ -258,7 +259,7 @@ export const verifyBankAccount = async (id: string): Promise<boolean> => {
 // Get wallet stats
 export const getWalletStats = async (): Promise<WalletStats | null> => {
   try {
-    const response = await api.get<WalletStats>(`${ENDPOINTS.wallet.balance}/stats`);
+    const response = await apiGet<WalletStats>(`${ENDPOINTS.wallet.balance}/stats`);
     return response;
   } catch (error) {
     console.error('[Wallet] Get stats error:', error);

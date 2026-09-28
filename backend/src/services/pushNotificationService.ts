@@ -474,7 +474,7 @@ class PushNotificationService {
     return this.sendToUser(userId, {
       notification: {
         ...notification,
-        data: { type, taskId: taskData.taskId, ...taskData },
+        data: { type, taskId: taskData.taskId, title: taskData.title, amount: String(taskData.amount ?? ''), buddyName: taskData.buddyName || '' },
       },
       android: {
         priority: 'high',
@@ -545,12 +545,12 @@ class PushNotificationService {
     return this.sendToUser(userId, {
       notification: {
         ...notification,
-        data: { type, ...data },
+        data: { type, amount: String(data.amount), balance: String(data.balance), transactionId: data.transactionId || '' },
       },
       android: {
         priority: 'high',
         notification: { channelId: 'wallet', clickAction: 'FLUTTER_NOTIFICATION_CLICK' },
-        data: { type, screen: 'wallet', ...data },
+        data: { type, screen: 'wallet', amount: String(data.amount), balance: String(data.balance) },
       },
       apns: {
         payload: {
@@ -631,7 +631,7 @@ class PushNotificationService {
     return this.sendToUser(userId, {
       notification: {
         ...notification,
-        data: { type: 'kyc', status, reason },
+        data: { type: 'kyc', status, reason: reason || '' },
       },
       android: { priority: 'high', notification: { channelId: 'kyc' }, data: { type: 'kyc', status, screen: 'kyc' } },
       apns: { payload: { aps: { alert: { title: notification.title, body: notification.body }, badge: 1 } } },
@@ -650,7 +650,7 @@ class PushNotificationService {
       notification: {
         title: 'Referral Reward! 🎁',
         body: `${data.referredName} signed up using your code. You earned ₹${data.reward.toFixed(2)}!`,
-        data: { type: 'referral', ...data },
+        data: { type: 'referral', referredName: data.referredName, reward: String(data.reward) },
       },
       android: { priority: 'high', notification: { channelId: 'referral' }, data: { type: 'referral', screen: 'referral' } },
       apns: { payload: { aps: { alert: { title: 'Referral Reward!', body: `You earned ₹${data.reward.toFixed(2)}` }, badge: 1 } } },

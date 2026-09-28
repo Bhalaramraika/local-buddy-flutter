@@ -52,17 +52,30 @@ interface UIState {
   // Modals
   openModal: (id: string, type: string, data?: any) => void;
   closeModal: (id: string) => void;
+  // Aliases kept for screens using showModal/hideModal
+  showModal: (id: string, type?: string, data?: any) => void;
+  hideModal: (id: string) => void;
   closeAllModals: () => void;
   updateModalData: (id: string, data: any) => void;
   isModalOpen: (id: string) => boolean;
-  
-  // Toasts
-  showToast: (toast: Omit<ToastMessage, 'id'>) => string;
+
+  // Toasts — supports both object and positional styles:
+  //   showToast({ type, title, message, duration })
+  //   showToast(message, 'success' | 'error' | 'warning' | 'info', duration?)
+  showToast: {
+    (toast: Omit<ToastMessage, 'id'>): string;
+    (
+      message: string,
+      type?: ToastMessage['type'],
+      duration?: number,
+      title?: string
+    ): string;
+  };
   hideToast: (id: string) => void;
   clearToasts: () => void;
   
-  // Global loading
-  setGlobalLoading: (loading: LoadingState) => void;
+  // Global loading (accepts a bare boolean or a LoadingState)
+  setGlobalLoading: (loading: LoadingState | boolean) => void;
   
   // Network
   setOnlineStatus: (isOnline: boolean) => void;
@@ -132,6 +145,10 @@ export const useUIStore = create<UIState>()(
         const { [id]: closed, ...rest } = state.modals;
         return { modals: rest };
       }),
+
+      // Aliases for screens calling showModal/hideModal
+      showModal: (id, type = 'default', data) => get().openModal(id, type, data),
+      hideModal: (id) => get().closeModal(id),
       
       closeAllModals: () => set({ modals: {} }),
       
@@ -144,8 +161,20 @@ export const useUIStore = create<UIState>()(
       
       isModalOpen: (id) => get().modals[id]?.isVisible || false,
       
-      // Toast actions
-      showToast: (toast) => {
+      // Toast actions (accepts object or positional call styles)
+      showToast: ((toastOrMessage: any, type?: ToastMessage['type'], duration?: number, title?: string) => {
+        let toast: Omit<ToastMessage, 'id'>;
+        if (typeof toastOrMessage === 'string') {
+          // Positional style: showToast(message, type?, duration?)
+          toast = {
+            type: type ?? 'info',
+            title: title ?? toastOrMessage,
+            message: title ? toastOrMessage : undefined,
+            duration,
+          };
+        } else {
+          toast = toastOrMessage as Omit<ToastMessage, 'id'>;
+        }
         const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const newToast: ToastMessage = { ...toast, id };
         set((state) => ({
@@ -156,7 +185,7 @@ export const useUIStore = create<UIState>()(
           get().hideToast(id);
         }, toast.duration || 4000);
         return id;
-      },
+      }) as UIState['showToast'],
       
       hideToast: (id) => set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),
@@ -165,7 +194,13 @@ export const useUIStore = create<UIState>()(
       clearToasts: () => set({ toasts: [] }),
       
       // Global loading
-      setGlobalLoading: (globalLoading) => set({ globalLoading }),
+      setGlobalLoading: (globalLoading) =>
+        set({
+          globalLoading:
+            typeof globalLoading === 'boolean'
+              ? { isLoading: globalLoading }
+              : globalLoading,
+        }),
       
       // Network
       setOnlineStatus: (isOnline) => set({ isOnline }),

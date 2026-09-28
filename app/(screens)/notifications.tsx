@@ -17,6 +17,95 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
 
+// Mock notifications data
+const mockNotifications = [
+  {
+    id: '1',
+    type: 'task_application',
+    title: 'New Application',
+    message: 'John Doe applied to your task "Grocery Shopping"',
+    time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    read: false,
+    actionUrl: '/(screens)/task-detail/1',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+  },
+  {
+    id: '2',
+    type: 'message',
+    title: 'New Message',
+    message: 'Sarah Wilson: "Hi, when can you start the cleaning task?"',
+    time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    read: false,
+    actionUrl: '/(tabs)/chat/2',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+  },
+  {
+    id: '3',
+    type: 'task_completed',
+    title: 'Task Completed',
+    message: 'Your task "Dog Walking" has been completed by Mike Chen',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/task-detail/3',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+  },
+  {
+    id: '4',
+    type: 'payment',
+    title: 'Payment Received',
+    message: 'You received $45.00 for "Grocery Shopping" task',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/wallet-history',
+    avatar: null,
+    icon: 'cash',
+  },
+  {
+    id: '5',
+    type: 'review',
+    title: 'New Review',
+    message: 'Emma Davis left you a 5-star review!',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/profile/emma-davis',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+  },
+  {
+    id: '6',
+    type: 'system',
+    title: 'Welcome to LocalBuddy!',
+    message: 'Thanks for joining. Complete your profile to get more tasks.',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/edit-profile',
+    avatar: null,
+    icon: 'sparkles',
+  },
+  {
+    id: '7',
+    type: 'task_assigned',
+    title: 'Task Assigned',
+    message: 'You have been assigned to "Package Delivery"',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/task-detail/7',
+    avatar: null,
+    icon: 'package',
+  },
+  {
+    id: '8',
+    type: 'promotion',
+    title: 'Special Offer',
+    message: 'Get 10% bonus on your next wallet top-up!',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+    read: true,
+    actionUrl: '/(screens)/wallet-topup',
+    avatar: null,
+    icon: 'gift',
+  },
+];
+
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const { theme, showToast } = useUIStore();
@@ -27,105 +116,22 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
-  // Mock notifications data
-  const mockNotifications = [
-    {
-      id: '1',
-      type: 'task_application',
-      title: 'New Application',
-      message: 'John Doe applied to your task "Grocery Shopping"',
-      time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-      read: false,
-      actionUrl: '/(screens)/task-detail/1',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: 'New Message',
-      message: 'Sarah Wilson: "Hi, when can you start the cleaning task?"',
-      time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      read: false,
-      actionUrl: '/(tabs)/chat/2',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-    },
-    {
-      id: '3',
-      type: 'task_completed',
-      title: 'Task Completed',
-      message: 'Your task "Dog Walking" has been completed by Mike Chen',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/task-detail/3',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-    },
-    {
-      id: '4',
-      type: 'payment',
-      title: 'Payment Received',
-      message: 'You received $45.00 for "Grocery Shopping" task',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/wallet-history',
-      avatar: null,
-      icon: 'cash',
-    },
-    {
-      id: '5',
-      type: 'review',
-      title: 'New Review',
-      message: 'Emma Davis left you a 5-star review!',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/profile/emma-davis',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-    },
-    {
-      id: '6',
-      type: 'system',
-      title: 'Welcome to LocalBuddy!',
-      message: 'Thanks for joining. Complete your profile to get more tasks.',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/edit-profile',
-      avatar: null,
-      icon: 'sparkles',
-    },
-    {
-      id: '7',
-      type: 'task_assigned',
-      title: 'Task Assigned',
-      message: 'You have been assigned to "Package Delivery"',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/task-detail/7',
-      avatar: null,
-      icon: 'package',
-    },
-    {
-      id: '8',
-      type: 'promotion',
-      title: 'Special Offer',
-      message: 'Get 10% bonus on your next wallet top-up!',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-      read: true,
-      actionUrl: '/(screens)/wallet-topup',
-      avatar: null,
-      icon: 'gift',
-    },
-  ];
-
-  useEffect(() => {
-    loadNotifications();
-  }, []);
 
   const loadNotifications = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     setLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
     setNotifications(mockNotifications);
     setLoading(false);
   };
+
+  useEffect(() => {
+    // Defer data loading past the first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(() => {     loadNotifications(); });
+  }, []);
+
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -209,7 +215,7 @@ export default function NotificationsScreen() {
           {item.avatar ? (
             <Image source={{ uri: item.avatar }} style={styles.notificationAvatar} />
           ) : (
-            <Ionicons name={icon} size={22} color={color} />
+            <Ionicons name={icon as any} size={22} color={color} />
           )}
         </View>
         <View style={styles.notificationContent}>

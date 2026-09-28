@@ -175,7 +175,7 @@ export default function HelpScreen() {
                 onPress={action.onPress}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
-                  <Ionicons name={action.icon} size={24} color={action.color} />
+                  <Ionicons name={action.icon as any} size={24} color={action.color} />
                 </View>
                 <Text style={[styles.quickActionTitle, { color: isDark ? '#fff' : '#000' }]}>{action.title}</Text>
                 <Text style={[styles.quickActionSubtitle, { color: isDark ? '#888' : '#666' }]}>{action.subtitle}</Text>
@@ -191,7 +191,7 @@ export default function HelpScreen() {
             <View key={category.title} style={[styles.categoryCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 12 }]}>
               <TouchableOpacity style={styles.categoryHeader}>
                 <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon} size={22} color="#4F46E5" />
+                  <Ionicons name={category.icon as any} size={22} color="#4F46E5" />
                 </View>
                 <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>{category.title}</Text>
                 <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#555' : '#999'} />
@@ -222,7 +222,7 @@ export default function HelpScreen() {
               onPress={option.onPress}
             >
               <View style={styles.contactIcon}>
-                <Ionicons name={option.icon} size={22} color="#4F46E5" />
+                <Ionicons name={option.icon as any} size={22} color="#4F46E5" />
               </View>
               <View style={styles.contactInfo}>
                 <Text style={[styles.contactTitle, { color: isDark ? '#fff' : '#000' }]}>{option.title}</Text>
@@ -237,7 +237,7 @@ export default function HelpScreen() {
         <View style={[styles.section, { marginBottom: 40 }]}>
           <View style={[styles.appInfo, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <View style={styles.appIcon}>
-              <Ionicons name="logo-localbuddy" size={48} color="#4F46E5" />
+              <Ionicons name={"logo-localbuddy" as any} size={48} color="#4F46E5" />
             </View>
             <Text style={[styles.appName, { color: isDark ? '#fff' : '#000' }]}>LocalBuddy</Text>
             <Text style={[styles.appVersion, { color: isDark ? '#888' : '#666' }]}>Version 1.0.0</Text>

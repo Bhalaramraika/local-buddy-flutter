@@ -8,14 +8,14 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
 import { 
   KYCDocument, 
-  KYCStatus, 
+  KYCStatusInfo,
   DocumentType,
   KYCSubmission 
 } from '@/types';
 
-interface KYCState {
+export interface KYCState {
   // KYC Status
-  kycStatus: KYCStatus;
+  kycStatus: KYCStatusInfo;
   kycSubmission: KYCSubmission | null;
   
   // Documents
@@ -46,7 +46,7 @@ interface KYCState {
   
   // Actions
   // Status
-  setKYCStatus: (status: KYCStatus) => void;
+  setKYCStatus: (status: KYCStatusInfo) => void;
   setKYCSubmission: (submission: KYCSubmission | null) => void;
   setVerificationLevel: (level: KYCState['verificationLevel']) => void;
   setIsVerified: (verified: boolean) => void;
@@ -85,7 +85,7 @@ interface KYCState {
   clearAll: () => void;
 }
 
-const defaultKYCStatus: KYCStatus = {
+const defaultKYCStatus: KYCStatusInfo = {
   status: 'not_started',
   submittedAt: null,
   reviewedAt: null,

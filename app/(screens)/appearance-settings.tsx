@@ -76,7 +76,7 @@ export default function AppearanceSettingsScreen() {
               onPress={() => setTheme(t.id as 'light' | 'dark' | 'system')}
             >
               <View style={[styles.themeIcon, { backgroundColor: `${t.color}15` }]}>
-                <Ionicons name={t.icon} size={24} color={t.color} />
+                <Ionicons name={t.icon as any} size={24} color={t.color} />
               </View>
               <View style={styles.themeContent}>
                 <Text style={[styles.themeName, { color: isDark ? '#fff' : '#000' }]}>{t.name}</Text>

@@ -71,7 +71,7 @@ export default function TasksScreen() {
   const renderTask = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.taskCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-      onPress={() => router.push(`/(screens)/task-detail/${item.id}`)}
+      onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: item.id } })}
     >
       <View style={styles.taskHeader}>
         <View style={[styles.taskCategory, { backgroundColor: `${item.categoryColor}20` }]}>
@@ -91,7 +91,7 @@ export default function TasksScreen() {
         </View>
         <View style={styles.taskMetaItem}>
           <Ionicons name="cash-outline" size={14} color="#10B981" />
-          <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(item.budget)}</Text>
+          <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(item.budget?.amount ?? 0)}</Text>
         </View>
         <View style={styles.taskMetaItem}>
           <Ionicons name="time-outline" size={14} color={isDark ? '#888' : '#666'} />
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   tabBadge: { minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   tabBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-  tabIndicator: { position: 'absolute', bottom: 0, height: 3, width: 80, borderRadius: 3, transition: 'transform 0.3s' },
+  tabIndicator: { position: 'absolute', bottom: 0, height: 3, width: 80, borderRadius: 3 },
   listContent: { padding: 16, paddingBottom: 100 },
   taskCard: { marginBottom: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

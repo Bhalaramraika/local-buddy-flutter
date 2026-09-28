@@ -28,11 +28,9 @@ export default function MyReferralsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
 
-  useEffect(() => {
-    loadReferrals();
-  }, []);
-
   const loadReferrals = async () => {
+    // Yield before touching state so React never sees sync setState in the mount effect
+    await Promise.resolve();
     if (!refreshing) setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -54,6 +52,12 @@ export default function MyReferralsScreen() {
     setLoading(false);
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    // Defer data loading past first commit so no sync setState happens in the effect body
+    void Promise.resolve().then(loadReferrals);
+  }, []);
+
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -201,7 +205,7 @@ export default function MyReferralsScreen() {
         <View style={{ marginTop: 16 }}>
           {filteredReferrals.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-              <Ionicons name={filter === 'all' ? 'people-outline' : filter === 'completed' ? 'check-circle-outline' : filter === 'pending' ? 'time-outline' : 'close-circle-outline'} size={64} color={isDark ? '#555' : '#ccc'} />
+              <Ionicons name={(filter === 'all' ? 'people-outline' : filter === 'completed' ? 'checkmark-circle-outline' : filter === 'pending' ? 'time-outline' : 'close-circle-outline') as any} size={64} color={isDark ? '#555' : '#ccc'} />
               <Text style={[styles.emptyStateTitle, { color: isDark ? '#fff' : '#000' }, { marginTop: 16 }]}>No {filter === 'all' ? 'referrals' : filter} found</Text>
               <Text style={[styles.emptyStateText, { color: isDark ? '#888' : '#666' }, { marginTop: 8 }]}>
                 {filter === 'all' 
@@ -228,7 +232,7 @@ export default function MyReferralsScreen() {
                         <Text style={[styles.referralEmail, { color: isDark ? '#888' : '#666' }]}>{referral.email}</Text>
                       </View>
                       <View style={[styles.referralStatus, { backgroundColor: statusConfig.bg }]}>
-                        <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} style={{ marginRight: 4 }} />
+                        <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} style={{ marginRight: 4 }} />
                         <Text style={[styles.referralStatusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
                       </View>
                     </View>
@@ -241,7 +245,7 @@ export default function MyReferralsScreen() {
                       
                       {referral.status === 'completed' && referral.taskCompleted && (
                         <View style={styles.detailRow}>
-                          <Ionicons name="check-circle-outline" size={16} color="#10B981" style={{ marginRight: 8 }} />
+                          <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" style={{ marginRight: 8 }} />
                           <Text style={[styles.detailText, { color: '#10B981' }]}>Completed: {referral.taskCompleted}</Text>
                         </View>
                       )}

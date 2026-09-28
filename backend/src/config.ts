@@ -35,18 +35,10 @@ export const config = {
     baseUrl: process.env.PAYU_BASE_URL || 'https://test.payu.in',
   },
 
-  fast2sms: {
-    apiKey: process.env.FAST2SMS_API_KEY || '',
-  },
-
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
-    apiKey: process.env.CLOUDINARY_API_KEY || '',
-    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
-  },
-
-  brevo: {
-    apiKey: process.env.BREVO_API_KEY || '',
+  authkey: {
+    apiKey: process.env.AUTHKEY_API_KEY || '',
+    senderId: process.env.AUTHKEY_SENDER_ID || 'LBUDDY',
+    route: process.env.AUTHKEY_ROUTE || '4',
   },
 
   rateLimit: {
@@ -57,10 +49,6 @@ export const config = {
 
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
-  },
-
-  ws: {
-    maxConnections: parseInt(process.env.WS_MAX_CONNECTIONS || '10000', 10),
   },
 
   app: {

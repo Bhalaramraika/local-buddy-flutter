@@ -53,7 +53,7 @@ export default function WalletDetailsScreen() {
   };
 
   const handleTransactionPress = (transaction: any) => {
-    router.push(`/transaction-detail?id=${transaction.id}`);
+    router.push({ pathname: `/(screens)/transaction-detail`, params: { id: transaction.id } });
   };
 
   const recentTransactions = transactions.slice(0, 5);
@@ -106,7 +106,7 @@ export default function WalletDetailsScreen() {
               <Text style={styles.actionButtonText}>Top Up</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#10B981' }]} onPress={handleWithdraw}>
-              <MaterialCommunityIcons name="cash-out" size={24} color="#fff" />
+              <MaterialCommunityIcons name="cash-minus" size={24} color="#fff" />
               <Text style={styles.actionButtonText}>Withdraw</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: isDark ? '#333' : '#f5f5f5' }]} onPress={handleViewHistory}>
