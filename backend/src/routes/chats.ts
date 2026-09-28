@@ -9,7 +9,7 @@ import { collections, subCollections, getDb, ChatDocument, MessageDocument, time
 import { requireAuth } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
-import { pushNotificationService } from '../services/pushNotificationService';
+import { getPushNotificationService } from '../services/pushNotificationService';
 
 const router = Router();
 
@@ -277,7 +277,7 @@ router.post(
     const otherUserId = chat.participants.find(p => p !== req.user!.uid);
     if (otherUserId) {
       const senderName = req.user!.userDoc?.name || 'Someone';
-      pushNotificationService
+      getPushNotificationService()
         .sendChatNotification(otherUserId, {
           chatId: id,
           senderName,

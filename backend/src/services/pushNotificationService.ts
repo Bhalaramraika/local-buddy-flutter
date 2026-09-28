@@ -801,8 +801,15 @@ class PushNotificationService {
 // Import FieldValue for array operations
 import { FieldValue } from 'firebase-admin/firestore';
 
-// Export singleton instance
-export const pushNotificationService = new PushNotificationService();
+// Lazy initialization - service is created on first access after Firebase is initialized
+let _pushNotificationService: PushNotificationService | null = null;
+
+export function getPushNotificationService(): PushNotificationService {
+  if (!_pushNotificationService) {
+    _pushNotificationService = new PushNotificationService();
+  }
+  return _pushNotificationService;
+}
 
 // Export class for testing
 export { PushNotificationService };

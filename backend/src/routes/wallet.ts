@@ -11,7 +11,7 @@ import { requireAuth, requireKYC } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { config } from '../config';
-import { pushNotificationService } from '../services/pushNotificationService';
+import { getPushNotificationService } from '../services/pushNotificationService';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -272,7 +272,7 @@ router.post(
     });
 
     if (status === 'success') {
-      pushNotificationService
+      getPushNotificationService()
         .sendWalletNotification(transaction.userId, 'add_money', {
           amount,
           balance: newBalance,
@@ -450,7 +450,7 @@ router.post(
       });
     });
 
-    pushNotificationService
+    getPushNotificationService()
       .sendWalletNotification(task.buddyId, 'money_released', {
         amount: buddyAmount,
         balance: buddyNewBalance,

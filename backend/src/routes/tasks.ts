@@ -9,7 +9,7 @@ import { collections, TaskDocument, TaskStatus, runTransaction, timestamp } from
 import { requireAuth, requireKYC, requireRole } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '../middleware/errorHandler';
-import { pushNotificationService } from '../services/pushNotificationService';
+import { getPushNotificationService } from '../services/pushNotificationService';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const router = Router();
@@ -320,7 +320,7 @@ router.post(
       updatedAt: timestamp(),
     });
 
-    pushNotificationService
+    getPushNotificationService()
       .sendTaskNotification(task.posterId, 'new_applicant', {
         taskId: id,
         title: task.title,
@@ -431,7 +431,7 @@ router.post(
       t.update(appRef, { status: 'accepted', updatedAt: timestamp() });
     });
 
-    pushNotificationService
+    getPushNotificationService()
       .sendTaskNotification(buddyId, 'assigned', { taskId: id, title: task.title, amount: task.budget })
       .catch((err) => console.error('[FCM] assign notification failed:', err));
 

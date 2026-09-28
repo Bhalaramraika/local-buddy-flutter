@@ -12,8 +12,9 @@ import morgan from 'morgan';
 import compression from 'compression';
 import { config } from './config';
 import { initializeFirebase } from './config/firebase';
-import { rateLimiter } from './middleware/rateLimiter';
-import { errorHandler } from './middleware/errorHandler';
+
+// Initialize Firebase Admin (Firestore, Auth, Messaging) FIRST - before any route imports
+initializeFirebase();
 
 // Route imports
 import authRoutes from './routes/auth';
@@ -23,8 +24,8 @@ import chatRoutes from './routes/chats';
 import walletRoutes from './routes/wallet';
 import reviewRoutes from './routes/reviews';
 
-// Initialize Firebase Admin (Firestore, Auth, Messaging)
-initializeFirebase();
+import { rateLimiter } from './middleware/rateLimiter';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
