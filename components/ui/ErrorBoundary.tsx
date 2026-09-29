@@ -39,17 +39,27 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Log error to console
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Log error to console with full stack trace
+    console.error('====================================');
+    console.error('ErrorBoundary caught an error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error info:', errorInfo);
+    console.error('Component stack:', errorInfo?.componentStack);
+    console.error('====================================');
 
     // Show error as toast - use getState() to access store outside React lifecycle
-    const { showToast } = useUIStore.getState();
-    showToast({
-      type: 'error',
-      title: 'Something went wrong',
-      message: error.message || 'An unexpected error occurred',
-      duration: 8000,
-    });
+    try {
+      const { showToast } = useUIStore.getState();
+      showToast({
+        type: 'error',
+        title: 'Something went wrong',
+        message: error.message || 'An unexpected error occurred',
+        duration: 8000,
+      });
+    } catch (toastError) {
+      console.error('Failed to show error toast:', toastError);
+    }
 
     // In production, you might want to send this to an error reporting service
     // e.g., Sentry, Bugsnag, etc.

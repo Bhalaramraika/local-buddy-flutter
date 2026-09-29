@@ -1,44 +1,229 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/design';
+import { FlowScreen, PrimaryButton, TextButton, FlowHeader, FlowInput, ErrorMessage, Card, flowStyles } from '@/components/FlowUI';
 import { authService, normalizePhoneNumber } from '@/services/auth';
-import { ErrorMessage, FlowHeader, FlowInput, FlowScreen, PrimaryButton, TextButton, flowStyles } from '@/components/FlowUI';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const submit = async () => {
     const normalizedPhone = normalizePhoneNumber(phone);
     if (!name.trim() || !/^\+91\d{10}$/.test(normalizedPhone)) {
-      setLocalError('Name and phone number are required.');
+      setError('Name and valid phone number are required.');
       return;
     }
     try {
       setLoading(true);
-      setLocalError(null);
+      setError(null);
       await authService.requestOtp(normalizedPhone);
-      router.push({ pathname: '/otp', params: { phone: normalizedPhone, mode: 'register', name: name.trim(), email: email.trim() } });
+      router.push({ 
+        pathname: '/otp', 
+        params: { phone: normalizedPhone, mode: 'register', name: name.trim(), email: email.trim() } 
+      });
     } catch (requestError: any) {
-      setLocalError(requestError?.response?.data?.message || requestError?.message || 'Unable to send OTP.');
+      setError(requestError?.response?.data?.message || requestError?.message || 'Unable to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const formatPhone = (text: string) => {
+    const digits = text.replace(/\D/g, '');
+    if (digits.length <= 10) {
+      setPhone(digits);
+    }
+  };
+
   return (
-    <FlowScreen>
-      <FlowHeader onBack={() => router.back()} eyebrow="CREATE ACCOUNT" title="Join Local Buddy" subtitle="Tell us a little about yourself to get started." />
-      <FlowInput label="Full name" value={name} onChangeText={setName} placeholder="Your name" autoCapitalize="words" />
-      <FlowInput label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98765 43210" />
-      <FlowInput label="Email (optional)" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" autoCapitalize="none" />
-      <ErrorMessage message={localError} />
-      <PrimaryButton label="Send OTP" onPress={submit} loading={loading} />
-      <View style={flowStyles.footer}><TextButton label="Already have an account? Sign in" onPress={() => router.replace('/login')} /></View>
+    <FlowScreen style={styles.container}>
+      <View style={styles.backgroundDecor}>
+        <View style={styles.decorTop} />
+        <View style={styles.decorBottom} />
+      </View>
+
+      <View style={styles.contentContainer}>
+        <FlowHeader 
+          onBack={() => router.back()} 
+          eyebrow="CREATE ACCOUNT" 
+          title="Join Local Buddy" 
+          subtitle="Tell us a little about yourself to get started." 
+        />
+
+        <Card style={styles.formCard}>
+          <FlowInput
+            label="Full Name"
+            value={name}
+            onChangeText={setName}
+            onFocus={() => setFocusedField('name')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Your full name"
+            autoCapitalize="words"
+            autoCapitalize="words"
+            autoFocus
+            error={error && error.includes('Name') ? error : undefined}
+            placeholderTextColor="#94A3B8"
+          />
+
+          <FlowInput
+            label="Phone Number"
+            value={phone}
+            onChangeText={(text) => {
+              const digits = text.replace(/\D/g, '');
+              if (digits.length <= 10) setPhone(digits);
+            }}
+            onFocus={() => setFocusedField('phone')}
+            onBlur={() => setFocusedField(null)}
+            keyboardType="phone-pad"
+            placeholder="98765 43210"
+            autoComplete="tel"
+            error={error && error.includes('phone') ? error : undefined}
+            placeholderTextColor="#94A3B8"
+          />
+
+          <FlowInput
+            label="Email (optional)"
+            value={email}
+            onChangeText={setEmail}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            placeholderTextColor="#94A3B8"
+          />
+
+          <ErrorMessage message={error} />
+
+          <PrimaryButton 
+            label="Send OTP" 
+            onPress={submit} 
+            loading={loading}
+            size="lg"
+            variant="primary"
+          />
+        </Card>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or continue with</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <View style={styles.socialButtons}>
+          <Pressable style={styles.socialButton} onPress={() => {}}>
+            <Ionicons name="logo-google" size={24} color={Colors.text.primary} />
+            <Text style={styles.socialButtonText}>Google</Text>
+          </Pressable>
+          <Pressable style={styles.socialButton} onPress={() => {}}>
+            <Ionicons name="logo-apple" size={24} color={Colors.text.primary} />
+            <Text style={styles.socialButtonText}>Apple</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.footer}>
+          <TextButton 
+            label="Already have an account? Sign in" 
+            onPress={() => router.replace('/login')} 
+          />
+        </View>
+      </View>
     </FlowScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.surface.primary,
+  },
+  backgroundDecor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  decorTop: {
+    position: 'absolute',
+    top: -120,
+    right: -80,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: Colors.brand.secondary + '08',
+  },
+  decorBottom: {
+    position: 'absolute',
+    bottom: -100,
+    left: -60,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: Colors.brand.primary + '08',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: Spacing[6],
+    paddingVertical: Spacing[8],
+    justifyContent: 'center',
+  },
+  formCard: {
+    padding: Spacing[6],
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing[6],
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border.light,
+  },
+  dividerText: {
+    color: Colors.text.muted,
+    fontSize: 13,
+    fontWeight: '500',
+    paddingHorizontal: Spacing[4],
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing[4],
+    marginTop: Spacing[4],
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[2],
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[3],
+    borderWidth: 1.5,
+    borderColor: Colors.border.light,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface.secondary,
+  },
+  socialButtonText: {
+    color: Colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: Spacing[2],
+  },
+  footer: {
+    paddingTop: Spacing[8],
+    alignItems: 'center',
+  },
+});
+
+export default RegisterScreen;

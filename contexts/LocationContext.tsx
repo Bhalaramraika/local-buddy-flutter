@@ -142,29 +142,47 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       
       if (Platform.OS === 'ios') {
         // iOS uses Geolocation.requestAuthorization
-        getGeolocation()?.requestAuthorization();
+        const geo = getGeolocation();
+        if (!geo) {
+          console.warn('[Location] Geolocation module not available');
+          setPermissionStatus('denied');
+          return false;
+        }
+        geo.requestAuthorization();
         // On iOS, we need to check after a short delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         granted = true; // iOS handles via system dialog
       } else {
         // Android
-        const grantedPermission = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Location Permission',
-            message: 'LocalBuddy needs access to your location to find nearby tasks and buddies.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        granted = grantedPermission === PermissionsAndroid.RESULTS.GRANTED;
+        const geo = getGeolocation();
+        if (!geo) {
+          console.warn('[Location] Geolocation module not available');
+          setPermissionStatus('denied');
+          return false;
+        }
         
-        // Also request background location for Android 10+
-        if (granted && Number(Platform.Version) >= 29) {
-          await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION
+        try {
+          const grantedPermission = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Permission',
+              message: 'LocalBuddy needs access to your location to find nearby tasks and buddies.',
+              buttonNeutral: 'Ask Me Later',
+              buttonNegative: 'Cancel',
+              buttonPositive: 'OK',
+            }
           );
+          granted = grantedPermission === PermissionsAndroid.RESULTS.GRANTED;
+          
+          // Also request background location for Android 10+
+          if (granted && Number(Platform.Version) >= 29) {
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION
+            );
+          }
+        } catch (permError) {
+          console.error('[Location] Android permission request failed:', permError);
+          granted = false;
         }
       }
       
@@ -280,8 +298,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         if (!granted) return null;
       }
       
+      const geo = getGeolocation();
+      if (!geo) {
+        setError('Geolocation module not available');
+        return null;
+      }
+      
       return new Promise((resolve, reject) => {
-        getGeolocation()?.getCurrentPosition(
+        geo.getCurrentPosition(
           (position) => {
             const location = {
               latitude: position.coords.latitude,

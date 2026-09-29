@@ -44,6 +44,7 @@ const getMessagingSafe = (): MessagingInstance | null => {
 
 const getAuthStatus = () => {
   const mod: any = getMessagingModule();
+  if (!mod) return { AUTHORIZED: 1, PROVISIONAL: 2 };
   return mod?.AuthorizationStatus ?? { AUTHORIZED: 1, PROVISIONAL: 2 };
 };
 
@@ -190,7 +191,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (Platform.OS === 'web') return null;
 
     const messagingInstance = getMessagingSafe();
-    if (!messagingInstance) return null;
+    if (!messagingInstance) {
+      console.warn('[NotificationContext] Messaging not available, skipping FCM registration');
+      return null;
+    }
 
     try {
       if (fcmToken) return fcmToken;
@@ -215,7 +219,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (Platform.OS === 'web') return;
 
     const messagingInstance = getMessagingSafe();
-    if (!messagingInstance) return;
+    if (!messagingInstance) {
+      console.warn('[NotificationContext] Messaging not available, skipping FCM unregistration');
+      return;
+    }
 
     try {
       await messagingInstance.deleteToken();
@@ -232,7 +239,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (Platform.OS === 'web') return false;
 
     const messagingInstance = getMessagingSafe();
-    if (!messagingInstance) return false;
+    if (!messagingInstance) {
+      console.warn('[NotificationContext] Messaging module not available, skipping permission request');
+      return false;
+    }
 
     try {
       setIsLoading(true);
@@ -266,36 +276,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [setIsPermissionGranted, setNotificationPermission, registerForPushNotifications]);
 
   // ------------- wiring -------------
-
-  // Set up message listeners
+// Set up message listeners
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
     const messagingInstance = getMessagingSafe();
-    if (!messagingInstance) return;
+    if (!messagingInstance) {
+      console.warn('[NotificationContext] Messaging not available, skipping listener setup');
+      return;
+    }
 
-    const unsubscribeForeground = messagingInstance.onMessage(onNotificationReceived);
-    const unsubscribeBackground =
-      messagingInstance.onNotificationOpenedApp(onNotificationOpened);
+    let unsubscribeForeground: () => void;
+    let unsubscribeBackground: () => void;
+    let unsubscribeTokenRefresh: () => void;
 
-    messagingInstance.getInitialNotification().then(onNotificationOpened);
+    try {
+      unsubscribeForeground = messagingInstance.onMessage(onNotificationReceived);
+      unsubscribeBackground = messagingInstance.onNotificationOpenedApp(onNotificationOpened);
 
-    const unsubscribeTokenRefresh = messagingInstance.onTokenRefresh(async (token) => {
-      setFcmToken(token);
-      setFCMToken(token);
-      if (user) {
-        await authService.updateFCMToken(token);
-      }
-    });
+      messagingInstance.getInitialNotification().then(onNotificationOpened);
+
+      unsubscribeTokenRefresh = messagingInstance.onTokenRefresh(async (token) => {
+        setFcmToken(token);
+        setFCMToken(token);
+        if (user) {
+          await authService.updateFCMToken(token);
+        }
+      });
+    } catch (error) {
+      console.error('[NotificationContext] Failed to set up messaging listeners:', error);
+      return;
+    }
 
     const appStateListener = AppState.addEventListener('change', (_state: AppStateStatus) => {
       // Reserved: badge bookkeeping can go here
     });
 
     return () => {
-      unsubscribeForeground();
-      unsubscribeBackground();
-      unsubscribeTokenRefresh();
+      try {
+        unsubscribeForeground?.();
+        unsubscribeBackground?.();
+        unsubscribeTokenRefresh?.();
+      } catch (e) {
+        console.warn('[NotificationContext] Error cleaning up listeners:', e);
+      }
       appStateListener.remove();
     };
   }, [onNotificationReceived, onNotificationOpened, user, setFCMToken]);

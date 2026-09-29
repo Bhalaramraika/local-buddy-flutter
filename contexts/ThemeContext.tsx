@@ -37,9 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(resolvedTheme);
     }
-    if (typeof window !== 'undefined' && (window as any).__NEXT_THEME__) {
-      (window as any).__NEXT_THEME__.setTheme(resolvedTheme);
-    }
+    // Skip window check for React Native
   }, [resolvedTheme]);
 
   // Listen to system theme changes (hook ordering/derivation handles the rest)

@@ -3,7 +3,7 @@
  * Expo Router v3 with route groups
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { 
   SafeAreaView, 
   StyleSheet, 
@@ -32,8 +32,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts as useExpoFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
-// Prevent splash screen from hiding automatically
-SplashScreen.preventAutoHideAsync();
+// Prevent splash screen from hiding automatically - with fallback for missing native module
+try {
+  SplashScreen.preventAutoHideAsync();
+} catch (e) {
+  console.warn('[SplashScreen] preventAutoHideAsync failed:', e);
+}
 
 // Create QueryClient with persistence
 const queryClient = new QueryClient({
@@ -47,7 +51,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Font loading hook
+// Font loading hook with fallback for missing fonts
 function useLoadFonts() {
   const [fontsLoaded] = useExpoFonts({
     'Inter-Regular': Inter_400Regular,
@@ -55,7 +59,10 @@ function useLoadFonts() {
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
   });
-  return fontsLoaded;
+  
+  // Return true if fontsLoaded is true, or if it's undefined (font loading failed/skipped)
+  // This prevents the app from hanging on font loading
+  return fontsLoaded === true || fontsLoaded === undefined;
 }
 
 // Auth initialization hook
@@ -225,8 +232,8 @@ function GlobalErrorHandler() {
       handleUnhandledRejection(event);
     };
 
-    // Add event listeners
-    if (typeof window !== 'undefined') {
+    // Add event listeners (only on web)
+    if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('unhandledrejection', rejectionHandler);
     }
 
@@ -235,7 +242,7 @@ function GlobalErrorHandler() {
       if ((globalThis as any).ErrorUtils && originalHandler) {
         (globalThis as any).ErrorUtils.setGlobalHandler(originalHandler);
       }
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.removeEventListener) {
         window.removeEventListener('unhandledrejection', rejectionHandler);
       }
     };
@@ -244,19 +251,42 @@ function GlobalErrorHandler() {
   return null;
 }
 
-// Font loader component
+// Font loader component with timeout fallback - hooks must be called unconditionally
 function FontLoader({ children }: { children: React.ReactNode }) {
   const fontsLoaded = useLoadFonts();
+  const [timeoutFired, setTimeoutFired] = React.useState(false);
 
-  if (!fontsLoaded) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <View style={styles.loadingContent} />
-      </SafeAreaView>
-    );
-  }
+  // Safety timeout - if fonts don't load within 5 seconds, proceed anyway
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimeoutFired(true);
+      console.warn('[FontLoader] Font loading timeout - proceeding without custom fonts');
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  return <>{children}</>;
+  // Hide splash screen once fonts are loaded or timeout fired
+  React.useEffect(() => {
+    if (fontsLoaded || timeoutFired) {
+      try {
+        SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn('[SplashScreen] hideAsync failed:', e);
+      }
+    }
+  }, [fontsLoaded, timeoutFired]);
+
+  // Always render children, but show loading overlay conditionally
+  return (
+    <>
+      {children}
+      {!fontsLoaded && !timeoutFired && (
+        <SafeAreaView style={styles.loadingContainer}>
+          <View style={styles.loadingContent} />
+        </SafeAreaView>
+      )}
+    </>
+  );
 }
 
 // Theme-aware status bar

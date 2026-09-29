@@ -210,29 +210,38 @@ import { useKYCStore } from './kycStore';
 import { useUserStore } from './userStore';
 
 export const initializeStores = () => {
-  // Initialize all stores by calling their hooks
-  // This ensures persistence is loaded
-  useAuthStore.getState();
-  useTaskStore.getState();
-  useChatStore.getState();
-  useWalletStore.getState();
-  useLocationStore.getState();
-  useUIStore.getState();
-  useNotificationStore.getState();
-  useKYCStore.getState();
-  useUserStore.getState();
+  try {
+    // Initialize all stores by calling their hooks
+    // This ensures persistence is loaded
+    useAuthStore.getState();
+    useTaskStore.getState();
+    useChatStore.getState();
+    useWalletStore.getState();
+    useLocationStore.getState();
+    useUIStore.getState();
+    useNotificationStore.getState();
+    useKYCStore.getState();
+    useUserStore.getState();
+    console.log('[Stores] All stores initialized');
+  } catch (error) {
+    console.error('[Stores] Initialization failed:', error);
+  }
 };
 
 export const clearAllStores = () => {
-  useAuthStore.getState().clearAll();
-  useTaskStore.getState().clearAll();
-  useChatStore.getState().clearAll();
-  useWalletStore.getState().clearAll();
-  useLocationStore.getState().clearAll();
-  useUIStore.getState().clearAll();
-  useNotificationStore.getState().clearAllNotifications();
-  useKYCStore.getState().clearAll();
-  useUserStore.getState().clearAll();
+  try {
+    useAuthStore.getState().clearAll();
+    useTaskStore.getState().clearAll();
+    useChatStore.getState().clearAll();
+    useWalletStore.getState().clearAll();
+    useLocationStore.getState().clearAll();
+    useUIStore.getState().clearAll();
+    useNotificationStore.getState().clearAllNotifications();
+    useKYCStore.getState().clearAll();
+    useUserStore.getState().clearAll();
+  } catch (error) {
+    console.error('[Stores] Clear all failed:', error);
+  }
 };
 
 // Store persistence keys

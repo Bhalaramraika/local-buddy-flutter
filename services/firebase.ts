@@ -61,13 +61,22 @@ let messagingInitialized = false;
 if (app) {
   isSupported().then((supported) => {
     if (supported) {
-      messaging = getMessaging(app);
+      try {
+        messaging = getMessaging(app);
+      } catch (e) {
+        console.warn('[Firebase] Failed to initialize messaging:', e);
+      }
     }
     messagingInitialized = true;
   });
 }
 
-export const getMessagingInstance = (): Messaging | null => messaging;
+export const getMessagingInstance = (): Messaging | null => {
+  if (!messaging) {
+    console.warn('[Firebase] Messaging not initialized');
+  }
+  return messaging;
+};
 
 // Export a promise that resolves when messaging is initialized
 export const getMessagingAsync = async (): Promise<Messaging | null> => {

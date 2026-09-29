@@ -21,8 +21,12 @@ export const initializeFirebase = async (): Promise<void> => {
 };
 
 export const initializeServices = async (): Promise<void> => {
-  await initializeFirebase();
-  console.log('[Services] All services initialized');
+  try {
+    await initializeFirebase();
+    console.log('[Services] All services initialized');
+  } catch (error) {
+    console.error('[Services] Initialization failed:', error);
+  }
 };
 
 // Re-export services
