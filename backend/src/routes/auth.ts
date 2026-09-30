@@ -77,6 +77,7 @@ async function sendEmailOtp(email: string): Promise<string> {
     const response = await fetch(url, {
       method: 'POST',
       headers: mojoAuthHeaders(),
+      body: JSON.stringify({ email }),
     });
 
     const data = (await response.json()) as MojoAuthSendResponse;
@@ -110,6 +111,7 @@ async function verifyEmailOtp(stateId: string, otp: string): Promise<{ email: st
     const response = await fetch(url, {
       method: 'POST',
       headers: mojoAuthHeaders(),
+      body: JSON.stringify({ state_id: stateId, otp }),
     });
 
     const data = (await response.json()) as MojoAuthVerifyResponse;
