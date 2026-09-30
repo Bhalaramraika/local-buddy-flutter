@@ -1,39 +1,33 @@
 import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/design';
 import { FlowScreen, PrimaryButton, TextButton, FlowHeader, FlowInput, ErrorMessage, Card, flowStyles } from '@/components/FlowUI';
-import { authService, normalizePhoneNumber } from '@/services/auth';
+import { authService, normalizeEmail } from '@/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
 
   const requestOtp = async () => {
-    const normalizedPhone = normalizePhoneNumber(phone);
-    if (!/^\+91\d{10}$/.test(normalizedPhone)) {
-      setError('Enter a valid 10-digit Indian phone number.');
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      setError('Enter a valid email address.');
       return;
     }
     try {
       setLoading(true);
       setError(null);
-      await authService.requestOtp(normalizedPhone);
-      router.push({ pathname: '/otp', params: { phone: normalizedPhone, mode: 'login' } });
+      await authService.requestOtp(normalizedEmail);
+      router.push({ pathname: '/otp', params: { email: normalizedEmail, mode: 'login' } });
     } catch (requestError: any) {
       setError(requestError?.response?.data?.message || requestError?.message || 'Unable to send OTP. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const formatPhone = (text: string) => {
-    const digits = text.replace(/\D/g, '');
-    if (digits.length <= 10) {
-      setPhone(digits);
     }
   };
 
@@ -48,19 +42,20 @@ export default function LoginScreen() {
         <FlowHeader 
           eyebrow="LOCAL BUDDY" 
           title="Welcome back" 
-          subtitle="Sign in with your phone number to continue." 
+          subtitle="Sign in with your email to continue." 
         />
 
         <Card style={styles.formCard}>
           <FlowInput
-            label="Phone Number"
-            value={phone}
-            onChangeText={formatPhone}
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            keyboardType="phone-pad"
-            placeholder="98765 43210"
-            autoComplete="tel"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="you@example.com"
+            autoComplete="email"
             autoFocus
             error={error}
             placeholderTextColor="#94A3B8"
@@ -199,4 +194,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;

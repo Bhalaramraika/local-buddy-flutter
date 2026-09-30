@@ -19,7 +19,7 @@ interface AuthContextType {
   
   // Actions
   initializeAuth: () => Promise<void>;
-  login: (phone: string, otp: string) => Promise<void>;
+  login: (email: string, otp: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
@@ -31,9 +31,9 @@ interface AuthContextType {
 }
 
 interface RegisterData {
-  phone: string;
+  email: string;
   name: string;
-  email?: string;
+  phone?: string;
   referralCode?: string;
 }
 
@@ -96,13 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setLoading, setError, setTokens, setUser]);
 
-  // Login with phone and OTP
-  const login = useCallback(async (phone: string, otp: string) => {
+  // Login with email and OTP
+  const login = useCallback(async (email: string, otp: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await authService.login(phone, otp);
+      const response = await authService.login(email, otp);
       setTokens(response.tokens);
       setUser(response.user);
     } catch (error: any) {

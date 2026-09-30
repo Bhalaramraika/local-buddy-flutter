@@ -51,11 +51,11 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction): vo
 }
 
 /**
- * OTP-specific rate limiter (3 requests per 10 minutes per phone)
+ * OTP-specific rate limiter (3 requests per 10 minutes per email)
  */
 export function otpRateLimiter(req: Request, res: Response, next: NextFunction): void {
-  const phone = req.body?.phone || req.query?.phone || 'unknown';
-  const key = `otp:${phone}`;
+  const identifier = String(req.body?.email || req.query?.email || req.ip || 'unknown').toLowerCase();
+  const key = `otp:${identifier}`;
   const now = Date.now();
   const windowMs = 10 * 60 * 1000; // 10 minutes
   const maxRequests = config.rateLimit.otpMax;

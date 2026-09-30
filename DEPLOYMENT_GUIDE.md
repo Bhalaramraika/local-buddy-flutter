@@ -23,9 +23,9 @@ Firestore listeners — no socket server, no worker, no cron jobs.
 | `PAYU_MERCHANT_KEY` | PayU Merchant Dashboard |
 | `PAYU_MERCHANT_SALT` | PayU Merchant Dashboard |
 | `PAYU_BASE_URL` | `https://test.payu.in` (test) / `https://secure.payu.in` (prod) |
-| `AUTHKEY_API_KEY` | AuthKey.io dashboard (OTP SMS) |
-| `AUTHKEY_SENDER_ID` | e.g. `LBUDDY` |
-| `AUTHKEY_ROUTE` | `4` |
+| `MOJOAUTH_API_KEY` | MojoAuth Dashboard (Email OTP) |
+| `MOJOAUTH_API_SECRET` | MojoAuth Dashboard |
+| `MOJOAUTH_BASE_URL` | `https://api.mojoauth.com` |
 | `CORS_ORIGIN` | Your app domain or `*` in dev |
 | `APP_URL` | Same as service URL |
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService, normalizePhoneNumber } from '@/services/auth';
+import { authService, normalizeEmail } from '@/services/auth';
 import { isMockApiEnabled } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorMessage, FlowHeader, FlowInput, FlowScreen, PrimaryButton, TextButton, Card, flowStyles } from '@/components/FlowUI';
@@ -11,9 +11,9 @@ import { Colors, Spacing, BorderRadius, Shadows, Animation } from '@/constants/d
 
 export default function OtpScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; mode?: string; name?: string; email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; mode?: string; name?: string; phone?: string }>();
   const { login, updateProfile, isLoading, error } = useAuth();
-  const phone = normalizePhoneNumber(String(params.phone || ''));
+  const email = normalizeEmail(String(params.email || ''));
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
@@ -21,8 +21,8 @@ export default function OtpScreen() {
   const [timerActive, setTimerActive] = useState(false);
 
   useEffect(() => {
-    if (!phone) router.replace('/login');
-  }, [phone, router]);
+    if (!email) router.replace('/login');
+  }, [email, router]);
 
   useEffect(() => {
     if (timerActive && timer > 0) {
@@ -39,17 +39,17 @@ export default function OtpScreen() {
   };
 
   const verify = async () => {
-    if (!/^\d{4,6}$/.test(otp)) {
-      setLocalError('Enter the OTP sent to your phone.');
+    if (!/^\d{6}$/.test(otp)) {
+      setLocalError('Enter the 6-digit OTP sent to your email.');
       return;
     }
     try {
       setLocalError(null);
-      await login(phone, otp);
+      await login(email, otp);
       if (params.mode === 'register') {
         await updateProfile({
           name: String(params.name || '').trim() || undefined,
-          email: String(params.email || '').trim() || undefined,
+          phone: String(params.phone || '').trim() || undefined,
         });
       }
       const currentUser = useAuthStore.getState().user;
@@ -62,7 +62,7 @@ export default function OtpScreen() {
   const resend = async () => {
     try {
       setResending(true);
-      await authService.requestOtp(phone);
+      await authService.requestOtp(email);
       setLocalError('A new OTP was sent.');
       startTimer();
     } catch (resendError: any) {
@@ -76,8 +76,6 @@ export default function OtpScreen() {
     startTimer();
   }, []);
 
-  const formattedPhone = phone.replace(/(\+91)(\d{5})(\d{5})/, '$1 $2 $3');
-
   return (
     <FlowScreen style={styles.container}>
       <View style={styles.backgroundDecor}>
@@ -88,9 +86,9 @@ export default function OtpScreen() {
       <View style={styles.contentContainer}>
         <FlowHeader 
           onBack={() => router.back()} 
-          eyebrow="VERIFY PHONE" 
+          eyebrow="VERIFY EMAIL" 
           title="Enter your OTP" 
-          subtitle={`We sent a 6-digit code to ${formattedPhone}.`} 
+          subtitle={`We sent a 6-digit code to ${email}.`} 
         />
 
         <Card style={styles.otpCard}>
@@ -135,7 +133,7 @@ export default function OtpScreen() {
             loading={isLoading}
             size="lg"
             variant="primary"
-            disabled={otp.length < 4}
+            disabled={otp.length !== 6}
           />
 
           <View style={styles.resendContainer}>
@@ -255,4 +253,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OtpScreen;

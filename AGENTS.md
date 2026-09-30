@@ -11,8 +11,8 @@
   **Render** via `render.yaml` + `backend/Dockerfile`.
 - **Realtime**: client-side Firestore `onSnapshot` listeners in
   `services/realtime.ts` — there is NO Socket.IO server.
-- **Auth**: AuthKey.io SMS OTP → backend issues Firebase custom token →
-  client signs in with Firebase JS SDK.
+- **Auth**: MojoAuth Email OTP → backend issues Firebase custom token →
+  client signs in with Firebase JS SDK. Identity = email (Firebase user email).
 - **Money**: whole INR (not paise); PayU top-up + in-app release; the
   withdrawal feature was removed in the MVP.
 

@@ -1,44 +1,38 @@
 import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/design';
 import { FlowScreen, PrimaryButton, TextButton, FlowHeader, FlowInput, ErrorMessage, Card, flowStyles } from '@/components/FlowUI';
-import { authService, normalizePhoneNumber } from '@/services/auth';
+import { authService, normalizeEmail } from '@/services/auth';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const submit = async () => {
-    const normalizedPhone = normalizePhoneNumber(phone);
-    if (!name.trim() || !/^\+91\d{10}$/.test(normalizedPhone)) {
-      setError('Name and valid phone number are required.');
+    const normalizedEmail = normalizeEmail(email);
+    if (!name.trim() || !normalizedEmail || !normalizedEmail.includes('@')) {
+      setError('Name and valid email are required.');
       return;
     }
     try {
       setLoading(true);
       setError(null);
-      await authService.requestOtp(normalizedPhone);
+      await authService.requestOtp(normalizedEmail);
       router.push({ 
         pathname: '/otp', 
-        params: { phone: normalizedPhone, mode: 'register', name: name.trim(), email: email.trim() } 
+        params: { email: normalizedEmail, mode: 'register', name: name.trim(), phone: phone.trim() } 
       });
     } catch (requestError: any) {
       setError(requestError?.response?.data?.message || requestError?.message || 'Unable to send OTP. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const formatPhone = (text: string) => {
-    const digits = text.replace(/\D/g, '');
-    if (digits.length <= 10) {
-      setPhone(digits);
     }
   };
 
@@ -66,37 +60,34 @@ export default function RegisterScreen() {
             onBlur={() => setFocusedField(null)}
             placeholder="Your full name"
             autoCapitalize="words"
-            autoCapitalize="words"
             autoFocus
             error={error && error.includes('Name') ? error : undefined}
             placeholderTextColor="#94A3B8"
           />
 
           <FlowInput
-            label="Phone Number"
-            value={phone}
-            onChangeText={(text) => {
-              const digits = text.replace(/\D/g, '');
-              if (digits.length <= 10) setPhone(digits);
-            }}
-            onFocus={() => setFocusedField('phone')}
-            onBlur={() => setFocusedField(null)}
-            keyboardType="phone-pad"
-            placeholder="98765 43210"
-            autoComplete="tel"
-            error={error && error.includes('phone') ? error : undefined}
-            placeholderTextColor="#94A3B8"
-          />
-
-          <FlowInput
-            label="Email (optional)"
+            label="Email"
             value={email}
             onChangeText={setEmail}
             onFocus={() => setFocusedField('email')}
             onBlur={() => setFocusedField(null)}
             keyboardType="email-address"
-            placeholder="you@example.com"
             autoCapitalize="none"
+            placeholder="you@example.com"
+            autoComplete="email"
+            error={error && error.includes('email') ? error : undefined}
+            placeholderTextColor="#94A3B8"
+          />
+
+          <FlowInput
+            label="Phone (optional)"
+            value={phone}
+            onChangeText={setPhone}
+            onFocus={() => setFocusedField('phone')}
+            onBlur={() => setFocusedField(null)}
+            keyboardType="phone-pad"
+            placeholder="98765 43210"
+            autoComplete="tel"
             placeholderTextColor="#94A3B8"
           />
 
@@ -226,4 +217,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RegisterScreen;

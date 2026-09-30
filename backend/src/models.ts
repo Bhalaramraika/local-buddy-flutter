@@ -49,8 +49,8 @@ export type TransactionStatus = 'pending' | 'success' | 'failed' | 'refunded';
 
 export interface UserDocument {
   id: string;
-  phone: string;
-  email?: string;
+  email: string;
+  phone?: string;
   name: string;
   bio?: string;
   skills?: string[];
@@ -193,19 +193,22 @@ export interface VerificationDocument {
 
 export interface OTPSession {
   id: string;
-  phone: string;
-  otp: string;
+  email: string;
+  stateId: string;
   attempts: number;
   expiresAt: string;
   createdAt: string;
   verified: boolean;
+  // Dev fallback only - OTP stored only when MOJOAUTH_API_KEY not set
+  otp?: string;
 }
 
 export interface UserLock {
   id: string;
-  phone: string;
+  email: string;
   reason: string;
   lockedUntil: string;
+  attempts: number;
   createdAt: string;
 }
 

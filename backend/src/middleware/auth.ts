@@ -14,6 +14,7 @@ declare global {
       user?: {
         uid: string;
         phone: string;
+        email: string;
         role: string;
         firebaseUser: any;
         userDoc?: any;
@@ -59,6 +60,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     req.user = {
       uid: decodedToken.uid,
       phone: decodedToken.phone_number || userData?.phone || '',
+      email: userData?.email || decodedToken.email || '',
       role: userData?.role || 'customer',
       firebaseUser: decodedToken,
       userDoc: userData,
@@ -102,6 +104,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
     req.user = {
       uid: decodedToken.uid,
       phone: decodedToken.phone_number || userDoc.data()?.phone || '',
+      email: userDoc.data()?.email || decodedToken.email || '',
       role: userDoc.data()?.role || 'customer',
       firebaseUser: decodedToken,
       userDoc: userDoc.data(),

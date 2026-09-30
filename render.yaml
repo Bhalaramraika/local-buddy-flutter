@@ -43,13 +43,13 @@ services:
       - key: PAYU_BASE_URL
         value: "https://test.payu.in"
 
-      # AuthKey.io — the only OTP channel
-      - key: AUTHKEY_API_KEY
+      # MojoAuth — Email OTP
+      - key: MOJOAUTH_API_KEY
         sync: false
-      - key: AUTHKEY_SENDER_ID
-        value: "LBUDDY"
-      - key: AUTHKEY_ROUTE
-        value: "4"
+      - key: MOJOAUTH_API_SECRET
+        sync: false
+      - key: MOJOAUTH_BASE_URL
+        value: "https://api.mojoauth.com"
 
       # Rate limiting
       - key: RATE_LIMIT_WINDOW_MS

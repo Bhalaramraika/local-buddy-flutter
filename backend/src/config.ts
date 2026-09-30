@@ -35,10 +35,10 @@ export const config = {
     baseUrl: process.env.PAYU_BASE_URL || 'https://test.payu.in',
   },
 
-  authkey: {
-    apiKey: process.env.AUTHKEY_API_KEY || '',
-    senderId: process.env.AUTHKEY_SENDER_ID || 'LBUDDY',
-    route: process.env.AUTHKEY_ROUTE || '4',
+  mojoauth: {
+    apiKey: process.env.MOJOAUTH_API_KEY || '',
+    apiSecret: process.env.MOJOAUTH_API_SECRET || '',
+    baseUrl: process.env.MOJOAUTH_BASE_URL || 'https://api.mojoauth.com',
   },
 
   rateLimit: {
@@ -63,6 +63,7 @@ if (!config.server.isDev) {
     ['JWT_SECRET', config.jwt.secret],
     ['PAYU_MERCHANT_KEY', config.payu.merchantKey],
     ['PAYU_MERCHANT_SALT', config.payu.merchantSalt],
+    ['MOJOAUTH_API_KEY', config.mojoauth.apiKey],
   ];
 
   for (const [name, value] of required) {

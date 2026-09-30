@@ -1,6 +1,6 @@
 /**
  * Auth Routes
- * OTP send/verify, phone auth, custom tokens
+ * OTP send/verify, email auth, custom tokens
  */
 
 import { Router, Request, Response } from 'express';
@@ -11,7 +11,6 @@ import { requireAuth, optionalAuth } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validation';
 import { otpRateLimiter } from '../middleware/rateLimiter';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../middleware/errorHandler';
-import crypto from 'crypto';
 
 const router = Router();
 
@@ -20,11 +19,11 @@ const router = Router();
 // ============================================================
 
 const sendOtpSchema = z.object({
-  phone: z.string().regex(/^\+91\d{10}$/, 'Phone must be in +91XXXXXXXXXX format'),
+  email: z.string().email().toLowerCase(),
 });
 
 const verifyOtpSchema = z.object({
-  phone: z.string().regex(/^\+91\d{10}$/),
+  email: z.string().email().toLowerCase(),
   otp: z.string().length(6, 'OTP must be 6 digits'),
 });
 
@@ -33,52 +32,103 @@ const refreshTokenSchema = z.object({
 });
 
 // ============================================================
-// Helpers
+// MojoAuth Helpers
 // ============================================================
 
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+const MOJOAUTH_BASE_URL = process.env.MOJOAUTH_BASE_URL || 'https://api.mojoauth.com';
+const MOJOAUTH_API_KEY = process.env.MOJOAUTH_API_KEY;
+const MOJOAUTH_API_SECRET = process.env.MOJOAUTH_API_SECRET;
+
+function mojoAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-API-Key': MOJOAUTH_API_KEY!,
+  };
+  if (MOJOAUTH_API_SECRET) headers['X-API-Secret'] = MOJOAUTH_API_SECRET;
+  return headers;
 }
 
-async function sendSMS(phone: string, otp: string): Promise<void> {
-  const authKeyApiKey = process.env.AUTHKEY_API_KEY;
-  const senderId = process.env.AUTHKEY_SENDER_ID || 'LBUDDY';
-  const route = process.env.AUTHKEY_ROUTE || '4';
+interface MojoAuthSendResponse {
+  state_id?: string;
+  message?: string;
+  error?: string;
+}
 
-  if (!authKeyApiKey) {
-    console.warn('[SMS] AUTHKEY_API_KEY not configured, logging OTP to console');
-    console.log(`[SMS] To ${phone}: Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`);
-    return;
+interface MojoAuthVerifyResponse {
+  access_token?: string;
+  refresh_token?: string;
+  user?: { email: string };
+  message?: string;
+  error?: string;
+}
+
+async function sendEmailOtp(email: string): Promise<string> {
+  if (!MOJOAUTH_API_KEY) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[MojoAuth] MOJOAUTH_API_KEY not configured, logging OTP to console');
+      console.log(`[MojoAuth] To ${email}: Your LocalBuddy OTP is 123456. Valid for 10 minutes.`);
+      return `dev-${email}`;
+    }
+    throw new Error('MojoAuth not configured');
   }
 
-  // Format phone number for AuthKey.io (remove +91 prefix)
-  const mobile = phone.replace('+91', '');
-  const message = `Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`;
-
   try {
-    const url = `https://api.authkey.io/request?authkey=${authKeyApiKey}&mobile=${mobile}&message=${encodeURIComponent(message)}&sender=${senderId}&route=${route}`;
-    
-    const response = await fetch(url);
-    const data = (await response.json()) as { Message?: string };
-    
-    if (data.Message && data.Message !== 'Success') {
-      console.error('[SMS] AuthKey.io error:', data);
-      throw new Error(`AuthKey.io error: ${data.Message}`);
+    const url = `${MOJOAUTH_BASE_URL}/users/emailotp?email=${encodeURIComponent(email)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: mojoAuthHeaders(),
+    });
+
+    const data = (await response.json()) as MojoAuthSendResponse;
+
+    if (data.error || !data.state_id) {
+      console.error('[MojoAuth] Send error:', data);
+      throw new Error(data.error || data.message || 'Failed to send OTP');
     }
-    
-    console.log(`[SMS] OTP sent to ${phone} via AuthKey.io`);
+
+    console.log(`[MojoAuth] OTP sent to ${email}`);
+    return data.state_id;
   } catch (error) {
-    console.error('[SMS] Failed to send OTP via AuthKey.io:', error);
-    // Fallback to console logging in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[SMS] To ${phone}: Your LocalBuddy OTP is ${otp}. Valid for 10 minutes.`);
-    }
+    console.error('[MojoAuth] Failed to send OTP:', error);
     throw error;
   }
 }
 
-async function checkUserLock(phone: string): Promise<void> {
-  const lockDoc = await collections.userLocks.doc(phone).get();
+async function verifyEmailOtp(stateId: string, otp: string): Promise<{ email: string }> {
+  if (!MOJOAUTH_API_KEY) {
+    if (process.env.NODE_ENV !== 'production') {
+      if (otp !== '123456') {
+        throw new Error('Invalid development OTP. Use 123456.');
+      }
+      return { email: stateId.replace('dev-', '') };
+    }
+    throw new Error('MojoAuth not configured');
+  }
+
+  try {
+    const url = `${MOJOAUTH_BASE_URL}/users/emailotp/verify?state_id=${encodeURIComponent(stateId)}&otp=${encodeURIComponent(otp)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: mojoAuthHeaders(),
+    });
+
+    const data = (await response.json()) as MojoAuthVerifyResponse;
+
+    if (data.error || !data.user?.email) {
+      console.error('[MojoAuth] Verify error:', data);
+      throw new Error(data.error || data.message || 'Invalid OTP');
+    }
+
+    console.log(`[MojoAuth] OTP verified for ${data.user.email}`);
+    return { email: data.user.email };
+  } catch (error) {
+    console.error('[MojoAuth] Failed to verify OTP:', error);
+    throw error;
+  }
+}
+
+async function checkUserLock(email: string): Promise<void> {
+  const lockDoc = await collections.userLocks.doc(email).get();
   if (lockDoc.exists) {
     const lock = lockDoc.data()!;
     if (new Date(lock.lockedUntil) > new Date()) {
@@ -87,14 +137,15 @@ async function checkUserLock(phone: string): Promise<void> {
   }
 }
 
-async function incrementLockAttempts(phone: string): Promise<void> {
-  const lockRef = collections.userLocks.doc(phone);
+async function incrementLockAttempts(email: string): Promise<void> {
+  const lockRef = collections.userLocks.doc(email);
   const lockDoc = await lockRef.get();
   
   if (!lockDoc.exists) {
     await lockRef.set({
-      phone,
+      email,
       reason: 'Too many failed OTP attempts',
+      attempts: 1,
       lockedUntil: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min lock
       createdAt: timestamp(),
     });
@@ -117,32 +168,31 @@ async function incrementLockAttempts(phone: string): Promise<void> {
 
 /**
  * POST /api/v1/auth/otp/send
- * Send OTP to phone number
+ * Send OTP to email
  */
 router.post(
   '/otp/send',
   otpRateLimiter,
   validateBody(sendOtpSchema),
   async (req: Request, res: Response) => {
-    const { phone } = req.body;
+    const { email } = req.body;
 
-    await checkUserLock(phone);
+    await checkUserLock(email);
 
-    const otp = generateOTP();
+    const stateId = await sendEmailOtp(email);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
-    // Store OTP session
-    await collections.otpSessions.doc(phone).set({
-      phone,
-      otp,
+    // Store OTP session (without OTP - MojoAuth holds it)
+    await collections.otpSessions.doc(email).set({
+      email,
+      stateId,
       attempts: 0,
       expiresAt,
       createdAt: timestamp(),
       verified: false,
+      // Dev fallback only - don't store OTP in production
+      ...(process.env.NODE_ENV !== 'production' && !MOJOAUTH_API_KEY && { otp: '123456' }),
     });
-
-    // Send SMS
-    await sendSMS(phone, otp);
 
     res.json({
       success: true,
@@ -160,9 +210,9 @@ router.post(
   '/otp/verify',
   validateBody(verifyOtpSchema),
   async (req: Request, res: Response) => {
-    const { phone, otp } = req.body;
+    const { email, otp } = req.body;
 
-    const sessionDoc = await collections.otpSessions.doc(phone).get();
+    const sessionDoc = await collections.otpSessions.doc(email).get();
     if (!sessionDoc.exists) {
       throw new BadRequestError('OTP not found or expired');
     }
@@ -177,36 +227,54 @@ router.post(
       throw new BadRequestError('OTP expired');
     }
 
-    if (session.otp !== otp) {
-      // Increment attempts
-      await sessionDoc.ref.update({ attempts: session.attempts + 1 });
-      
-      if (session.attempts + 1 >= 3) {
-        await incrementLockAttempts(phone);
+    // Verify OTP (dev fallback compares session.otp; production calls MojoAuth)
+    let verifiedEmail = email;
+    const isDevBypass = !MOJOAUTH_API_KEY && process.env.NODE_ENV !== 'production';
+    try {
+      if (isDevBypass) {
+        if (session.otp !== otp) throw new BadRequestError('Invalid OTP');
+      } else {
+        const result = await verifyEmailOtp(session.stateId, otp);
+        if (result.email.toLowerCase() !== email.toLowerCase()) {
+          throw new BadRequestError('OTP verification failed');
+        }
+        verifiedEmail = result.email;
       }
-      
-      throw new BadRequestError('Invalid OTP');
+    } catch (err) {
+      if (err instanceof BadRequestError) {
+        // Track wrong-OTP attempts and lock after repeated failures
+        const attempts = (session.attempts || 0) + 1;
+        await sessionDoc.ref.update({ attempts });
+        if (attempts >= 3) {
+          await incrementLockAttempts(email);
+        }
+        throw err;
+      }
+      // MojoAuth API/network failures
+      throw new Error('OTP verification service unavailable');
     }
 
     // Mark OTP as verified
     await sessionDoc.ref.update({ verified: true });
 
-    // Get or create Firebase user
+    // Get or create Firebase user by email
     let firebaseUser;
     try {
-      firebaseUser = await getAuth().getUserByPhoneNumber(phone);
+      firebaseUser = await getAuth().getUserByEmail(email);
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
         firebaseUser = await getAuth().createUser({
-          phoneNumber: phone,
-          displayName: `User ${phone.slice(-4)}`,
+          email,
+          emailVerified: true,
+          displayName: `User ${email.split('@')[0]}`,
         });
         
         // Create user document
         await collections.users.doc(firebaseUser.uid).set({
           id: firebaseUser.uid,
-          phone,
-          name: `User ${phone.slice(-4)}`,
+          email,
+          phone: '',
+          name: `User ${email.split('@')[0]}`,
           profileCompleted: false,
           role: 'customer',
           status: 'active',
@@ -265,6 +333,20 @@ router.post(
     res.json({ success: true, customToken });
   }
 );
+
+/**
+ * POST /api/v1/auth/logout
+ * Stateless logout — client discards tokens; revoke Firebase refresh tokens
+ */
+router.post('/logout', requireAuth, async (req: Request, res: Response) => {
+  try {
+    await getAuth().revokeRefreshTokens(req.user!.uid);
+  } catch (err) {
+    // Non-fatal: refresh-token revocation is best-effort
+    console.warn('[Auth] Failed to revoke refresh tokens:', err);
+  }
+  res.json({ success: true, message: 'Logged out' });
+});
 
 /**
  * GET /api/v1/auth/me

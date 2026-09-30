@@ -31,8 +31,8 @@ export interface KYCStatusInfo {
 
 export interface User {
   id: string;
-  phone: string;
-  email?: string;
+  email: string;
+  phone?: string;
   name: string;
   bio?: string;
   skills?: string[];
@@ -258,14 +258,14 @@ export interface AuthTokens {
 }
 
 export interface LoginCredentials {
-  phone: string;
+  email: string;
   otp?: string;
   firebaseToken?: string;
 }
 
 export interface RegisterData extends LoginCredentials {
   name: string;
-  email?: string;
+  phone?: string;
   role: UserRole;
   city: string;
   area?: string;
@@ -273,7 +273,7 @@ export interface RegisterData extends LoginCredentials {
 }
 
 export interface OTPRequest {
-  phone: string;
+  email: string;
   purpose: 'login' | 'register' | 'verify' | 'reset_password';
 }
 

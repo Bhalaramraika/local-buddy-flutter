@@ -9,11 +9,8 @@ interface AuthResponse {
 	user: User;
 }
 
-export const normalizePhoneNumber = (phone: string): string => {
-	const digits = phone.replace(/\D/g, '');
-	if (digits.length === 10) return `+91${digits}`;
-	if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
-	return phone.trim();
+export const normalizeEmail = (email: string): string => {
+	return email.trim().toLowerCase();
 };
 
 const responseData = <T>(response: { data: T | { data: T } }): T => {
@@ -44,10 +41,11 @@ const clearTokens = async (): Promise<void> => {
 	await auth?.signOut();
 };
 
-const createMockUser = (phone: string): User => ({
-	id: `local-${phone.replace(/\D/g, '')}`,
-	phone,
-	name: `Local User ${phone.slice(-4)}`,
+const createMockUser = (email: string): User => ({
+	id: `local-${email.replace(/[^a-zA-Z0-9]/g, '')}`,
+	email,
+	phone: '',
+	name: `Local User ${email.split('@')[0]}`,
 	role: 'customer',
 	status: 'active',
 	isActive: true,
@@ -63,9 +61,9 @@ const createMockUser = (phone: string): User => ({
 	lastActiveAt: new Date().toISOString(),
 });
 
-const mockTokens = (phone: string): AuthTokens => ({
-	accessToken: `local-access-${phone}`,
-	refreshToken: `local-refresh-${phone}`,
+const mockTokens = (email: string): AuthTokens => ({
+	accessToken: `local-access-${email}`,
+	refreshToken: `local-refresh-${email}`,
 	expiresIn: 86400,
 	tokenType: 'Bearer',
 });
@@ -79,12 +77,13 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const authService = {
 	getStoredTokens,
 	clearTokens,
-	requestOtp: async (phone: string): Promise<void> => {
+	requestOtp: async (email: string): Promise<void> => {
+		const normalizedEmail = normalizeEmail(email);
 		if (isMockApiEnabled) {
 			await storage.set('local_mock_otp', '123456');
 			return;
 		}
-		await api.post(ENDPOINTS.auth.otpSend, { phone: normalizePhoneNumber(phone) });
+		await api.post(ENDPOINTS.auth.otpSend, { email: normalizedEmail });
 	},
 
 	validateToken: async (token: string): Promise<boolean> => {
@@ -98,18 +97,18 @@ export const authService = {
 		}
 	},
 
-	login: async (phone: string, otp: string): Promise<AuthResponse> => {
-		const normalizedPhone = normalizePhoneNumber(phone);
+	login: async (email: string, otp: string): Promise<AuthResponse> => {
+		const normalizedEmail = normalizeEmail(email);
 		if (isMockApiEnabled) {
 			const expectedOtp = await storage.get<string>('local_mock_otp');
 			if (otp !== (expectedOtp || '123456')) throw new Error('Invalid development OTP. Use 123456.');
 			const existingUser = await storage.get<User>('local_mock_user');
-			const user = existingUser || createMockUser(normalizedPhone);
-			const tokens = mockTokens(normalizedPhone);
+			const user = existingUser || createMockUser(normalizedEmail);
+			const tokens = mockTokens(normalizedEmail);
 			await Promise.all([saveTokens(tokens), storage.set('local_mock_user', user)]);
 			return { tokens, user };
 		}
-		const response = await api.post(ENDPOINTS.auth.otpVerify, { phone: normalizedPhone, otp });
+		const response = await api.post(ENDPOINTS.auth.otpVerify, { email: normalizedEmail, otp });
 		const result = responseData<{ customToken: string; user?: User }>(response);
 		if (!auth) throw new Error('Firebase authentication is not configured');
 		const credential = await signInWithCustomToken(auth, result.customToken);

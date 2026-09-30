@@ -193,7 +193,7 @@ router.post(
       productinfo: 'Wallet Top-up',
       firstname: req.user!.userDoc?.name || 'User',
       email: req.user!.userDoc?.email || 'user@localbuddy.app',
-      phone: req.user!.phone,
+      phone: req.user!.phone || req.user!.userDoc?.phone || '9999999999',
       udf1: userId,
       udf2: 'wallet_add',
       service_provider: 'payu_paisa',
