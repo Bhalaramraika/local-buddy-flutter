@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Text, TextInput, Pressable, View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService, normalizeEmail } from '@/services/auth';
 import { isMockApiEnabled } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
-import { ErrorMessage, FlowHeader, FlowInput, FlowScreen, PrimaryButton, TextButton, Card, flowStyles } from '@/components/FlowUI';
+import { ErrorMessage, FlowHeader, FlowScreen, PrimaryButton, TextButton, Card, flowStyles } from '@/components/FlowUI';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows, Animation } from '@/constants/design';
 
@@ -19,6 +19,7 @@ export default function OtpScreen() {
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(60);
   const [timerActive, setTimerActive] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!email) router.replace('/login');
@@ -92,7 +93,7 @@ export default function OtpScreen() {
         />
 
         <Card style={styles.otpCard}>
-          <View style={styles.otpContainer}>
+          <Pressable onPress={() => inputRef.current?.focus()} style={styles.otpContainer}>
             {[1, 2, 3, 4, 5, 6].map((index) => (
               <View key={index} style={[
                 styles.otpBox,
@@ -104,20 +105,20 @@ export default function OtpScreen() {
                 </Text>
               </View>
             ))}
-          </View>
-
-          <FlowInput
-            label="One-time password"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-            placeholder="123456"
-            maxLength={6}
-            autoComplete="one-time-code"
-            autoFocus
-            editable={false}
-            style={styles.hiddenInput}
-          />
+            {/* Invisible full-size input overlaying the boxes: tap anywhere to type */}
+            <TextInput
+              ref={inputRef}
+              value={otp}
+              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              autoComplete="sms-otp"
+              textContentType="oneTimeCode"
+              autoFocus
+              style={styles.hiddenInput}
+              accessibilityLabel="One-time password"
+            />
+          </Pressable>
 
           {isMockApiEnabled ? (
             <Text style={styles.mockHint}>
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing[3],
     marginBottom: Spacing[6],
+    position: 'relative',
   },
   otpBox: {
     width: 52,
@@ -231,9 +233,13 @@ const styles = StyleSheet.create({
   },
   hiddenInput: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0,
-    width: 0,
-    height: 0,
+    color: 'transparent',
+    backgroundColor: 'transparent',
   },
   mockHint: {
     textAlign: 'center',

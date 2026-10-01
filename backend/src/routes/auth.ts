@@ -118,12 +118,15 @@ async function verifyEmailOtp(stateId: string, otp: string): Promise<{ email: st
 
     if (data.error || !data.user?.email) {
       console.error('[MojoAuth] Verify error:', data);
-      throw new Error(data.error || data.message || 'Invalid OTP');
+      // Map MojoAuth rejections (invalid/expired OTP) to 400 so the app
+      // shows "Invalid OTP" instead of a server error.
+      throw new BadRequestError(data.error || data.message || 'Invalid OTP');
     }
 
     console.log(`[MojoAuth] OTP verified for ${data.user.email}`);
     return { email: data.user.email };
   } catch (error) {
+    if (error instanceof BadRequestError) throw error;
     console.error('[MojoAuth] Failed to verify OTP:', error);
     throw error;
   }

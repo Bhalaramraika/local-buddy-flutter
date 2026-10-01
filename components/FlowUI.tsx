@@ -56,14 +56,14 @@ export function FlowHeader({
   );
 }
 
-export function FlowInput({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
+export function FlowInput({ label, error, style, ...props }: TextInputProps & { label: string; error?: string }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         {...props}
         placeholderTextColor={Colors.text.muted}
-        style={[styles.input, error && styles.inputError]}
+        style={[styles.input, error && styles.inputError, style]}
       />
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -87,12 +87,12 @@ export function PrimaryButton({
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const baseStyle = [
-    styles.buttonBase,
-    styles[`button${size.charAt(0).toUpperCase() + size.slice(1)}` as 'buttonSm' | 'buttonMd' | 'buttonLg'],
-    styles[`button${variant.charAt(0).toUpperCase() + variant.slice(1)}` as 'buttonPrimary' | 'buttonSecondary' | 'buttonOutline'],
-    fullWidth && styles.fullWidth,
-  ];
+  const sizeStyle = size === 'sm' ? styles.buttonSm : size === 'md' ? styles.buttonMd : styles.buttonLg;
+  const variantStyle = variant === 'secondary' ? styles.buttonSecondary : variant === 'outline' ? styles.buttonOutline : styles.buttonPrimary;
+  const textColorStyle = variant === 'outline' ? styles.buttonTextOutline : styles.buttonTextPrimary;
+  const textSizeStyle = size === 'sm' ? styles.buttonTextSm : size === 'md' ? styles.buttonTextMd : styles.buttonTextLg;
+
+  const baseStyle = [styles.buttonBase, sizeStyle, variantStyle, fullWidth && styles.fullWidth];
 
   return (
     <Pressable
@@ -108,11 +108,7 @@ export function PrimaryButton({
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? Colors.brand.primary : Colors.text.inverse} size="small" />
       ) : (
-        <Text style={[
-          styles.buttonText,
-          styles[`buttonText${variant.charAt(0).toUpperCase() + variant.slice(1)}` as 'buttonTextPrimary' | 'buttonTextSecondary' | 'buttonTextOutline'],
-          styles[`buttonText${size.charAt(0).toUpperCase() + size.slice(1)}` as 'buttonTextSm' | 'buttonTextMd' | 'buttonTextLg'],
-        ]}>{label}</Text>
+        <Text style={[styles.buttonText, textColorStyle, textSizeStyle]}>{label}</Text>
       )}
     </Pressable>
   );
