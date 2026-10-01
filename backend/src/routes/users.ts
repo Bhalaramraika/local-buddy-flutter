@@ -74,8 +74,31 @@ router.get('/me/profile', requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/v1/users
+ * List active users (for chat/new-chat flows). Excludes sensitive fields.
+ */
+router.get(
+  '/',
+  requireAuth,
+  validateQuery(z.object({ limit: z.coerce.number().min(1).max(100).default(50), offset: z.coerce.number().min(0).default(0) })),
+  async (req: Request, res: Response) => {
+    const { limit, offset } = req.query as any;
+    const snap = await collections.users
+      .where('status', '==', 'active')
+      .limit(limit + offset)
+      .get();
+    const users = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as any) }))
+      .filter((u) => u.id !== req.user!.uid)
+      .slice(offset, offset + limit)
+      .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar, role: u.role, city: u.city }));
+    res.json({ success: true, users });
+  }
+);
+
+/**
  * PUT /api/v1/users/me/profile
- * Update current user's profile
+ * Update current user profile
  */
 router.put(
   '/me/profile',

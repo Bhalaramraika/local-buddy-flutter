@@ -15,6 +15,7 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,6 +73,15 @@ export default function WalletTopupScreen() {
     const res = await startTopup(parseFloat(amount));
     if ('payuParams' in res) {
       setCheckout({ html: buildPayUHtml(res.payuParams, res.payuUrl) });
+    } else if ((res as any).error?.includes('KYC')) {
+      Alert.alert(
+        'Complete KYC required',
+        'PayU payments require verified KYC. Please complete your KYC first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Complete KYC', onPress: () => router.push('/(screens)/kyc-status') },
+        ]
+      );
     } else {
       showToast(res.error || 'Failed to initiate payment', 'error');
     }

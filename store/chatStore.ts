@@ -408,7 +408,7 @@ export const useChatStore = create<ChatState>()(
       fetchUsers: async () => {
         set({ isLoading: true, error: null });
         try {
-          const data = await apiGet<any>('/users', { params: { limit: 50 } });
+          const data = await apiGet<any>('/users/search', { params: { q: '', limit: 50 } });
           const users = data?.users ?? data?.data ?? [];
           set({ users: Array.isArray(users) ? users : [], isLoading: false });
         } catch (error) {

@@ -142,11 +142,27 @@ export default function CreateTaskScreen() {
       isRemote: formData.isRemote,
     };
     
-    const success = await createTask(taskData);
-    if (success) {
-      Alert.alert('Success', 'Task created successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+    try {
+      const success = await createTask(taskData);
+      if (success) {
+        Alert.alert('Success', 'Task created successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || '';
+      if (String(msg).toLowerCase().includes('kyc')) {
+        Alert.alert(
+          'Complete KYC required',
+          'Posting a task requires verified KYC. Please complete your KYC first.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Complete KYC', onPress: () => router.push('/(screens)/kyc-status') },
+          ]
+        );
+      } else {
+        Alert.alert('Error', msg || 'Failed to create task. Please try again.');
+      }
     }
   };
 
