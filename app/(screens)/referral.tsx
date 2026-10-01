@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 
 export default function ReferralScreen() {
   const router = useRouter();
@@ -29,46 +30,40 @@ export default function ReferralScreen() {
   const [copied, setCopied] = useState(false);
 
   const loadReferralData = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock referral data
-    const mockData = {
-      code: user?.referralCode || 'LOCALBUDDY7X9',
-      totalReferrals: 12,
-      successfulReferrals: 8,
-      pendingReferrals: 4,
-      totalEarned: 240.00,
-      pendingEarnings: 120.00,
-      referralLink: `https://localbuddy.app/ref/${user?.referralCode || 'LOCALBUDDY7X9'}`,
-      tier: 'Gold',
-      nextTier: 'Platinum',
-      nextTierRequirement: 20,
-      rewards: [
-        { referrals: 1, reward: '$10', description: 'First referral bonus' },
-        { referrals: 5, reward: '$50', description: '5 referrals milestone' },
-        { referrals: 10, reward: '$100', description: '10 referrals milestone' },
-        { referrals: 20, reward: '$250', description: '20 referrals milestone' },
-        { referrals: 50, reward: '$500', description: '50 referrals milestone' },
-      ],
-      recentActivity: [
-        { id: '1', name: 'Sarah Johnson', status: 'completed', earnings: 30, date: '2024-01-15' },
-        { id: '2', name: 'Mike Chen', status: 'completed', earnings: 30, date: '2024-01-12' },
-        { id: '3', name: 'Emily Davis', status: 'pending', earnings: 30, date: '2024-01-10' },
-        { id: '4', name: 'James Wilson', status: 'pending', earnings: 30, date: '2024-01-08' },
-        { id: '5', name: 'Lisa Anderson', status: 'completed', earnings: 30, date: '2024-01-05' },
-      ],
-    };
-    
-    setReferralData(mockData);
-    setLoading(false);
+    try {
+      const codeRes = await apiGet<{ code: string; shareUrl: string }>('/referral/code');
+      const statsRes = await apiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>('/referral/stats');
+      const code = codeRes?.code || user?.referralCode || '';
+      const stats = statsRes?.stats || { total: 0, completed: 0, pending: 0, rewards: 0 };
+      setReferralData({
+        code,
+        totalReferrals: stats.total,
+        successfulReferrals: stats.completed,
+        pendingReferrals: stats.pending,
+        totalEarned: stats.rewards,
+        pendingEarnings: stats.pending * 50,
+        referralLink: codeRes?.shareUrl || `https://localbuddy.app/r/${code}`,
+        tier: stats.completed >= 20 ? 'Platinum' : stats.completed >= 10 ? 'Gold' : 'Silver',
+        nextTierRequirement: stats.completed >= 20 ? 50 : 20,
+        rewards: [
+          { referrals: 1, reward: '₹50', description: 'First referral bonus' },
+          { referrals: 5, reward: '₹250', description: '5 referrals milestone' },
+          { referrals: 10, reward: '₹500', description: '10 referrals milestone' },
+          { referrals: 20, reward: '₹1,250', description: '20 referrals milestone' },
+        ],
+        recentActivity: [],
+      });
+    } catch (e) {
+      console.warn('[Referral] load failed:', e);
+      setReferralData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // Defer data loading past first commit so no sync setState happens in the effect body
-    void Promise.resolve().then(loadReferralData);
+    loadReferralData();
   }, []);
 
 

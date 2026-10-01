@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
 interface LocationShare {
@@ -134,57 +135,29 @@ export default function LocationSharingScreen() {
   const [newShareDuration, setNewShareDuration] = useState<'1h' | '4h' | '24h' | 'indefinite'>('24h');
   const [newSharePermissions, setNewSharePermissions] = useState<('location' | 'battery' | 'movement')[]>(['location']);
 
-  const mockShares: LocationShare[] = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      avatar: 'SJ',
-      relationship: 'Close Friend',
-      sharingSince: '2 hours ago',
-      expiresAt: 'in 22 hours',
-      isActive: true,
-      permissions: ['location', 'battery'],
-    },
-    {
-      id: '2',
-      name: 'Mike Chen',
-      avatar: 'MC',
-      relationship: 'Task Buddy',
-      sharingSince: '1 day ago',
-      expiresAt: 'in 3 hours',
-      isActive: true,
-      permissions: ['location'],
-    },
-    {
-      id: '3',
-      name: 'Emma Wilson',
-      avatar: 'EW',
-      relationship: 'Family',
-      sharingSince: '3 days ago',
-      expiresAt: null,
-      isActive: true,
-      permissions: ['location', 'battery', 'movement'],
-    },
-    {
-      id: '4',
-      name: 'David Park',
-      avatar: 'DP',
-      relationship: 'Colleague',
-      sharingSince: '2 hours ago',
-      expiresAt: 'expired',
-      isActive: false,
-      permissions: ['location'],
-    },
-  ];
+  // Location shares are loaded from the server (see loadShares)
 
 
   const loadShares = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setShares(mockShares);
-    setLoading(false);
+    try {
+      const res = await apiGet<{ shares: any[] }>('/location/shares');
+      setShares((res?.shares || []).map((s: any) => ({
+        id: s.id,
+        name: s.label || (s.sharedWith?.[0] || 'Shared location'),
+        avatar: (s.sharedWith?.[0] || 'C').slice(0, 2).toUpperCase(),
+        relationship: 'Contact',
+        sharingSince: s.createdAt || new Date().toISOString(),
+        expiresAt: s.expiresAt || null,
+        isActive: !!s.isActive,
+        permissions: ['location'] as ('location' | 'battery' | 'movement')[],
+      })));
+    } catch (e) {
+      console.warn('[LocationSharing] load failed:', e);
+      setShares([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

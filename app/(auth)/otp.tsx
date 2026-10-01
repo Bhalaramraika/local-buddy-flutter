@@ -3,7 +3,6 @@ import { Text, TextInput, Pressable, View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService, normalizeEmail } from '@/services/auth';
-import { isMockApiEnabled } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorMessage, FlowHeader, FlowScreen, PrimaryButton, TextButton, Card, flowStyles } from '@/components/FlowUI';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,12 +118,6 @@ export default function OtpScreen() {
               accessibilityLabel="One-time password"
             />
           </Pressable>
-
-          {isMockApiEnabled ? (
-            <Text style={styles.mockHint}>
-              Development OTP: 123456
-            </Text>
-          ) : null}
 
           <ErrorMessage message={localError || error} />
 

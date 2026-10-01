@@ -24,6 +24,7 @@ export const collections = {
   get chats() { return getDb().collection('chats'); },
   get transactions() { return getDb().collection('transactions'); },
   get reviews() { return getDb().collection('reviews'); },
+  get referrals() { return getDb().collection('referrals'); },
   get verifications() { return getDb().collection('verifications'); },
   get otpSessions() { return getDb().collection('otp_sessions'); },
   get userLocks() { return getDb().collection('user_locks'); },

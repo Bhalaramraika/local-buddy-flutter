@@ -13,14 +13,16 @@
   `services/realtime.ts` — there is NO Socket.IO server.
 - **Auth**: MojoAuth Email OTP → backend issues Firebase custom token →
   client signs in with Firebase JS SDK. Identity = email (Firebase user email).
+- **Mock data**: completely removed from production flow. Screens use real
+  backend data, loading, and empty/error states only (no dummy arrays).
 - **Money**: whole INR (not paise); PayU top-up + in-app release; the
   withdrawal feature was removed in the MVP.
 
 ## Deleted (do not reintroduce)
 Prisma, Supabase, cron worker (`backend/src/jobs`), Socket.IO
-(`websocket/`), `routes/{admin,notifications,location,upload,transactions}.ts`,
+(`websocket/`), `routes/{admin,upload,transactions}.ts`,
 `services/{supabase,location,notifications}.ts`, `types/user.ts`,
-`config/index.ts`, `jsconfig.json`, typing indicators.
+`config/index.ts`, `jsconfig.json`, typing indicators, Razorpay references.
 
 ## Conventions
 - Store↔screen contracts: stores call REST first, then update local state;

@@ -93,43 +93,29 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const watchIdRef = React.useRef<number | null>(null);
   const backgroundTaskRef = React.useRef<any>(null);
 
-  // Refresh nearby buddies
+  // Refresh nearby buddies (real API via /location/nearby-buddies)
   const refreshNearbyBuddies = useCallback(async (radius: number = 5000) => {
     if (!currentLocation || !user) return;
-    
     try {
-      // This would typically call an API to get nearby buddies
-      // For now, we'll use mock data
-      const mockBuddies = [
-        {
-          id: 'buddy_1',
-          name: 'Rahul Sharma',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahul',
-          distance: 1200,
-          location: {
-            latitude: currentLocation.latitude + 0.01,
-            longitude: currentLocation.longitude + 0.01,
-          },
+      const { apiGet } = await import('@/services/api');
+      const radiusKm = Math.max(1, Math.round(radius / 1000));
+      const res = await apiGet<{ buddies: any[] }>(
+        `/location/nearby-buddies?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&radiusKm=${radiusKm}`
+      );
+      setNearbyBuddies(
+        (res?.buddies || []).map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          avatar: b.avatar || '',
+          distance: (b.distanceKm ?? 0) * 1000,
+          location: currentLocation,
           lastSeen: new Date().toISOString(),
           isOnline: true,
-        },
-        {
-          id: 'buddy_2',
-          name: 'Priya Patel',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya',
-          distance: 3500,
-          location: {
-            latitude: currentLocation.latitude - 0.02,
-            longitude: currentLocation.longitude - 0.02,
-          },
-          lastSeen: new Date(Date.now() - 300000).toISOString(),
-          isOnline: true,
-        },
-      ].filter(b => b.distance <= radius);
-      
-      setNearbyBuddies(mockBuddies);
+        }))
+      );
     } catch (err) {
       console.error('Failed to refresh nearby buddies:', err);
+      setNearbyBuddies([]);
     }
   }, [currentLocation, user, setNearbyBuddies]);
   // Request location permission
@@ -359,15 +345,19 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }, [storeClearGeofences]);
 
 
-  // Detect city and area
+  // Detect city and area (real reverse geocoding)
   const detectCityAndArea = useCallback(async () => {
     if (!currentLocation) return;
-    
     try {
-      // Use reverse geocoding (would typically use Google Maps API or similar)
-      // For now, mock data
-      setCurrentCity('Mumbai');
-      setCurrentArea('Andheri West');
+      const Location = await import('expo-location');
+      const results = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      });
+      if (results.length > 0) {
+        setCurrentCity(results[0].city || results[0].region || 'Unknown');
+        setCurrentArea(results[0].district || results[0].subregion || results[0].street || '');
+      }
     } catch (err) {
       console.error('City detection failed:', err);
     }

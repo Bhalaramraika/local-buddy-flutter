@@ -17,6 +17,7 @@ import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vect
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useTaskStore } from '@/store/taskStore';
+import { apiGet } from '@/services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,115 +34,84 @@ export default function StatsScreen() {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'tasks' | 'earnings' | 'activity'>('overview');
 
   const loadStats = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Calculate stats from task store
-    const myCompletedTasks = completedTasks.filter(t => t.status === 'completed');
-    const myPostedTasks = postedTasks;
-    const myAppliedTasks = appliedTasks;
-    
-    const totalEarned = myCompletedTasks.reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
-    const totalSpent = myPostedTasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
-    const avgRating = user?.rating || 4.8;
-    const completionRate = myPostedTasks.length > 0 
-      ? Math.round((myPostedTasks.filter(t => t.status === 'completed').length / myPostedTasks.length) * 100) 
-      : 100;
-    
-    const mockStats = {
-      overview: {
-        totalTasksCompleted: myCompletedTasks.length,
-        totalTasksPosted: myPostedTasks.length,
-        totalEarned,
-        totalSpent,
-        avgRating,
-        completionRate,
-        currentStreak: 3,
-        longestStreak: 12,
-        responseRate: 94,
-        responseTime: '< 1 hour',
-        memberSince: user?.createdAt || '2024-01-01',
-        level: Math.floor(myCompletedTasks.length / 10) + 1,
-        xp: myCompletedTasks.length * 50 + (myPostedTasks.length * 10),
-        nextLevelXp: ((Math.floor(myCompletedTasks.length / 10) + 1) * 10) * 50,
-      },
-      tasks: {
-        completed: myCompletedTasks.length,
-        posted: myPostedTasks.length,
-        applied: myAppliedTasks.length,
-        inProgress: tasks.filter(t => t.status === 'in_progress').length,
-        cancelled: tasks.filter(t => t.status === 'cancelled').length,
-        byCategory: [
-          { category: 'Cleaning', count: 5, color: '#4F46E5' },
-          { category: 'Delivery', count: 3, color: '#10B981' },
-          { category: 'Handyman', count: 2, color: '#F59E0B' },
-          { category: 'Tutoring', count: 1, color: '#EF4444' },
-          { category: 'Pet Care', count: 1, color: '#8B5CF6' },
-        ],
-        byMonth: [
-          { month: 'Jan', completed: 3, posted: 2 },
-          { month: 'Feb', completed: 5, posted: 3 },
-          { month: 'Mar', completed: 4, posted: 1 },
-          { month: 'Apr', completed: 6, posted: 4 },
-          { month: 'May', completed: 2, posted: 2 },
-          { month: 'Jun', completed: 7, posted: 3 },
-        ],
-      },
-      earnings: {
-        totalEarned,
-        totalSpent,
-        netEarnings: totalEarned - totalSpent,
-        thisMonth: 240,
-        lastMonth: 180,
-        avgPerTask: myCompletedTasks.length > 0 ? totalEarned / myCompletedTasks.length : 0,
-        highestEarning: Math.max(...myCompletedTasks.map(t => t.budget?.amount || 0), 0),
-        byCategory: [
-          { category: 'Cleaning', earned: 150, count: 5, color: '#4F46E5' },
-          { category: 'Delivery', earned: 90, count: 3, color: '#10B981' },
-          { category: 'Handyman', earned: 120, count: 2, color: '#F59E0B' },
-          { category: 'Tutoring', earned: 50, count: 1, color: '#EF4444' },
-          { category: 'Pet Care', earned: 40, count: 1, color: '#8B5CF6' },
-        ],
-        monthly: [
-          { month: 'Jan', earned: 80, spent: 50 },
-          { month: 'Feb', earned: 120, spent: 80 },
-          { month: 'Mar', earned: 90, spent: 60 },
-          { month: 'Apr', earned: 150, spent: 100 },
-          { month: 'May', earned: 70, spent: 40 },
-          { month: 'Jun', earned: 200, spent: 120 },
-        ],
-      },
-      activity: {
-        loginStreak: 3,
-        tasksThisWeek: 2,
-        tasksThisMonth: 8,
-        hoursActive: 24,
-        messagesSent: 45,
-        reviewsWritten: 12,
-        referralsMade: 8,
-        achievementsUnlocked: 7,
-        lastActive: new Date().toISOString(),
-        weeklyActivity: [
-          { day: 'Mon', tasks: 1, hours: 2 },
-          { day: 'Tue', tasks: 0, hours: 0 },
-          { day: 'Wed', tasks: 2, hours: 3 },
-          { day: 'Thu', tasks: 1, hours: 1 },
-          { day: 'Fri', tasks: 3, hours: 4 },
-          { day: 'Sat', tasks: 2, hours: 3 },
-          { day: 'Sun', tasks: 0, hours: 0 },
-        ],
-      },
-    };
-    
-    setStats(mockStats);
-    setLoading(false);
+    try {
+      const res = await apiGet<{ stats: any }>('/users/me/stats');
+      const server = (res as any)?.stats || res || {};
+      const myCompletedTasks = completedTasks.filter(t => t.status === 'completed');
+      const myPostedTasks = postedTasks;
+      const myAppliedTasks = appliedTasks;
+      const totalEarned = server.totalEarnings ?? myCompletedTasks.reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
+      const totalSpent = server.totalSpent ?? myPostedTasks.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.budget?.amount || 0), 0);
+      const avgRating = (user as any)?.rating?.average ?? 0;
+      const completionRate = server.completionRate ?? (myPostedTasks.length > 0
+        ? Math.round((myPostedTasks.filter(t => t.status === 'completed').length / myPostedTasks.length) * 100)
+        : 0);
+      setStats({
+        overview: {
+          totalTasksCompleted: server.tasksCompleted ?? myCompletedTasks.length,
+          totalTasksPosted: server.tasksPosted ?? myPostedTasks.length,
+          totalEarned,
+          totalSpent,
+          avgRating,
+          completionRate,
+          currentStreak: 0,
+          longestStreak: 0,
+          responseRate: completionRate,
+          responseTime: '-',
+          memberSince: user?.createdAt || '',
+          level: Math.floor((server.tasksCompleted ?? myCompletedTasks.length) / 10) + 1,
+          xp: (server.tasksCompleted ?? myCompletedTasks.length) * 50 + (server.tasksPosted ?? myPostedTasks.length) * 10,
+          nextLevelXp: ((Math.floor((server.tasksCompleted ?? myCompletedTasks.length) / 10) + 1) * 10) * 50,
+        },
+        tasks: {
+          completed: server.tasksCompleted ?? myCompletedTasks.length,
+          posted: server.tasksPosted ?? myPostedTasks.length,
+          applied: myAppliedTasks.length,
+          inProgress: tasks.filter(t => t.status === 'in_progress').length,
+          cancelled: tasks.filter(t => t.status === 'cancelled').length,
+          byCategory: [],
+          byMonth: [],
+        },
+        earnings: {
+          totalEarned,
+          totalSpent,
+          netEarnings: totalEarned - totalSpent,
+          thisMonth: 0,
+          lastMonth: 0,
+          avgPerTask: myCompletedTasks.length > 0 ? totalEarned / myCompletedTasks.length : 0,
+          highestEarning: Math.max(...myCompletedTasks.map(t => t.budget?.amount || 0), 0),
+          byCategory: [],
+          monthly: [],
+        },
+        activity: {
+          loginStreak: 0,
+          tasksThisWeek: 0,
+          tasksThisMonth: 0,
+          hoursActive: 0,
+          messagesSent: 0,
+          reviewsWritten: 0,
+          referralsMade: 0,
+          achievementsUnlocked: 0,
+          lastActive: user?.lastActiveAt || new Date().toISOString(),
+          weeklyActivity: [],
+        },
+      });
+    } catch (e) {
+      console.warn('[Stats] load failed:', e);
+      setStats({
+        overview: { totalTasksCompleted: 0, totalTasksPosted: 0, totalEarned: 0, totalSpent: 0, avgRating: 0, completionRate: 0, currentStreak: 0, longestStreak: 0, responseRate: 0, responseTime: '-', memberSince: '', level: 1, xp: 0, nextLevelXp: 500 },
+        tasks: { completed: 0, posted: 0, applied: 0, inProgress: 0, cancelled: 0, byCategory: [], byMonth: [] },
+        earnings: { totalEarned: 0, totalSpent: 0, netEarnings: 0, thisMonth: 0, lastMonth: 0, avgPerTask: 0, highestEarning: 0, byCategory: [], monthly: [] },
+        activity: { loginStreak: 0, tasksThisWeek: 0, tasksThisMonth: 0, hoursActive: 0, messagesSent: 0, reviewsWritten: 0, referralsMade: 0, achievementsUnlocked: 0, lastActive: '', weeklyActivity: [] },
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // Defer data loading past first commit so no sync setState happens in the effect body
-    void Promise.resolve().then(loadStats);
+    loadStats();
   }, [timeRange]);
 
 

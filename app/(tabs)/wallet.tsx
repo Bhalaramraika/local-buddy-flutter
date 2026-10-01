@@ -13,7 +13,7 @@ import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
 
 export default function WalletScreen() {
   const router = useRouter();
-  const { wallet, transactions, fetchWallet, fetchTransactions, topUp, withdraw, isLoading: walletLoading } = useWalletStore();
+  const { wallet, transactions, fetchWallet, fetchTransactions, withdraw, isLoading: walletLoading } = useWalletStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
   const [refreshing, setRefreshing] = useState(false);

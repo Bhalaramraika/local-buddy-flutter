@@ -10,100 +10,13 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   RefreshControl,
-  Alert,
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
-
-// Mock notifications data
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'task_application',
-    title: 'New Application',
-    message: 'John Doe applied to your task "Grocery Shopping"',
-    time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    read: false,
-    actionUrl: '/(screens)/task-detail/1',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-  },
-  {
-    id: '2',
-    type: 'message',
-    title: 'New Message',
-    message: 'Sarah Wilson: "Hi, when can you start the cleaning task?"',
-    time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    read: false,
-    actionUrl: '/(tabs)/chat/2',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-  },
-  {
-    id: '3',
-    type: 'task_completed',
-    title: 'Task Completed',
-    message: 'Your task "Dog Walking" has been completed by Mike Chen',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/task-detail/3',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-  },
-  {
-    id: '4',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $45.00 for "Grocery Shopping" task',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/wallet-history',
-    avatar: null,
-    icon: 'cash',
-  },
-  {
-    id: '5',
-    type: 'review',
-    title: 'New Review',
-    message: 'Emma Davis left you a 5-star review!',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/profile/emma-davis',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-  },
-  {
-    id: '6',
-    type: 'system',
-    title: 'Welcome to LocalBuddy!',
-    message: 'Thanks for joining. Complete your profile to get more tasks.',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/edit-profile',
-    avatar: null,
-    icon: 'sparkles',
-  },
-  {
-    id: '7',
-    type: 'task_assigned',
-    title: 'Task Assigned',
-    message: 'You have been assigned to "Package Delivery"',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/task-detail/7',
-    avatar: null,
-    icon: 'package',
-  },
-  {
-    id: '8',
-    type: 'promotion',
-    title: 'Special Offer',
-    message: 'Get 10% bonus on your next wallet top-up!',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-    read: true,
-    actionUrl: '/(screens)/wallet-topup',
-    avatar: null,
-    icon: 'gift',
-  },
-];
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
+import { LoadingState } from '@/components/Loading';
 
 
 export default function NotificationsScreen() {
@@ -114,29 +27,42 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
 
   const loadNotifications = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
-    setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setNotifications(mockNotifications);
-    setLoading(false);
+    setError(null);
+    try {
+      const res = await fetchNotifications({ limit: 50 });
+      const raw = res?.notifications ?? [];
+      setNotifications(raw.map((n: any) => ({
+        id: n.id,
+        type: n.type || 'system',
+        title: n.title || 'Notification',
+        message: n.body || n.message || '',
+        time: n.createdAt || new Date().toISOString(),
+        read: !!n.read,
+        actionUrl: n.data?.url || n.actionUrl,
+        avatar: n.image || null,
+      })));
+    } catch (e: any) {
+      console.warn('[Notifications] load failed:', e);
+      setError(e?.response?.data?.error || 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
-    // Defer data loading past the first commit so no sync setState happens in the effect body
-    void Promise.resolve().then(() => {     loadNotifications(); });
+    loadNotifications();
   }, []);
 
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadNotifications();
-    setRefreshing(false);
   };
 
   const filteredNotifications = filter === 'unread' 
@@ -160,6 +86,28 @@ export default function NotificationsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const handleNotificationPress = async (notification: any) => {
+    if (!notification.read) {
+      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+      try { await markNotificationRead(notification.id); } catch {}
+    }
+    if (notification.actionUrl) {
+      try { router.push(notification.actionUrl as any); } catch {}
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const prev = notifications;
+    setNotifications(prev.map(n => ({ ...n, read: true })));
+    try {
+      await markAllNotificationsRead();
+      showToast('All notifications marked as read', 'success');
+    } catch {
+      setNotifications(prev);
+      showToast('Failed to update', 'error');
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'task_application': return { icon: 'document-text-outline', color: '#4F46E5', bg: '#4F46E515' };
@@ -174,33 +122,7 @@ export default function NotificationsScreen() {
     }
   };
 
-  const handleNotificationPress = (notification: any) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
-    }
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl);
-    }
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    showToast('All notifications marked as read', 'success');
-  };
-
-  const clearAll = () => {
-    Alert.alert('Clear All', 'Are you sure you want to clear all notifications?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => {
-        setNotifications([]);
-        showToast('All notifications cleared', 'success');
-      }},
-    ]);
-  };
+  const clearAll = undefined as never; // no server-side delete-all endpoint
 
   const renderNotification = ({ item }: { item: any }) => {
     const { icon, color, bg } = getNotificationIcon(item.type);
@@ -233,18 +155,19 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
-            <View style={{ width: 44 }} />
-          </View>
-        </View>
+        <LoadingState message="Loading notifications..." style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading notifications...</Text>
+          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>{error}</Text>
+          <TouchableOpacity onPress={loadNotifications} style={[styles.markAllReadButton, { marginTop: 16 }]}>
+            <Text style={styles.markAllReadText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -259,8 +182,8 @@ export default function NotificationsScreen() {
             <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
-          <TouchableOpacity onPress={notifications.length > 0 ? clearAll : undefined} disabled={notifications.length === 0}>
-            <Text style={[styles.clearText, { color: notifications.length > 0 ? '#EF4444' : (isDark ? '#555' : '#999') }]}>Clear All</Text>
+          <TouchableOpacity onPress={unreadCount > 0 ? markAllAsRead : undefined} disabled={unreadCount === 0}>
+            <Text style={[styles.clearText, { color: unreadCount > 0 ? '#EF4444' : (isDark ? '#555' : '#999') }]}>Mark all read</Text>
           </TouchableOpacity>
         </View>
       </View>

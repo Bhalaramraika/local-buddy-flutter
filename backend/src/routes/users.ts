@@ -230,6 +230,52 @@ router.delete(
 );
 
 /**
+ * GET /api/v1/users/me/blocked
+ * Get blocked users list
+ */
+router.get('/me/blocked', requireAuth, async (req: Request, res: Response) => {
+  const userDoc = await collections.users.doc(req.user!.uid).get();
+  const blockedIds: string[] = (userDoc.data() as any)?.blockedUsers || [];
+  if (blockedIds.length === 0) {
+    res.json({ success: true, blocked: [] });
+    return;
+  }
+  const snaps = await Promise.all(blockedIds.slice(0, 30).map((id) => collections.users.doc(id).get()));
+  const blocked = snaps
+    .filter((s) => s.exists)
+    .map((s) => {
+      const u = s.data() as any;
+      return { id: u.id, name: u.name, avatar: u.avatar, role: u.role };
+    });
+  res.json({ success: true, blocked });
+});
+
+/**
+ * PUT /api/v1/users/me/blocked/:id
+ * Toggle block/unblock a user
+ */
+router.put(
+  '/me/blocked/:id',
+  requireAuth,
+  validateParams(z.object({ id: z.string().min(1) })),
+  async (req: Request, res: Response) => {
+    const targetId = req.params.id;
+    if (targetId === req.user!.uid) throw new BadRequestError('Cannot block yourself');
+    const targetDoc = await collections.users.doc(targetId).get();
+    if (!targetDoc.exists) throw new NotFoundError('User not found');
+    const userRef = collections.users.doc(req.user!.uid);
+    const user = (await userRef.get()).data() as any;
+    const blockedList: string[] = user?.blockedUsers || [];
+    const blocked = !blockedList.includes(targetId);
+    await userRef.update({
+      blockedUsers: blocked ? FieldValue.arrayUnion(targetId) : FieldValue.arrayRemove(targetId),
+      updatedAt: timestamp(),
+    });
+    res.json({ success: true, blocked });
+  }
+);
+
+/**
  * GET /api/v1/users/me/stats
  * Get user statistics
  */

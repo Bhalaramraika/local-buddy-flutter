@@ -23,6 +23,13 @@ import taskRoutes from './routes/tasks';
 import chatRoutes from './routes/chats';
 import walletRoutes from './routes/wallet';
 import reviewRoutes from './routes/reviews';
+import metaRoutes from './routes/meta';
+import notificationRoutes from './routes/notifications';
+import referralRoutes from './routes/referral';
+import sosRoutes from './routes/sos';
+import locationRoutes from './routes/location';
+import supportRoutes from './routes/support';
+import achievementRoutes from './routes/achievements';
 
 import { rateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
@@ -65,6 +72,13 @@ app.use(`${API_PREFIX}/tasks`, taskRoutes);
 app.use(`${API_PREFIX}/chats`, chatRoutes);
 app.use(`${API_PREFIX}/wallet`, walletRoutes);
 app.use(`${API_PREFIX}/reviews`, reviewRoutes);
+app.use(`${API_PREFIX}/meta`, metaRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/referral`, referralRoutes);
+app.use(`${API_PREFIX}/sos`, sosRoutes);
+app.use(`${API_PREFIX}/location`, locationRoutes);
+app.use(`${API_PREFIX}/support`, supportRoutes);
+app.use(`${API_PREFIX}/achievements`, achievementRoutes);
 
 app.use(`${API_PREFIX}/*`, (_req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });

@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 
 // Mint new document ids outside the component so render stays pure
@@ -64,20 +65,17 @@ export default function KYCDocumentsScreen() {
   ];
 
   const loadDocuments = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock existing documents from user data
-    const mockDocs = user?.kycDocuments || [
-      { id: '1', type: 'government_id', status: 'approved', fileUrl: null, submittedAt: '2024-01-15T10:30:00Z', reviewedAt: '2024-01-16T14:20:00Z' },
-      { id: '2', type: 'selfie', status: 'approved', fileUrl: null, submittedAt: '2024-01-15T10:35:00Z', reviewedAt: '2024-01-16T14:20:00Z' },
-      { id: '3', type: 'proof_of_address', status: 'pending', fileUrl: null, submittedAt: '2024-01-15T10:40:00Z', reviewedAt: null },
-    ];
-    
-    setDocuments(mockDocs);
-    setLoading(false);
+    try {
+      const res = await apiGet<{ kyc: any }>('/users/me/kyc');
+      const docs = res?.kyc?.documents || (res as any)?.kycDocuments || [];
+      setDocuments(Array.isArray(docs) ? docs : []);
+    } catch (e) {
+      console.warn('[KYC Docs] load failed:', e);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { apiGet, apiPut } from '@/services/api';
 
 export default function BlockedUsersScreen() {
   const router = useRouter();
@@ -27,12 +28,22 @@ export default function BlockedUsersScreen() {
   const [showAddBlock, setShowAddBlock] = React.useState(false);
   const [blockUsername, setBlockUsername] = React.useState('');
 
-  const blockedUsers = [
-    { id: '1', username: 'spammer123', name: 'John Spammer', avatar: null, blockedDate: '2024-01-15', reason: 'Spam messages' },
-    { id: '2', username: 'fakeuser456', name: 'Fake User', avatar: null, blockedDate: '2024-01-10', reason: 'Harassment' },
-    { id: '3', username: 'scammer789', name: 'Scam Artist', avatar: null, blockedDate: '2024-01-05', reason: 'Fraud attempt' },
-    { id: '4', username: 'botaccount', name: 'Bot Account', avatar: null, blockedDate: '2024-01-01', reason: 'Automated behavior' },
-  ];
+  const [blockedUsers, setBlockedUsers] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiGet<{ blocked: any[] }>('/users/me/blocked');
+        setBlockedUsers(res?.blocked || []);
+      } catch (e) {
+        console.warn('[BlockedUsers] load failed:', e);
+        setBlockedUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filteredUsers = blockedUsers.filter(u => 
     u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -40,6 +51,23 @@ export default function BlockedUsersScreen() {
   );
 
   const handleUnblock = (userId: string, username: string) => {
+    Alert.alert(
+      'Unblock User',
+      `Unblock @${username}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Unblock', style: 'destructive', onPress: async () => {
+          try {
+            await apiPut(`/users/me/blocked/${userId}`);
+            setBlockedUsers(prev => prev.filter(u => u.id !== userId));
+          } catch (e) {
+            Alert.alert('Unable to unblock right now');
+          }
+        } }
+      ]
+    );
+  };
+  const _legacy_unblock = (userId: string, username: string) => {
     Alert.alert(
       'Unblock User',
       `Are you sure you want to unblock @${username}? They will be able to contact you again.`,

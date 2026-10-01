@@ -132,10 +132,10 @@ export default function WelcomeScreen() {
       {/* CTA Buttons */}
       <View style={[styles.buttonContainer, showContent && styles.buttonContainerVisible]}>
         <PrimaryButton
-          label="Get Started"
-          onPress={continueToAuth}
+          label="Get started"
+          onPress={() => router.push('/(onboarding)/role-selection')}
+          tone="accent"
           size="lg"
-          variant="primary"
         />
         <OutlineButton
           label="I already have an account"

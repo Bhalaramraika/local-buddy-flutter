@@ -18,10 +18,10 @@ import { useUIStore } from '@/store/uiStore';
 
 export default function LanguageSettingsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
+  const { theme, language, setLanguage } = useUIStore();
   
   const isDark = theme === 'dark';
-  const [language, setLanguage] = React.useState('en');
+  
   const [region, setRegion] = React.useState('US');
   const [autoTranslate, setAutoTranslate] = React.useState(false);
   const [translateLanguage, setTranslateLanguage] = React.useState('en');
@@ -57,7 +57,7 @@ export default function LanguageSettingsScreen() {
   ];
 
   const handleLanguageChange = (code: string) => {
-    setLanguage(code);
+    setLanguage(code as 'en' | 'hi');
     Alert.alert('Language Changed', `App language has been changed to ${languages.find(l => l.code === code)?.name}. Restart the app to apply changes.`);
   };
 

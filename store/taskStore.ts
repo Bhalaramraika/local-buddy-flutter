@@ -15,7 +15,7 @@ import {
   TaskSortOptions,
   PaginatedResponse
 } from '@/types';
-import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS, isMockApiEnabled } from '@/services/api';
+import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS } from '@/services/api';
 
 // Review entry as consumed by the task-reviews screen
 export interface TaskReviewEntry {
@@ -209,8 +209,7 @@ export const useTaskStore = create<TaskState>()(
             await apiPut(ENDPOINTS.tasks.update(taskId), body);
             // Realtime listener will re-sync the authoritative copy.
           } catch (error) {
-            console.warn('[TaskStore] updateTask remote failed (optimistic kept):', error);
-            if (isMockApiEnabled) return;
+            console.warn('[TaskStore] updateTask remote failed:', error);
             // Roll back optimistic change on hard failure
             get().updateTask(existing);
             throw error;

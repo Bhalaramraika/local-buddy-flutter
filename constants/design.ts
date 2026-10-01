@@ -9,6 +9,8 @@ export const Colors = {
   brand: {
     primary: '#4F46E5',    // Indigo-600
     secondary: '#06B6D4',  // Cyan-500
+    accent: '#F97316',     // Orange-500 (welcome/login CTA)
+    accentPressed: '#EA580C',
   },
   
   // Surface Colors

@@ -203,9 +203,19 @@ export const useNotificationStore = create<NotificationState>()(
       }),
       
       // Settings
-      updateNotificationSettings: (settings) => set((state) => ({
-        notificationSettings: { ...state.notificationSettings, ...settings },
-      })),
+      updateNotificationSettings: (settings) => {
+        const merged = { ...get().notificationSettings, ...settings };
+        set({ notificationSettings: merged });
+        // Persist to server (best-effort; does not block UI)
+        import('@/services/notifications').then(({ updateNotificationPreferences }) => {
+          updateNotificationPreferences({
+            push: merged.pushEnabled,
+            inApp: merged.inAppEnabled,
+            categories: merged.categories as Record<string, boolean>,
+            quietHours: merged.quietHours,
+          }).catch(() => {});
+        }).catch(() => {});
+      },
       
       toggleCategory: (type, enabled) => set((state) => ({
         notificationSettings: {

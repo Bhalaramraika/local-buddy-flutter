@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 
 export default function MyReferralsScreen() {
   const router = useRouter();
@@ -29,28 +30,17 @@ export default function MyReferralsScreen() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
 
   const loadReferrals = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
-    if (!refreshing) setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock referral data
-    const mockReferrals = [
-      { id: '1', name: 'Sarah Johnson', email: 'sarah.j@email.com', avatar: null, status: 'completed', earnings: 30, date: '2024-01-15T14:30:00Z', taskCompleted: 'Grocery Shopping', taskDate: '2024-01-15T10:00:00Z' },
-      { id: '2', name: 'Mike Chen', email: 'mike.chen@email.com', avatar: null, status: 'completed', earnings: 30, date: '2024-01-12T09:15:00Z', taskCompleted: 'House Cleaning', taskDate: '2024-01-12T14:00:00Z' },
-      { id: '3', name: 'Emily Davis', email: 'emily.d@email.com', avatar: null, status: 'pending', earnings: 30, date: '2024-01-10T16:45:00Z', taskCompleted: null, taskDate: null },
-      { id: '4', name: 'James Wilson', email: 'james.w@email.com', avatar: null, status: 'pending', earnings: 30, date: '2024-01-08T11:20:00Z', taskCompleted: null, taskDate: null },
-      { id: '5', name: 'Lisa Anderson', email: 'lisa.a@email.com', avatar: null, status: 'completed', earnings: 30, date: '2024-01-05T13:10:00Z', taskCompleted: 'Dog Walking', taskDate: '2024-01-05T16:00:00Z' },
-      { id: '6', name: 'David Brown', email: 'david.b@email.com', avatar: null, status: 'cancelled', earnings: 0, date: '2024-01-03T10:00:00Z', taskCompleted: null, taskDate: null },
-      { id: '7', name: 'Jennifer Lee', email: 'jennifer.l@email.com', avatar: null, status: 'completed', earnings: 30, date: '2024-01-01T15:30:00Z', taskCompleted: 'Package Delivery', taskDate: '2024-01-01T18:00:00Z' },
-      { id: '8', name: 'Robert Taylor', email: 'robert.t@email.com', avatar: null, status: 'pending', earnings: 30, date: '2023-12-28T08:45:00Z', taskCompleted: null, taskDate: null },
-      { id: '9', name: 'Amanda White', email: 'amanda.w@email.com', avatar: null, status: 'completed', earnings: 30, date: '2023-12-25T12:00:00Z', taskCompleted: 'Tutoring Session', taskDate: '2023-12-25T15:00:00Z' },
-      { id: '10', name: 'Christopher Martin', email: 'chris.m@email.com', avatar: null, status: 'pending', earnings: 30, date: '2023-12-20T17:20:00Z', taskCompleted: null, taskDate: null },
-    ];
-    
-    setReferrals(mockReferrals);
-    setLoading(false);
-    setRefreshing(false);
+    setLoading(true);
+    try {
+      const res = await apiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>('/referral/stats');
+      // Referral details are not exposed per-item by the backend yet; show aggregate list only.
+      setReferrals([]);
+    } catch (e) {
+      console.warn('[MyReferrals] load failed:', e);
+      setReferrals([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

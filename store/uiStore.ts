@@ -7,6 +7,41 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storage } from '@/services/storage';
 import { ModalState, ToastMessage, LoadingState } from '@/types';
+import { apiPut } from '@/services/api';
+import { authService } from '@/services/auth';
+
+/**
+ * Sync appearance/preference keys to backend (users/{uid}.preferences). Best-effort,
+ * non-blocking; hydrateFromServer() pulls the authoritative copy on login/app start.
+ */
+const persistPreference = (key: 'appearance' | 'location', value: Record<string, any>) => {
+  apiPut('/users/me/profile', { preferences: { [key]: value } })
+    .catch((err) => console.warn(`[UIStore] Failed to persist ${key} preference:`, err));
+};
+
+const syncAppearance = (state: Pick<UIState, 'theme' | 'language' | 'fontSize'>) => {
+  persistPreference('appearance', {
+    theme: state.theme,
+    language: state.language,
+    fontSize: state.fontSize,
+  });
+};
+
+/** Fetch server-saved preferences and apply them (called on login/app start). */
+export const hydrateSettingsFromServer = async (): Promise<void> => {
+  try {
+    const user = await authService.getCurrentUser();
+    const prefs: any = user?.preferences || {};
+    const appearance = prefs.appearance || {};
+    const patch: Partial<UIState> = {};
+    if (appearance.theme) patch.theme = appearance.theme;
+    if (appearance.language) patch.language = appearance.language;
+    if (appearance.fontSize) patch.fontSize = appearance.fontSize;
+    if (Object.keys(patch).length) useUIStore.setState(patch);
+  } catch (err) {
+    console.warn('[UIStore] hydrateSettingsFromServer failed:', err);
+  }
+};
 
 interface UIState {
   // Modals
@@ -215,11 +250,20 @@ export const useUIStore = create<UIState>()(
       setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
       
       // Theme/Appearance
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        set({ theme });
+        syncAppearance({ theme, language: get().language, fontSize: get().fontSize });
+      },
       
-      setLanguage: (language) => set({ language }),
+      setLanguage: (language) => {
+        set({ language });
+        syncAppearance({ theme: get().theme, language, fontSize: get().fontSize });
+      },
       
-      setFontSize: (fontSize) => set({ fontSize }),
+      setFontSize: (fontSize) => {
+        set({ fontSize });
+        syncAppearance({ theme: get().theme, language: get().language, fontSize });
+      },
       
       // Navigation
       setPreviousRoute: (previousRoute) => set({ previousRoute }),

@@ -18,10 +18,10 @@ import { useUIStore } from '@/store/uiStore';
 
 export default function AppearanceSettingsScreen() {
   const router = useRouter();
-  const { theme, setTheme } = useUIStore();
+  const { theme, setTheme, fontSize, setFontSize } = useUIStore();
   
   const isDark = theme === 'dark';
-  const [fontSize, setFontSize] = React.useState<'small' | 'medium' | 'large'>('medium');
+  
   const [animationsEnabled, setAnimationsEnabled] = React.useState(true);
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [highContrast, setHighContrast] = React.useState(false);

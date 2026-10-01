@@ -1,4 +1,4 @@
-import { api, ENDPOINTS, isMockApiEnabled } from './api';
+import { api, ENDPOINTS } from './api';
 import { auth } from './firebase';
 import { authStorage, storage } from './storage';
 import { AuthTokens, User } from '@/types';
@@ -41,35 +41,7 @@ const clearTokens = async (): Promise<void> => {
 	await auth?.signOut();
 };
 
-const createMockUser = (email: string): User => ({
-	id: `local-${email.replace(/[^a-zA-Z0-9]/g, '')}`,
-	email,
-	phone: '',
-	name: `Local User ${email.split('@')[0]}`,
-	role: 'customer',
-	status: 'active',
-	isActive: true,
-	language: 'en',
-	city: '',
-	kyc: { status: 'not_started', documents: [] },
-	wallet: { balance: 0, pendingBalance: 0, currency: 'INR', bankAccounts: [] },
-	rating: { average: 0, count: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
-	stats: { tasksCompleted: 0, tasksPosted: 0, totalEarnings: 0, totalSpent: 0, responseTime: 0, completionRate: 100 },
-	preferences: { notifications: { push: true, inApp: true, email: true, sms: true, categories: { task: true, chat: true, wallet: true, kyc: true, system: true, promo: true, sos: true, review: true }, quietHours: { enabled: false, start: '22:00', end: '07:00' } }, privacy: { showProfile: true, showRating: true, showLocation: false, allowDirectMessages: true }, appearance: { theme: 'system', language: 'en', fontSize: 'medium' }, location: { shareLocation: false, autoAcceptNearby: false, maxDistance: 10 } },
-	createdAt: new Date().toISOString(),
-	updatedAt: new Date().toISOString(),
-	lastActiveAt: new Date().toISOString(),
-});
-
-const mockTokens = (email: string): AuthTokens => ({
-	accessToken: `local-access-${email}`,
-	refreshToken: `local-refresh-${email}`,
-	expiresIn: 86400,
-	tokenType: 'Bearer',
-});
-
 export const getCurrentUser = async (): Promise<User | null> => {
-	if (isMockApiEnabled) return storage.get<User>('local_mock_user');
 	const response = await api.get('/auth/me');
 	return responseData<{ user: User }>(response).user;
 };
@@ -78,16 +50,10 @@ export const authService = {
 	getStoredTokens,
 	clearTokens,
 	requestOtp: async (email: string): Promise<void> => {
-		const normalizedEmail = normalizeEmail(email);
-		if (isMockApiEnabled) {
-			await storage.set('local_mock_otp', '123456');
-			return;
-		}
-		await api.post(ENDPOINTS.auth.otpSend, { email: normalizedEmail });
+		await api.post(ENDPOINTS.auth.otpSend, { email: normalizeEmail(email) });
 	},
 
 	validateToken: async (token: string): Promise<boolean> => {
-		if (isMockApiEnabled) return token.startsWith('local-access-');
 		if (!auth?.currentUser || !token) return false;
 		try {
 			await auth.currentUser.getIdToken();
@@ -99,15 +65,6 @@ export const authService = {
 
 	login: async (email: string, otp: string): Promise<AuthResponse> => {
 		const normalizedEmail = normalizeEmail(email);
-		if (isMockApiEnabled) {
-			const expectedOtp = await storage.get<string>('local_mock_otp');
-			if (otp !== (expectedOtp || '123456')) throw new Error('Invalid development OTP. Use 123456.');
-			const existingUser = await storage.get<User>('local_mock_user');
-			const user = existingUser || createMockUser(normalizedEmail);
-			const tokens = mockTokens(normalizedEmail);
-			await Promise.all([saveTokens(tokens), storage.set('local_mock_user', user)]);
-			return { tokens, user };
-		}
 		const response = await api.post(ENDPOINTS.auth.otpVerify, { email: normalizedEmail, otp });
 		const result = responseData<{ customToken: string; user?: User }>(response);
 		if (!auth) throw new Error('Firebase authentication is not configured');
@@ -154,12 +111,6 @@ export const authService = {
 	},
 
 	updateProfile: async (data: Partial<User>): Promise<User> => {
-		if (isMockApiEnabled) {
-			const currentUser = (await storage.get<User>('local_mock_user')) || createMockUser('');
-			const updatedUser = { ...currentUser, ...data, updatedAt: new Date().toISOString() };
-			await storage.set('local_mock_user', updatedUser);
-			return updatedUser;
-		}
 		const response = await api.put(ENDPOINTS.user.updateProfile, data);
 		return responseData<{ user: User }>(response).user;
 	},

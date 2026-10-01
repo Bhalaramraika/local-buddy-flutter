@@ -62,12 +62,13 @@ export default function LoginScreen() {
           />
           <ErrorMessage message={error} />
 
-          <PrimaryButton 
-            label="Continue with OTP" 
-            onPress={requestOtp} 
+          <PrimaryButton
+            label="Continue with OTP"
+            onPress={requestOtp}
             loading={loading}
             size="lg"
             variant="primary"
+            tone="accent"
           />
 
           <View style={styles.dividerRow}>

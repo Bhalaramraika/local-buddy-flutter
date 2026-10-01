@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { apiGet } from '@/services/api';
 
 interface NearbyBuddy {
   id: string;
@@ -45,92 +46,7 @@ export default function NearbyBuddiesScreen() {
   const [filter, setFilter] = useState<'all' | 'online' | 'top-rated' | 'closest'>('all');
   const [radius, setRadius] = useState(10); // km
 
-  const mockBuddies: NearbyBuddy[] = [
-    {
-      id: '1',
-      name: 'Sarah Chen',
-      avatar: 'SC',
-      distance: '0.8 km',
-      rating: 4.9,
-      reviewCount: 127,
-      skills: ['Cleaning', 'Organization', 'Pet Care'],
-      hourlyRate: 25,
-      isOnline: true,
-      lastActive: 'Active now',
-      completedTasks: 234,
-      responseTime: '5 min',
-    },
-    {
-      id: '2',
-      name: 'Marcus Johnson',
-      avatar: 'MJ',
-      distance: '1.2 km',
-      rating: 4.8,
-      reviewCount: 89,
-      skills: ['Handyman', 'Furniture Assembly', 'Repairs'],
-      hourlyRate: 35,
-      isOnline: true,
-      lastActive: 'Active 2 min ago',
-      completedTasks: 156,
-      responseTime: '8 min',
-    },
-    {
-      id: '3',
-      name: 'Emily Rodriguez',
-      avatar: 'ER',
-      distance: '2.1 km',
-      rating: 4.7,
-      reviewCount: 203,
-      skills: ['Tutoring', 'Language Help', 'Homework'],
-      hourlyRate: 30,
-      isOnline: false,
-      lastActive: 'Active 1 hour ago',
-      completedTasks: 312,
-      responseTime: '15 min',
-    },
-    {
-      id: '4',
-      name: 'David Kim',
-      avatar: 'DK',
-      distance: '2.5 km',
-      rating: 4.9,
-      reviewCount: 67,
-      skills: ['Tech Support', 'Device Setup', 'Troubleshooting'],
-      hourlyRate: 40,
-      isOnline: true,
-      lastActive: 'Active now',
-      completedTasks: 98,
-      responseTime: '3 min',
-    },
-    {
-      id: '5',
-      name: 'Lisa Thompson',
-      avatar: 'LT',
-      distance: '3.0 km',
-      rating: 4.6,
-      reviewCount: 145,
-      skills: ['Grocery Shopping', 'Errands', 'Meal Prep'],
-      hourlyRate: 22,
-      isOnline: false,
-      lastActive: 'Active 3 hours ago',
-      completedTasks: 187,
-      responseTime: '20 min',
-    },
-    {
-      id: '6',
-      name: 'James Wilson',
-      avatar: 'JW',
-      distance: '3.5 km',
-      rating: 4.8,
-      reviewCount: 92,
-      skills: ['Moving Help', 'Heavy Lifting', 'Transport'],
-      hourlyRate: 30,
-      isOnline: true,
-      lastActive: 'Active 5 min ago',
-      completedTasks: 112,
-      responseTime: '10 min',
-    },
-  ];
+
 
 
   const handleRefresh = async () => {
@@ -140,13 +56,32 @@ export default function NearbyBuddiesScreen() {
   };
 
   const loadBuddies = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setBuddies(mockBuddies);
-    setLoading(false);
+    try {
+      const lat = user?.coordinates?.latitude ?? 28.61;
+      const lng = user?.coordinates?.longitude ?? 77.20;
+      const res = await apiGet<{ buddies: any[] }>(`/location/nearby-buddies?lat=${lat}&lng=${lng}&radiusKm=${radius}`);
+      setBuddies((res?.buddies || []).map((b: any) => ({
+        id: b.id,
+        name: b.name || 'Buddy',
+        avatar: (b.name || 'B').slice(0, 2).toUpperCase(),
+        distance: `${b.distanceKm} km`,
+        rating: b.rating || 0,
+        reviewCount: 0,
+        skills: [],
+        hourlyRate: 0,
+        isOnline: true,
+        lastActive: '',
+        completedTasks: b.completedTasks || 0,
+        responseTime: '',
+        avatarUrl: b.avatar,
+      })));
+    } catch (e) {
+      console.warn('[NearbyBuddies] load failed:', e);
+      setBuddies([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

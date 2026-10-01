@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -31,44 +32,15 @@ export default function AchievementsScreen() {
 
   const loadAchievements = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock achievements data
-    const mockAchievements = [
-      // Milestone Achievements
-      { id: 'first_task', category: 'milestone', title: 'First Steps', description: 'Complete your first task', icon: 'footsteps', color: '#4F46E5', unlocked: true, unlockedAt: '2024-01-10T10:00:00Z', progress: 1, target: 1, rarity: 'common', xp: 50 },
-      { id: 'ten_tasks', category: 'milestone', title: 'Getting Started', description: 'Complete 10 tasks', icon: 'check-circle-outline', color: '#10B981', unlocked: true, unlockedAt: '2024-01-20T14:30:00Z', progress: 12, target: 10, rarity: 'common', xp: 100 },
-      { id: 'fifty_tasks', category: 'milestone', title: 'Task Master', description: 'Complete 50 tasks', icon: 'trophy-outline', color: '#F59E0B', unlocked: false, unlockedAt: null, progress: 12, target: 50, rarity: 'rare', xp: 500 },
-      { id: 'hundred_tasks', category: 'milestone', title: 'Centurion', description: 'Complete 100 tasks', icon: 'medal-outline', color: '#EF4444', unlocked: false, unlockedAt: null, progress: 12, target: 100, rarity: 'epic', xp: 1000 },
-      { id: 'five_hundred_tasks', category: 'milestone', title: 'Legend', description: 'Complete 500 tasks', icon: 'crown-outline', color: '#8B5CF6', unlocked: false, unlockedAt: null, progress: 12, target: 500, rarity: 'legendary', xp: 5000 },
-
-      // Social Achievements
-      { id: 'first_referral', category: 'social', title: 'Connector', description: 'Refer your first friend', icon: 'person-add-outline', color: '#4F46E5', unlocked: true, unlockedAt: '2024-01-12T09:00:00Z', progress: 1, target: 1, rarity: 'common', xp: 100 },
-      { id: 'five_referrals', category: 'social', title: 'Networker', description: 'Refer 5 friends', icon: 'people-outline', color: '#10B981', unlocked: true, unlockedAt: '2024-01-25T16:00:00Z', progress: 8, target: 5, rarity: 'rare', xp: 300 },
-      { id: 'ten_referrals', category: 'social', title: 'Influencer', description: 'Refer 10 friends', icon: 'megaphone-outline', color: '#F59E0B', unlocked: false, unlockedAt: null, progress: 8, target: 10, rarity: 'epic', xp: 800 },
-      { id: 'twenty_five_referrals', category: 'social', title: 'Ambassador', description: 'Refer 25 friends', icon: 'star-outline', color: '#EF4444', unlocked: false, unlockedAt: null, progress: 8, target: 25, rarity: 'legendary', xp: 2000 },
-      { id: 'helpful_reviewer', category: 'social', title: 'Helpful Reviewer', description: 'Write 10 helpful reviews', icon: 'chatbubble-outline', color: '#8B5CF6', unlocked: false, unlockedAt: null, progress: 3, target: 10, rarity: 'rare', xp: 200 },
-
-      // Earnings Achievements
-      { id: 'first_earning', category: 'earnings', title: 'First Dollar', description: 'Earn your first $10', icon: 'cash-outline', color: '#10B981', unlocked: true, unlockedAt: '2024-01-10T12:00:00Z', progress: 1, target: 1, rarity: 'common', xp: 50 },
-      { id: 'hundred_earned', category: 'earnings', title: 'Hundred Club', description: 'Earn $100 total', icon: 'currency-dollar-outline', color: '#4F46E5', unlocked: true, unlockedAt: '2024-01-22T11:00:00Z', progress: 240, target: 100, rarity: 'rare', xp: 200 },
-      { id: 'thousand_earned', category: 'earnings', title: 'Big Earner', description: 'Earn $1,000 total', icon: 'diamond-outline', color: '#F59E0B', unlocked: false, unlockedAt: null, progress: 240, target: 1000, rarity: 'epic', xp: 1000 },
-      { id: 'five_thousand_earned', category: 'earnings', title: 'High Roller', description: 'Earn $5,000 total', icon: 'cash-outline', color: '#EF4444', unlocked: false, unlockedAt: null, progress: 240, target: 5000, rarity: 'legendary', xp: 5000 },
-      { id: 'perfect_rating', category: 'earnings', title: 'Five Star', description: 'Maintain 5.0 rating for 20 tasks', icon: 'star-outline', color: '#8B5CF6', unlocked: false, unlockedAt: null, progress: 12, target: 20, rarity: 'epic', xp: 500 },
-
-      // Special Achievements
-      { id: 'early_bird', category: 'special', title: 'Early Bird', description: 'Complete a task before 8 AM', icon: 'sunny-outline', color: '#F59E0B', unlocked: true, unlockedAt: '2024-01-15T07:30:00Z', progress: 1, target: 1, rarity: 'rare', xp: 150 },
-      { id: 'night_owl', category: 'special', title: 'Night Owl', description: 'Complete a task after 10 PM', icon: 'moon-outline', color: '#8B5CF6', unlocked: false, unlockedAt: null, progress: 0, target: 1, rarity: 'rare', xp: 150 },
-      { id: 'weekend_warrior', category: 'special', title: 'Weekend Warrior', description: 'Complete 10 tasks on weekends', icon: 'calendar-outline', color: '#4F46E5', unlocked: true, unlockedAt: '2024-01-21T10:00:00Z', progress: 12, target: 10, rarity: 'rare', xp: 200 },
-      { id: 'streak_7', category: 'special', title: 'Week Streak', description: 'Complete tasks 7 days in a row', icon: 'flame-outline', color: '#EF4444', unlocked: false, unlockedAt: null, progress: 3, target: 7, rarity: 'epic', xp: 300 },
-      { id: 'streak_30', category: 'special', title: 'Monthly Master', description: 'Complete tasks 30 days in a row', icon: 'calendar-outline', color: '#8B5CF6', unlocked: false, unlockedAt: null, progress: 3, target: 30, rarity: 'legendary', xp: 2000 },
-      { id: 'kyc_verified', category: 'special', title: 'Verified Buddy', description: 'Complete KYC verification', icon: 'shield-checkmark-outline', color: '#10B981', unlocked: true, unlockedAt: '2024-01-16T14:20:00Z', progress: 1, target: 1, rarity: 'epic', xp: 500 },
-      { id: 'profile_complete', category: 'special', title: 'Profile Pro', description: 'Complete 100% of your profile', icon: 'person-outline', color: '#4F46E5', unlocked: true, unlockedAt: '2024-01-10T10:30:00Z', progress: 1, target: 1, rarity: 'common', xp: 100 },
-    ];
-    
-    setAchievements(mockAchievements);
-    setAnimationValues(mockAchievements.map(() => new Animated.Value(0)));
-    setLoading(false);
+    try {
+      const res = await apiGet<{ achievements: any[] }>('/achievements');
+      setAchievements(res?.achievements || []);
+    } catch (e) {
+      console.warn('[Achievements] load failed:', e);
+      setAchievements([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

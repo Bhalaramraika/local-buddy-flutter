@@ -34,7 +34,7 @@ export { auth, db, storage } from './firebase';
 export { api } from './api';
 export { authService } from './auth';
 export { default as storageService } from './storage';
-export { default as paymentService } from './payment';
+export { initWalletTopup, buildPayUHtml, parsePayURedirect, refreshWalletAfterPayment } from './payment';
 export { default as walletService } from './wallet';
 export { default as imagePickerService } from './imagePicker';
 export { startRealtimeSync, stopRealtimeSync, subscribeToChatMessages } from './realtime';

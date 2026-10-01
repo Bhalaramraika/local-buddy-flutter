@@ -15,7 +15,7 @@ import {
   PaginatedResponse
 } from '@/types';
 import { apiGet, apiPost, ENDPOINTS } from '@/services/api';
-import { topupWallet } from '@/services/payment';
+import { initWalletTopup, refreshWalletAfterPayment, type PayUInitResponse } from '@/services/payment';
 import { formatCurrency as formatINR } from '@/utils/helpers';
 
 // Wallet shape returned by GET /wallet (whole INR, not paise)
@@ -32,8 +32,6 @@ interface WalletState {
   // State
   balance: WalletBalance;
   wallet: WalletInfo | null; // raw /wallet response shape used by screens
-  isRazorpayLoading: boolean;
-  razorpayOrder: any | null;
   isWithdrawing: boolean; // legacy withdrawal state (feature removed)
   transactions: Transaction[];
   withdrawals: WithdrawalRequest[];
@@ -58,7 +56,7 @@ interface WalletState {
   isLoading: boolean;
   isLoadingTransactions: boolean;
   isLoadingWithdrawals: boolean;
-  isProcessing: boolean; // For payments/withdrawals
+  isProcessing: boolean; // For PayU top-up initiation
   error: string | null;
   
   // Actions
@@ -93,17 +91,20 @@ interface WalletState {
   setError: (error: string | null) => void;
 
   // ------------------------------------------------------------
-  // Screen-facing API (REST-first; failures are non-fatal)
+  // Screen-facing API (REST-first; failures surface to UI)
   // ------------------------------------------------------------
   fetchWallet: () => Promise<WalletInfo | null>;
   fetchTransactions: (params?: { page?: number; limit?: number; type?: string; status?: string }) => Promise<Transaction[]>;
   loadMoreTransactions: () => Promise<void>;
   refreshWallet: () => Promise<void>;
   getTransaction: (id: string) => Promise<Transaction | undefined>;
-  topUp: (amount: number, paymentMethodId?: string) => Promise<boolean>;
-  addMoney: (amount: number, orderId?: string) => Promise<boolean>;
-  createRazorpayOrder: (opts: { amount: number; currency?: string; receipt?: string }) => Promise<any | null>;
-  verifyPayment: (payload: Record<string, any>) => Promise<boolean>;
+  /**
+   * Start PayU top-up; returns params the wallet-topup screen renders in a
+   * WebView. The wallet is credited ONLY by the server-verified PayU callback.
+   */
+  startTopup: (amount: number) => Promise<PayUInitResponse | { success: false; error: string }>;
+  /** Call after the PayU WebView flow finishes — pulls the real balance. */
+  refreshAfterPayment: () => Promise<void>;
   /**
    * Withdrawals are not available yet. Kept as a safe stub so screens
    * destructuring it don't crash; never calls a backend endpoint.
@@ -149,8 +150,6 @@ export const useWalletStore = create<WalletState>()(
       // Initial state
       balance: defaultBalance,
       wallet: null,
-      isRazorpayLoading: false,
-      razorpayOrder: null,
       isWithdrawing: false,
       transactions: [],
       withdrawals: [],
@@ -392,8 +391,6 @@ export const useWalletStore = create<WalletState>()(
       },
 
       getTransaction: async (id) => {
-        const local = get().transactions.find((t) => t.id === id);
-        if (local) return local;
         try {
           const data = await apiGet<any>(`/wallet/transactions/${id}`);
           const t = data?.transaction ?? data;
@@ -418,87 +415,36 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      topUp: async (amount, paymentMethodId = 'upi') => {
+      startTopup: async (amount) => {
         set({ isProcessing: true, error: null });
         try {
-          const result = await topupWallet(amount, paymentMethodId);
-          if (result.success) {
-            set({ isProcessing: false });
-            return true;
+          const res = await initWalletTopup(amount);
+          if (!res?.success || !res.payuParams || !res.payuUrl) {
+            throw new Error((res as any)?.error || 'Failed to initiate top-up');
           }
-          set({ isProcessing: false, error: result.error || 'Top-up failed' });
-          return false;
+          set({ isProcessing: false });
+          return res;
         } catch (error: any) {
-          console.warn('[WalletStore] topUp failed:', error);
-          set({ isProcessing: false, error: error?.message || 'Top-up failed' });
-          return false;
+          set({ isProcessing: false, error: error?.response?.data?.message || error?.message || 'Top-up failed' });
+          return { success: false, error: error?.response?.data?.message || error?.message || 'Top-up failed' };
         }
       },
 
-      addMoney: async (amount, orderId) => {
-        set({ isProcessing: true, error: null });
+      refreshAfterPayment: async () => {
         try {
-          await apiPost('/wallet/add-money', { amount, paymentMode: 'online', orderId });
-        } catch (error) {
-          console.warn('[WalletStore] addMoney remote failed (optimistic kept):', error);
-        }
-        // Optimistic local credit + transaction record; realtime/refresh reconciles
-        // (addTransaction also updates the balance for credit entries)
-        get().addTransaction({
-          id: orderId ?? `local-${Date.now()}`,
-          type: 'credit',
-          amount,
-          balance: get().balance.available,
-          description: `Wallet top-up ₹${amount}`,
-          category: 'wallet_topup',
-          status: 'completed',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        set((state) => ({
-          isProcessing: false,
-          wallet: state.wallet
-            ? { ...state.wallet, balance: state.balance.available }
-            : state.wallet,
-        }));
-        return true;
-      },
-
-      createRazorpayOrder: async (opts) => {
-        set({ isRazorpayLoading: true });
-        try {
-          const data = await apiPost<any>('/payments/create-order', {
-            amount: opts.amount,
-            currency: opts.currency ?? 'INR',
-            receipt: opts.receipt,
-          });
-          const order = data?.order ?? data;
-          set({ isRazorpayLoading: false, razorpayOrder: order });
-          return order;
-        } catch (error) {
-          // No payments route on the backend yet — provide a dummy order so
-          // the demo top-up flow keeps working.
-          console.warn('[WalletStore] createRazorpayOrder failed, using dummy order:', error);
-          const dummy = {
-            id: `order_${Date.now()}`,
-            amount: opts.amount,
-            currency: opts.currency ?? 'INR',
-            receipt: opts.receipt ?? `rcpt_${Date.now()}`,
-            status: 'created',
-          };
-          set({ isRazorpayLoading: false, razorpayOrder: dummy });
-          return dummy;
-        }
-      },
-
-      verifyPayment: async (payload) => {
-        try {
-          const data = await apiPost<any>(ENDPOINTS.payments.verify, payload);
-          return !!(data?.success ?? data?.verified ?? true);
-        } catch (error) {
-          // Endpoint doesn't exist yet; treat as verified for the demo flow.
-          console.warn('[WalletStore] verifyPayment failed, assuming success (demo):', error);
-          return true;
+          const w = await refreshWalletAfterPayment();
+          if (w) {
+            set((state) => ({
+              wallet: state.wallet ? { ...state.wallet, balance: w.balance } : state.wallet,
+              balance: {
+                ...state.balance,
+                available: w.balance,
+                total: w.balance + state.balance.pending,
+              },
+            }));
+          }
+        } catch (e) {
+          console.warn('[WalletStore] refreshAfterPayment failed:', e);
         }
       },
 
@@ -575,8 +521,6 @@ export const useWalletStore = create<WalletState>()(
       clearAll: () => set({
         balance: defaultBalance,
         wallet: null,
-        isRazorpayLoading: false,
-        razorpayOrder: null,
         isWithdrawing: false,
         transactions: [],
         withdrawals: [],

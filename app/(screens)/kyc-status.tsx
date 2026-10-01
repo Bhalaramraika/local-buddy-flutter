@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 
 export default function KYCStatusScreen() {
   const router = useRouter();
@@ -28,32 +29,19 @@ export default function KYCStatusScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadKYCStatus = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock KYC data - in real app, fetch from API
-    const mockStatus = user?.kycStatus || 'not_started';
-    const mockData = user?.kycData || {
-      fullName: user?.name || '',
-      dateOfBirth: '',
-      nationality: '',
-      documentType: 'passport',
-      documentNumber: '',
-      address: '',
-      city: '',
-      country: '',
-      postalCode: '',
-      selfie: null,
-      documentFront: null,
-      documentBack: null,
-    };
-    
-    setKycStatus(mockStatus as any);
-    setKycData(mockData);
-    setLoading(false);
+    try {
+      const res = await apiGet<{ kyc: any }>('/users/me/kyc');
+      const k = res?.kyc || (res as any)?.data?.kyc || (res as any);
+      setKycStatus((k?.status || 'not_started') as any);
+      setKycData(k && typeof k === 'object' ? k : null);
+    } catch (e) {
+      console.warn('[KYC Status] load failed:', e);
+      setKycStatus('not_started' as any);
+      setKycData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

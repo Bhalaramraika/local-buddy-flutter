@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { apiGet } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
 interface Geofence {
@@ -47,6 +48,7 @@ export default function GeofencesScreen() {
   
   const isDark = theme === 'dark';
   const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGeofence, setEditingGeofence] = useState<Geofence | null>(null);
@@ -61,81 +63,44 @@ export default function GeofencesScreen() {
   });
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  const mockContacts: Contact[] = [
-    { id: '1', name: 'Sarah Johnson', avatar: 'SJ' },
-    { id: '2', name: 'Mike Chen', avatar: 'MC' },
-    { id: '3', name: 'Emma Wilson', avatar: 'EW' },
-    { id: '4', name: 'David Park', avatar: 'DP' },
-    { id: '5', name: 'Lisa Thompson', avatar: 'LT' },
-  ];
+  // Contacts are loaded from SOS contacts endpoint
 
-  const mockGeofences: Geofence[] = [
-    {
-      id: '1',
-      name: 'Home',
-      address: '123 Main St, San Francisco, CA',
-      latitude: 37.7749,
-      longitude: -122.4194,
-      radius: 100,
-      type: 'both',
-      contacts: ['1', '3'],
-      isActive: true,
-      createdAt: '2024-01-15',
-      triggerCount: 24,
-      lastTriggered: '2 hours ago',
-    },
-    {
-      id: '2',
-      name: 'Work Office',
-      address: '450 Mission St, San Francisco, CA',
-      latitude: 37.7895,
-      longitude: -122.3971,
-      radius: 150,
-      type: 'arrival',
-      contacts: ['2'],
-      isActive: true,
-      createdAt: '2024-01-20',
-      triggerCount: 18,
-      lastTriggered: 'This morning',
-    },
-    {
-      id: '3',
-      name: 'Gym',
-      address: '200 Market St, San Francisco, CA',
-      latitude: 37.7906,
-      longitude: -122.4012,
-      radius: 50,
-      type: 'departure',
-      contacts: ['4'],
-      isActive: false,
-      createdAt: '2024-02-01',
-      triggerCount: 12,
-      lastTriggered: '3 days ago',
-    },
-    {
-      id: '4',
-      name: 'Grocery Store',
-      address: '555 California St, San Francisco, CA',
-      latitude: 37.7912,
-      longitude: -122.4005,
-      radius: 80,
-      type: 'both',
-      contacts: ['5'],
-      isActive: true,
-      createdAt: '2024-02-10',
-      triggerCount: 8,
-      lastTriggered: 'Yesterday',
-    },
-  ];
+  // Geofences are loaded from the /location/geofences endpoint
 
 
   const loadGeofences = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setGeofences(mockGeofences);
-    setLoading(false);
+    try {
+      const [geoRes, sosRes] = await Promise.all([
+        apiGet<{ geofences: any[] }>('/location/geofences').catch(() => ({ geofences: [] })),
+        apiGet<{ contacts: any[] }>('/sos/contacts').catch(() => ({ contacts: [] })),
+      ]);
+      setGeofences((geoRes?.geofences || []).map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        address: g.address || '',
+        latitude: g.latitude,
+        longitude: g.longitude,
+        radius: g.radiusMeters,
+        type: 'both',
+        isActive: g.enabled !== false,
+        contacts: g.notifyContacts || [],
+        createdAt: g.createdAt || new Date().toISOString(),
+        triggerCount: 0,
+        lastTriggered: null,
+      })));
+      setContacts((sosRes?.contacts || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        avatar: (c.name || 'C').slice(0, 2).toUpperCase(),
+      })));
+    } catch (e) {
+      console.warn('[Geofences] load failed:', e);
+      setGeofences([]);
+      setContacts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -508,7 +473,7 @@ export default function GeofencesScreen() {
 
               <Text style={[styles.modalSectionTitle, { color: isDark ? '#fff' : '#000', marginTop: 20 }]}>Notify Contacts</Text>
               <View style={styles.contactOptions}>
-                {mockContacts.map(contact => (
+                {contacts.map(contact => (
                   <TouchableOpacity
                     key={contact.id}
                     style={[

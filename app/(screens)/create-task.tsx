@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useLocationStore } from '@/store/locationStore';
+import { apiGet } from '@/services/api';
 
 export default function CreateTaskScreen() {
   const router = useRouter();
@@ -54,6 +56,16 @@ export default function CreateTaskScreen() {
     'Grocery Shopping', 'Tech Support', 'Moving Help', 'Gardening',
     'Event Staffing', 'Photography', 'Writing', 'Design', 'Other'
   ];
+  const [serverCategories, setServerCategories] = useState<{ id: string; name: string }[]>([]);
+  const categoriesList = (serverCategories.length ? serverCategories.map(c => c.name) : categories);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGet<{ categories: { id: string; name: string }[] }>('/meta/categories')
+      .then((res) => { if (!cancelled && res?.categories?.length) setServerCategories(res.categories); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const availableSkills = [
     'Cleaning', 'Organizing', 'Heavy Lifting', 'Driving', 'Navigation',
@@ -158,43 +170,64 @@ export default function CreateTaskScreen() {
   };
 
   const renderCategoryPicker = () => (
-    <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <View style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Select Category</Text>
-          <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-            <Ionicons name="close-outline" size={24} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.modalList}>
-          {categories.map(cat => (
-            <TouchableOpacity
-              key={cat}
-              style={[
-                styles.modalItem,
-                selectedCategory === cat && styles.modalItemSelected,
-                { backgroundColor: selectedCategory === cat ? '#4F46E520' : 'transparent' }
-              ]}
-              onPress={() => handleCategorySelect(cat)}
-            >
-              <Text style={[
-                styles.modalItemText,
-                { color: selectedCategory === cat ? '#4F46E5' : isDark ? '#fff' : '#000' }
-              ]}>
-                {cat}
-              </Text>
-              {selectedCategory === cat && (
-                <Ionicons name="checkmark" size={20} color="#4F46E5" />
-              )}
+    <Modal
+      visible={showCategoryPicker}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowCategoryPicker(false)}
+    >
+      <TouchableOpacity
+        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+        activeOpacity={1}
+        onPress={() => setShowCategoryPicker(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+          onPress={() => {}}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Select Category</Text>
+            <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+              <Ionicons name="close-outline" size={24} color={isDark ? '#fff' : '#000'} />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
+          </View>
+          <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
+            {categoriesList.map(cat => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.modalItem,
+                  selectedCategory === cat && styles.modalItemSelected,
+                  { backgroundColor: selectedCategory === cat ? '#4F46E520' : 'transparent' }
+                ]}
+                onPress={() => handleCategorySelect(cat)}
+              >
+                <Text style={[
+                  styles.modalItemText,
+                  { color: selectedCategory === cat ? '#4F46E5' : isDark ? '#fff' : '#000' }
+                ]}>
+                  {cat}
+                </Text>
+                {selectedCategory === cat && (
+                  <Ionicons name="checkmark" size={20} color="#4F46E5" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
   );
 
   const renderSkillPicker = () => (
-    <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+    <Modal
+      visible={showSkillPicker}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowSkillPicker(false)}
+    >
+      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
       <View style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { maxHeight: '80%' }]}>
         <View style={styles.modalHeader}>
           <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Select Skills (Multiple)</Text>
@@ -227,6 +260,7 @@ export default function CreateTaskScreen() {
         </ScrollView>
       </View>
     </View>
+    </Modal>
   );
 
   if (!isAuthenticated) {
@@ -556,7 +590,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   modalDoneText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
-  modalList: { maxHeight: 300 },
+  modalList: { maxHeight: 400, flexGrow: 0 },
   modalItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   modalItemSelected: {},
   modalItemText: { fontSize: 16, fontFamily: 'Inter_400Regular' },

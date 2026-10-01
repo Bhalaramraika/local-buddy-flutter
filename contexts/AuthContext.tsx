@@ -7,6 +7,7 @@ import React, { createContext, useContext, useCallback, useState } from 'react';
 import { User, AuthTokens } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth';
+import { hydrateSettingsFromServer } from '@/store/uiStore';
 
 interface AuthContextType {
   // State
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userData = await authService.getCurrentUser();
           if (userData) {
             setUser(userData);
+            hydrateSettingsFromServer();
           }
         } else {
           // Try refresh token
@@ -105,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authService.login(email, otp);
       setTokens(response.tokens);
       setUser(response.user);
+      // Pull server-saved settings so preferences persist across devices/logins
+      hydrateSettingsFromServer();
     } catch (error: any) {
       setError(error.message || 'Login failed');
       throw error;

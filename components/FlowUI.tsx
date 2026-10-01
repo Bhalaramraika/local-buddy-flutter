@@ -76,6 +76,7 @@ export function PrimaryButton({
   loading = false,
   disabled = false,
   variant = 'primary',
+  tone = 'brand',
   fullWidth = true,
   size = 'lg',
 }: {
@@ -84,15 +85,24 @@ export function PrimaryButton({
   loading?: boolean;
   disabled?: boolean;
   variant?: 'primary' | 'secondary' | 'outline';
+  tone?: 'brand' | 'accent';
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }) {
   const sizeStyle = size === 'sm' ? styles.buttonSm : size === 'md' ? styles.buttonMd : styles.buttonLg;
-  const variantStyle = variant === 'secondary' ? styles.buttonSecondary : variant === 'outline' ? styles.buttonOutline : styles.buttonPrimary;
+  const variantStyle =
+    tone === 'accent' && variant === 'primary'
+      ? styles.buttonAccent
+      : variant === 'secondary'
+        ? styles.buttonSecondary
+        : variant === 'outline'
+          ? styles.buttonOutline
+          : styles.buttonPrimary;
   const textColorStyle = variant === 'outline' ? styles.buttonTextOutline : styles.buttonTextPrimary;
   const textSizeStyle = size === 'sm' ? styles.buttonTextSm : size === 'md' ? styles.buttonTextMd : styles.buttonTextLg;
 
   const baseStyle = [styles.buttonBase, sizeStyle, variantStyle, fullWidth && styles.fullWidth];
+  const spinnerColor = variant === 'outline' ? Colors.brand.primary : Colors.text.inverse;
 
   return (
     <Pressable
@@ -106,7 +116,7 @@ export function PrimaryButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? Colors.brand.primary : Colors.text.inverse} size="small" />
+        <ActivityIndicator color={spinnerColor} size="small" />
       ) : (
         <Text style={[styles.buttonText, textColorStyle, textSizeStyle]}>{label}</Text>
       )}
@@ -258,6 +268,7 @@ const styles = StyleSheet.create({
 
   // Button variants
   buttonPrimary: { backgroundColor: Colors.brand.primary },
+  buttonAccent: { backgroundColor: Colors.brand.accent },
   buttonSecondary: { backgroundColor: Colors.brand.secondary },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: Colors.brand.primary },
   buttonMuted: { opacity: 0.6 },

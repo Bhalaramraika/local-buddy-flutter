@@ -10,9 +10,9 @@ import { auth } from './firebase';
 // API Base URL from environment
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.localbuddy.in/v1';
 
-export const isMockApiEnabled =
-  process.env.EXPO_PUBLIC_MOCK_API === 'true' ||
-  API_BASE_URL.includes('your-vercel-app.vercel.app');
+// Mock API no longer exists. All calls go to the real backend.
+export const isMockApiEnabled = false;
+// (env var EXPO_PUBLIC_MOCK_API был retired)
 
 // Create axios instance
 export const api: AxiosInstance = axios.create({
