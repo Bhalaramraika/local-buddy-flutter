@@ -140,12 +140,15 @@ export function requireKYC(req: Request, res: Response, next: NextFunction): voi
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
-  const kycStatus = req.user.userDoc.kyc?.status;
-  if (kycStatus !== 'verified') {
+  const kyc = req.user.userDoc.kyc || {};
+  // Supports both legacy status=verified AND the manual Firestore toggle
+  // `kyc.approved: true` (used for MVP admin review without an admin portal).
+  const ok = kyc.status === 'verified' || kyc.approved === true;
+  if (!ok) {
     res.status(403).json({
       error: 'KYC verification required',
       code: 'KYC_REQUIRED',
-      kycStatus: kycStatus || 'not_started',
+      kycStatus: kyc.status || 'not_started',
     });
     return;
   }

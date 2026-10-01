@@ -9,7 +9,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { collections, UserDocument, KYCStatus, runTransaction, timestamp } from '../models';
 import { requireAuth, requireRole, requireKYC, optionalAuth } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
-import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
+import { BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError } from '../middleware/errorHandler';
 import { getAuth } from '../config/firebase';
 
 const router = Router();
@@ -45,7 +45,7 @@ const updateLocationSchema = z.object({
 });
 
 const kycSubmitSchema = z.object({
-  type: z.enum(['aadhaar', 'pan', 'driving_license', 'voter_id', 'passport']),
+  type: z.enum(['aadhaar', 'pan', 'driving_license', 'voter_id', 'passport', 'government_id', 'selfie', 'address_proof']),
   documentUrls: z.object({
     front: z.string().url(),
     back: z.string().url().optional(),
@@ -346,6 +346,53 @@ router.get(
     });
 
     res.json({ success: true, users });
+  }
+);
+
+/**
+ * PUT /api/v1/users/kyc-review/:userId
+ * Admin/internal: approve or reject a user's KYC. Requires x-admin-key header
+ * matching process.env.ADMIN_KEY (or a user with role=admin).
+ *
+ * Body: { approve: boolean, reason?: string }
+ */
+router.put(
+  '/kyc-review/:userId',
+  validateParams(z.object({ userId: z.string().min(1) })),
+  validateBody(z.object({ approve: z.boolean(), reason: z.string().max(500).optional() })),
+  async (req: Request, res: Response) => {
+    const adminKey = req.headers['x-admin-key'];
+    const isAdmin = req.user?.role === 'admin' || (process.env.ADMIN_KEY && adminKey === process.env.ADMIN_KEY);
+    if (!isAdmin) throw new UnauthorizedError('Admin access required');
+
+    const targetId = req.params.userId;
+    const userRef = collections.users.doc(targetId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) throw new NotFoundError('User not found');
+
+    const { approve, reason } = req.body;
+    const update: Record<string, any> = {
+      'kyc.status': approve ? 'verified' : 'rejected',
+      'kyc.approved': approve === true,
+      'kyc.reviewedAt': timestamp(),
+      ...(approve ? { 'kyc.verifiedAt': timestamp(), status: 'active' } : { 'kyc.rejectionReason': reason || null }),
+      updatedAt: timestamp(),
+    };
+    await userRef.update(update);
+
+    // Mark all documents as approved/rejected too
+    const updated = (await userRef.get()).data() as any;
+    const docs = (updated?.kyc?.documents || []).map((d: any) => ({
+      ...d,
+      status: approve ? 'approved' : 'rejected',
+      reviewedAt: timestamp(),
+      ...(approve ? {} : { rejectionReason: reason || null }),
+    }));
+    if (docs.length) {
+      await userRef.update({ 'kyc.documents': docs });
+    }
+
+    res.json({ success: true, kyc: (await userRef.get()).data()?.kyc });
   }
 );
 

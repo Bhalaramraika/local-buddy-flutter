@@ -17,7 +17,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { apiGet } from '@/services/api';
+import { apiGet, apiPost } from '@/services/api';
+import { uploadToCloudinary } from '@/services/upload';
 import * as ImagePicker from 'expo-image-picker';
 
 // Mint new document ids outside the component so render stays pure
@@ -67,9 +68,26 @@ export default function KYCDocumentsScreen() {
   const loadDocuments = async () => {
     setLoading(true);
     try {
-      const res = await apiGet<{ kyc: any }>('/users/me/kyc');
-      const docs = res?.kyc?.documents || (res as any)?.kycDocuments || [];
-      setDocuments(Array.isArray(docs) ? docs : []);
+      const res = await apiGet<{ kyc: any; documents: any[] }>('/users/me/kyc');
+      // Backend returns per-type verification rows with documentUrls
+      const verifs: any[] = (res as any)?.documents || [];
+      const mapped = verifs.map((v: any) => {
+        const uiType = v.type === 'government_id' ? 'government_id' : v.type === 'selfie' ? 'selfie' : 'proof_of_address';
+        const front = v.documentUrls?.front;
+        const back = v.documentUrls?.back;
+        const selfie = v.documentUrls?.selfie;
+        const out: any[] = [];
+        if (uiType === 'government_id') {
+          out.push({ id: v.id + '_front', type: uiType, side: 'front', status: v.status || 'pending', fileUrl: front, submittedAt: v.createdAt, reviewedAt: v.updatedAt });
+          if (back) out.push({ id: v.id + '_back', type: uiType, side: 'back', status: v.status || 'pending', fileUrl: back, submittedAt: v.createdAt, reviewedAt: v.updatedAt });
+        } else if (uiType === 'selfie') {
+          out.push({ id: v.id, type: 'selfie', status: v.status || 'pending', fileUrl: selfie || front, submittedAt: v.createdAt, reviewedAt: v.updatedAt });
+        } else {
+          out.push({ id: v.id, type: 'proof_of_address', status: v.status || 'pending', fileUrl: front, submittedAt: v.createdAt, reviewedAt: v.updatedAt });
+        }
+        return out;
+      }).flat();
+      setDocuments(mapped);
     } catch (e) {
       console.warn('[KYC Docs] load failed:', e);
       setDocuments([]);
@@ -105,13 +123,12 @@ export default function KYCDocumentsScreen() {
   const pickImage = async (documentType: any, side?: 'front' | 'back') => {
     if (uploading) return;
     
-    setUploading(documentType.id);
+    setUploading(`${documentType.id}${side ? '_' + side : ''}`);
     
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         Alert.alert('Permission Required', 'Please grant permission to access your photos.');
-        setUploading(null);
         return;
       }
 
@@ -122,29 +139,10 @@ export default function KYCDocumentsScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        // Simulate upload
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const newDoc = {
-          id: mintDocId(),
-          type: documentType.id,
-          side,
-          status: 'pending',
-          fileUrl: result.assets[0].uri,
-          submittedAt: new Date().toISOString(),
-          reviewedAt: null,
-        };
-
-        setDocuments(prev => {
-          const filtered = prev.filter(d => d.type !== documentType.id || (side && d.side !== side));
-          return [...filtered, newDoc];
-        });
-
-        showToast(`${documentType.title} ${side ? side : ''} uploaded successfully`, 'success');
-      }
-    } catch (error) {
-      showToast('Failed to upload document', 'error');
+      if (result.canceled || !result.assets[0]) return;
+      await actuallyUpload(documentType, result.assets[0].uri, side);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to upload document', 'error');
     } finally {
       setUploading(null);
     }
@@ -153,13 +151,12 @@ export default function KYCDocumentsScreen() {
   const takePhoto = async (documentType: any, side?: 'front' | 'back') => {
     if (uploading) return;
     
-    setUploading(documentType.id);
+    setUploading(`${documentType.id}${side ? '_' + side : ''}`);
     
     try {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
         Alert.alert('Permission Required', 'Please grant permission to access your camera.');
-        setUploading(null);
         return;
       }
 
@@ -169,31 +166,55 @@ export default function KYCDocumentsScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const newDoc = {
-          id: mintDocId(),
-          type: documentType.id,
-          side,
-          status: 'pending',
-          fileUrl: result.assets[0].uri,
-          submittedAt: new Date().toISOString(),
-          reviewedAt: null,
-        };
-
-        setDocuments(prev => {
-          const filtered = prev.filter(d => d.type !== documentType.id || (side && d.side !== side));
-          return [...filtered, newDoc];
-        });
-
-        showToast(`${documentType.title} ${side ? side : ''} uploaded successfully`, 'success');
-      }
-    } catch (error) {
-      showToast('Failed to take photo', 'error');
+      if (result.canceled || !result.assets[0]) return;
+      await actuallyUpload(documentType, result.assets[0].uri, side);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to take photo', 'error');
     } finally {
       setUploading(null);
     }
+  };
+
+  /** Cloudinary upload → backend persistence (Firestore). Returns on success. */
+  const actuallyUpload = async (documentType: any, fileUri: string, side?: 'front' | 'back') => {
+    showToast('Uploading…', 'info');
+    const cloud = await uploadToCloudinary(fileUri, { folder: `kyc/${user?.id || 'unknown'}` });
+
+    const docType = documentType.id as string; // 'government_id' | 'selfie' | 'proof_of_address'
+    const backendType = docType === 'government_id' ? 'government_id' : docType === 'selfie' ? 'selfie' : 'address_proof';
+
+    const payload: any = { type: backendType, documentUrls: {} as any };
+    const existingFront = documents.find((d: any) => d.type === 'government_id' && d.side === 'front');
+    if (side === 'back') {
+      payload.documentUrls.back = cloud.secureUrl;
+      payload.documentUrls.front = existingFront?.fileUrl || cloud.secureUrl; // schema requires a front URL
+    } else if (backendType === 'selfie') {
+      payload.documentUrls.selfie = cloud.secureUrl;
+      payload.documentUrls.front = cloud.secureUrl; // schema requires front url
+    } else {
+      payload.documentUrls.front = cloud.secureUrl;
+      const existingBack = documents.find((d: any) => d.type === 'government_id' && d.side === 'back');
+      if (existingBack?.fileUrl) payload.documentUrls.back = existingBack.fileUrl;
+    }
+
+    await apiPost('/users/me/kyc', payload);
+
+    const newDoc = {
+      id: mintDocId(),
+      type: documentType.id,
+      side,
+      status: 'pending',
+      fileUrl: cloud.secureUrl,
+      cloudinaryPublicId: cloud.publicId,
+      submittedAt: new Date().toISOString(),
+      reviewedAt: null,
+    };
+    setDocuments((prev: any[]) => {
+      const filtered = prev.filter((d: any) => d.type !== documentType.id || (side && d.side !== side));
+      return [...filtered, newDoc];
+    });
+    showToast(`${documentType.title}${side ? ' ' + side : ''} submitted for review`, 'success');
+    loadDocuments();
   };
 
   const showUploadOptions = (documentType: any) => {
