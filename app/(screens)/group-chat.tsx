@@ -93,9 +93,9 @@ export default function GroupChatScreen() {
             </View>
           )}
           
-          <View style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther, { backgroundColor: isOwn ? '#4F46E5' : (isDark ? '#2a2a2a' : '#fff') }]}>
+          <View style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther, { backgroundColor: isOwn ? '#8B85FF' : (isDark ? '#2a2a2a' : '#fff') }]}>
             {!isOwn && (
-              <Text style={[styles.senderName, { color: '#4F46E5' }]}>{message.senderName}</Text>
+              <Text style={[styles.senderName, { color: '#8B85FF' }]}>{message.senderName}</Text>
             )}
             <Text style={[styles.messageText, { color: isOwn ? '#fff' : (isDark ? '#fff' : '#000') }]}>{message.content}</Text>
             <Text style={[styles.messageTime, { color: isOwn ? 'rgba(255,255,255,0.6)' : (isDark ? '#666' : '#999') }]}>{formatTime(message.createdAt)}</Text>
@@ -151,8 +151,8 @@ export default function GroupChatScreen() {
         <View style={[styles.attachmentOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)' }]}>
           <View style={[styles.attachmentMenu, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <TouchableOpacity onPress={() => handleAttachmentPress('Photo')} style={styles.attachmentOption}>
-              <View style={[styles.attachmentIcon, { backgroundColor: '#4F46E515' }]}>
-                <Ionicons name="image-outline" size={24} color="#4F46E5" />
+              <View style={[styles.attachmentIcon, { backgroundColor: '#8B85FF15' }]}>
+                <Ionicons name="image-outline" size={24} color="#8B85FF" />
               </View>
               <Text style={[styles.attachmentLabel, { color: isDark ? '#fff' : '#000' }]}>Photo</Text>
             </TouchableOpacity>
@@ -202,7 +202,7 @@ export default function GroupChatScreen() {
           />
           
           <TouchableOpacity onPress={handleSendMessage} disabled={!messageText.trim()} style={styles.sendButton}>
-            <Ionicons name="send-outline" size={24} color={messageText.trim() ? '#4F46E5' : (isDark ? '#555' : '#ccc')} />
+            <Ionicons name="send-outline" size={24} color={messageText.trim() ? '#8B85FF' : (isDark ? '#555' : '#ccc')} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   messageContainer: { marginBottom: 8 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   messageRowOwn: { flexDirection: 'row-reverse' },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   avatarText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
   avatarSpacer: { width: 32, flexShrink: 0 },
   messageBubble: { maxWidth: '75%', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },

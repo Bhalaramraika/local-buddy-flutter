@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { Colors } from '@/constants/design';
 
 export default function HelpScreen() {
   const router = useRouter();
@@ -92,7 +93,7 @@ export default function HelpScreen() {
       icon: 'chatbubble-ellipses-outline',
       title: 'Contact Support',
       subtitle: 'Chat with our support team',
-      color: '#4F46E5',
+      color: Colors.brand.primary,
       onPress: () => router.push('/(screens)/contact-support'),
     },
     {
@@ -191,7 +192,7 @@ export default function HelpScreen() {
             <View key={category.title} style={[styles.categoryCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 12 }]}>
               <TouchableOpacity style={styles.categoryHeader}>
                 <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon as any} size={22} color="#4F46E5" />
+                  <Ionicons name={category.icon as any} size={22} color="#8B85FF" />
                 </View>
                 <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>{category.title}</Text>
                 <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#555' : '#999'} />
@@ -222,7 +223,7 @@ export default function HelpScreen() {
               onPress={option.onPress}
             >
               <View style={styles.contactIcon}>
-                <Ionicons name={option.icon as any} size={22} color="#4F46E5" />
+                <Ionicons name={option.icon as any} size={22} color="#8B85FF" />
               </View>
               <View style={styles.contactInfo}>
                 <Text style={[styles.contactTitle, { color: isDark ? '#fff' : '#000' }]}>{option.title}</Text>
@@ -237,7 +238,7 @@ export default function HelpScreen() {
         <View style={[styles.section, { marginBottom: 40 }]}>
           <View style={[styles.appInfo, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <View style={styles.appIcon}>
-              <Ionicons name={"logo-localbuddy" as any} size={48} color="#4F46E5" />
+              <Ionicons name={"logo-localbuddy" as any} size={48} color="#8B85FF" />
             </View>
             <Text style={[styles.appName, { color: isDark ? '#fff' : '#000' }]}>LocalBuddy</Text>
             <Text style={[styles.appVersion, { color: isDark ? '#888' : '#666' }]}>Version 1.0.0</Text>
@@ -256,29 +257,29 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   searchContainer: { marginBottom: 24 },
-  searchWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
   searchIcon: { marginRight: 10 },
   searchPlaceholder: { fontSize: 16, fontFamily: 'Inter_400Regular', color: '#999', flex: 1 },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  quickActionCard: { flex: 1, minWidth: '45%', maxWidth: '50%', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  quickActionIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  quickActionCard: { flex: 1, minWidth: '45%', maxWidth: '50%', padding: 16, borderRadius: 28, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
+  quickActionIcon: { width: 48, height: 48, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   quickActionTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', textAlign: 'center', marginBottom: 4 },
   quickActionSubtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center' },
-  categoryCard: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
+  categoryCard: { borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
   categoryHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  categoryIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F46E515', justifyContent: 'center', alignItems: 'center' },
+  categoryIcon: { width: 40, height: 40, borderRadius: 32, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
   categoryTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', flex: 1 },
   categoryItems: { paddingHorizontal: 16, paddingBottom: 16 },
   categoryItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   categoryItemText: { fontSize: 15, fontFamily: 'Inter_400Regular', flex: 1, marginRight: 8 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#eee' },
-  contactIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F46E515', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  contactItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 32, marginBottom: 12, borderWidth: 1, borderColor: '#eee' },
+  contactIcon: { width: 40, height: 40, borderRadius: 32, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   contactInfo: { flex: 1 },
   contactTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   contactSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  appInfo: { alignItems: 'center', padding: 32, borderRadius: 16, borderWidth: 1, borderColor: '#eee' },
+  appInfo: { alignItems: 'center', padding: 32, borderRadius: 28, borderWidth: 1, borderColor: '#eee' },
   appIcon: { marginBottom: 12 },
   appName: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   appVersion: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },

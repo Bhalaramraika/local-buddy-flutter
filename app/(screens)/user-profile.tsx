@@ -138,7 +138,7 @@ export default function PublicProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#8B85FF" />
         <Text style={[styles.loadingText, { color: isDark ? '#aaa' : '#666' }]}>Loading profile...</Text>
       </View>
     );
@@ -160,7 +160,7 @@ export default function PublicProfileScreen() {
   }
 
   const badgeIcons: Record<string, { icon: string; color: string; label: string }> = {
-    identity: { icon: 'checkmark-circle', color: '#4F46E5', label: 'ID Verified' },
+    identity: { icon: 'checkmark-circle', color: '#8B85FF', label: 'ID Verified' },
     phone: { icon: 'call', color: '#10B981', label: 'Phone Verified' },
     email: { icon: 'mail', color: '#F59E0B', label: 'Email Verified' },
   };
@@ -278,7 +278,7 @@ export default function PublicProfileScreen() {
           <View style={styles.skillsContainer}>
             {profile.skills.map((skill, index) => (
               <View key={index} style={[styles.skillTag, { backgroundColor: isDark ? '#3a3a3a' : '#e8e8ff' }]}>
-                <Text style={[styles.skillText, { color: isDark ? '#ccc' : '#4F46E5' }]}>{skill}</Text>
+                <Text style={[styles.skillText, { color: isDark ? '#ccc' : '#8B85FF' }]}>{skill}</Text>
               </View>
             ))}
           </View>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#8B85FF',
     borderRadius: 12,
   },
   goBackText: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   messageBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#8B85FF',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

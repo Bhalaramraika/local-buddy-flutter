@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
 import { LoadingState } from '@/components/Loading';
+import { Colors } from '@/constants/design';
 
 
 export default function NotificationsScreen() {
@@ -110,7 +111,7 @@ export default function NotificationsScreen() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'task_application': return { icon: 'document-text-outline', color: '#4F46E5', bg: '#4F46E515' };
+      case 'task_application': return { icon: 'document-text-outline', color: Colors.brand.primary, bg: '#8B85FF15' };
       case 'message': return { icon: 'chatbubble-outline', color: '#10B981', bg: '#10B98115' };
       case 'task_completed': return { icon: 'check-circle-outline', color: '#10B981', bg: '#10B98115' };
       case 'payment': return { icon: 'cash-outline', color: '#F59E0B', bg: '#F59E0B15' };
@@ -194,7 +195,7 @@ export default function NotificationsScreen() {
           style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
           onPress={() => setFilter('all')}
         >
-          <Text style={[styles.filterTabText, filter === 'all' ? styles.filterTabTextActive : {}, { color: filter === 'all' ? '#4F46E5' : (isDark ? '#fff' : '#000') }]}>
+          <Text style={[styles.filterTabText, filter === 'all' ? styles.filterTabTextActive : {}, { color: filter === 'all' ? Colors.brand.primary : (isDark ? '#fff' : '#000') }]}>
             All
           </Text>
         </TouchableOpacity>
@@ -202,7 +203,7 @@ export default function NotificationsScreen() {
           style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
           onPress={() => setFilter('unread')}
         >
-          <Text style={[styles.filterTabText, filter === 'unread' ? styles.filterTabTextActive : {}, { color: filter === 'unread' ? '#4F46E5' : (isDark ? '#fff' : '#000') }]}>
+          <Text style={[styles.filterTabText, filter === 'unread' ? styles.filterTabTextActive : {}, { color: filter === 'unread' ? Colors.brand.primary : (isDark ? '#fff' : '#000') }]}>
             Unread {unreadCount > 0 && <Text style={styles.filterBadge}>{unreadCount}</Text>}
           </Text>
         </TouchableOpacity>
@@ -211,7 +212,7 @@ export default function NotificationsScreen() {
       {/* Mark All Read Button */}
       {unreadCount > 0 && (
         <TouchableOpacity style={styles.markAllReadButton} onPress={markAllAsRead}>
-          <Ionicons name="checkmark-done-outline" size={18} color="#4F46E5" />
+          <Ionicons name="checkmark-done-outline" size={18} color="#8B85FF" />
           <Text style={styles.markAllReadText}>Mark all as read</Text>
         </TouchableOpacity>
       )}
@@ -238,7 +239,7 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#4F46E5']}
+              colors={[Colors.brand.primary]}
             />
           }
           ListEmptyComponent={
@@ -262,25 +263,25 @@ const styles = StyleSheet.create({
   clearText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   filterContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   filterTab: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  filterTabActive: { borderBottomWidth: 2, borderBottomColor: '#4F46E5' },
+  filterTabActive: { borderBottomWidth: 2, borderBottomColor: Colors.brand.primary },
   filterTabText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  filterTabTextActive: { color: '#4F46E5' },
-  filterBadge: { fontSize: 11, fontFamily: 'Inter_700Bold', color: '#fff', backgroundColor: '#EF4444', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10, marginLeft: 6 },
-  markAllReadButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, marginHorizontal: 16, marginTop: 8, backgroundColor: '#4F46E515', borderRadius: 10 },
-  markAllReadText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  filterTabTextActive: { color: Colors.brand.primary },
+  filterBadge: { fontSize: 11, fontFamily: 'Inter_700Bold', color: '#fff', backgroundColor: '#EF4444', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 18, marginLeft: 6 },
+  markAllReadButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, marginHorizontal: 16, marginTop: 8, backgroundColor: '#8B85FF15', borderRadius: 10 },
+  markAllReadText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   listContent: { padding: 16, paddingBottom: 40 },
   notificationItem: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  notificationUnread: { backgroundColor: '#4F46E508' },
-  notificationIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  notificationUnread: { backgroundColor: '#8B85FF08' },
+  notificationIcon: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   notificationAvatar: { width: '100%', height: '100%', borderRadius: 22 },
   notificationContent: { flex: 1, minWidth: 0 },
   notificationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   notificationTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', flex: 1, marginRight: 8 },
   notificationTime: { fontSize: 12, fontFamily: 'Inter_400Regular', flexShrink: 0 },
   notificationMessage: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4F46E5', marginTop: 6, alignSelf: 'flex-start' },
+  unreadDot: { width: 8, height: 8, borderRadius: 28, backgroundColor: Colors.brand.primary, marginTop: 6, alignSelf: 'flex-start' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16, textAlign: 'center' },
   emptySubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },

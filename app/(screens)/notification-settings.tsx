@@ -108,7 +108,7 @@ export default function NotificationSettingsScreen() {
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
           <TouchableOpacity onPress={handleResetDefaults}>
-            <Text style={[styles.resetText, { color: '#4F46E5' }]}>Reset</Text>
+            <Text style={[styles.resetText, { color: '#8B85FF' }]}>Reset</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -127,7 +127,7 @@ export default function NotificationSettingsScreen() {
             value={pushEnabled}
             onChange={setPushEnabled}
             icon="notifications-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -172,7 +172,7 @@ export default function NotificationSettingsScreen() {
             value={taskAssigned}
             onChange={setTaskAssigned}
             icon="clipboard-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -237,7 +237,7 @@ export default function NotificationSettingsScreen() {
             value={newMessages}
             onChange={setNewMessages}
             icon="chatbubble-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -282,7 +282,7 @@ export default function NotificationSettingsScreen() {
             value={paymentSent}
             onChange={setPaymentSent}
             icon="card-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -317,7 +317,7 @@ export default function NotificationSettingsScreen() {
             value={newFollower}
             onChange={setNewFollower}
             icon="person-add-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -362,7 +362,7 @@ export default function NotificationSettingsScreen() {
             value={appUpdates}
             onChange={setAppUpdates}
             icon="cloud-download-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -405,7 +405,7 @@ export default function NotificationSettingsScreen() {
             title="Enable Quiet Hours"
             description="Silence notifications during set hours"
             icon="moon-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/(screens)/settings')}
             showArrow

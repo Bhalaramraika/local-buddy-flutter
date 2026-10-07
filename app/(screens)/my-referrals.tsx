@@ -96,7 +96,7 @@ export default function MyReferralsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading referrals...</Text>
         </View>
       </View>
@@ -130,7 +130,7 @@ export default function MyReferralsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />
         }
       >
         {/* Summary Cards */}
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   filterContainer: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
   filterScroll: { flexDirection: 'row', gap: 10 },
   filterTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#eee' },
-  filterTabActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  filterTabActive: { backgroundColor: '#8B85FF', borderColor: '#8B85FF' },
   filterTabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   filterTabCount: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   filterTabCountText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
   listContainer: { gap: 12 },
   referralCard: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
   referralHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  referralAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4F46E515', justifyContent: 'center', alignItems: 'center' },
-  referralAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#4F46E5' },
+  referralAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
+  referralAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#8B85FF' },
   referralInfo: { flex: 1 },
   referralName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   referralEmail: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Image, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Image, TextInput, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useChatStore } from '@/store/chatStore';
@@ -16,10 +16,12 @@ export default function ChatScreen() {
   const { chats, clearUnreadCount } = useChatStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
+  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isDark = theme === 'dark';
+  // System-aware: 'system' follows the OS scheme so text/background always contrast
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -100,7 +102,7 @@ export default function ChatScreen() {
         <View style={styles.headerContent}>
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Messages</Text>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(screens)/new-chat')}>
-            <Ionicons name="chatbubble-outline" size={24} color="#4F46E5" />
+            <Ionicons name="chatbubble-outline" size={24} color="#8B85FF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -131,7 +133,7 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />
         }
         ListEmptyComponent={
           <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
@@ -156,12 +158,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   headerButton: { padding: 4 },
   searchContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, gap: 8 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, gap: 8 },
   searchIcon: { marginRight: 4 },
   searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   listContent: { paddingBottom: 20 },
   conversationCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  conversationAvatar: { position: 'relative', width: 56, height: 56, borderRadius: 28, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  conversationAvatar: { position: 'relative', width: 56, height: 56, borderRadius: 28, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   avatarImage: { width: 56, height: 56, borderRadius: 28 },
   avatarInitial: { fontSize: 20, fontFamily: 'Inter_700Bold', color: '#fff' },
   onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
@@ -170,14 +172,14 @@ const styles = StyleSheet.create({
   conversationName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   conversationTime: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   conversationPreview: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4F46E5' },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B85FF' },
   conversationLastMessage: { fontSize: 14, fontFamily: 'Inter_400Regular', flex: 1 },
-  unreadBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, marginLeft: 8 },
+  unreadBadge: { minWidth: 20, height: 20, borderRadius: 18, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6, marginLeft: 8 },
   unreadBadgeText: { color: '#fff', fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, marginTop: 40 },
   emptyText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
   emptySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  newChatButton: { marginTop: 20, backgroundColor: '#4F46E5', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
+  newChatButton: { marginTop: 20, backgroundColor: '#8B85FF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
   newChatButtonText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },

@@ -34,7 +34,7 @@ export default function WalletWithdrawScreen() {
 
       <View style={[styles.card, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
         <View style={styles.iconWrap}>
-          <Ionicons name="wallet-outline" size={48} color="#4F46E5" />
+          <Ionicons name="wallet-outline" size={48} color="#8B85FF" />
         </View>
         <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>
           Withdrawals are not available yet
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#4F46E515',
+    backgroundColor: '#8B85FF15',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   balanceValue: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   primaryBtn: {
     alignSelf: 'stretch',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#8B85FF',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',

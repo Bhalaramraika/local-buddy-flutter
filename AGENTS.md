@@ -24,6 +24,35 @@ Prisma, Supabase, cron worker (`backend/src/jobs`), Socket.IO
 `services/{supabase,location,notifications}.ts`, `types/user.ts`,
 `config/index.ts`, `jsconfig.json`, typing indicators, Razorpay references.
 
+## KYC (MVP — manual approval)
+- User submits docs: app → Cloudinary (upload) → `POST /api/v1/users/me/kyc` → Firestore.
+  Backend sets `kyc.status: 'pending'` and adds doc metadata to `kyc.documents[]`.
+- **Admin approval**: open Firebase Console → Firestore → `users/<userId>` → set
+  **`kycApproved: true`**. The app listens to the user doc in realtime
+  (`services/realtime.ts` → `userProfile` listener) and instantly sets
+  `authStore` KYC status to `verified` + `kycStore.isVerified = true` —
+  all KYC-gated features (create task, apply, wallet) unlock immediately.
+- Set `kycApproved: false` (or delete the field) to revoke.
+- Backend `requireKYC` accepts any of: `kyc.status === 'verified'`,
+  `kyc.approved === true`, or top-level `kycApproved === true`.
+- New users are created with `kycApproved: false` by default; older docs
+  are self-healed — `requireAuth` backfills `kycApproved: false` when the
+  field is missing. `firestore.rules` blocks client writes to it
+  (console/Admin SDK only — same as `wallet`, `stats`, `kyc`).
+- Admin API alternative: `PUT /api/v1/users/kyc-review/:userId` with
+  header `x-admin-key` and body `{ "approve": true|false }` also keeps
+  top-level `kycApproved` in sync.
+
+## Error contract (frontend ↔ backend)
+- Backend errors are `{ "error": "message", "code": "...", details? }`
+  (zod failures: `{ error: 'Validation failed', errors: [{field, message}] }`).
+- NEVER read `err.response.data.message` in the app — use
+  `getApiErrorMessage(err, fallback)` from `services/api.ts` (also handles
+  401/403/429/5xx/network fallbacks). Store actions rethrow; screens alert.
+- Every REST call auto-shows the centered orange `GlobalLoader`
+  (`uiStore.globalLoading` ref-counted in `services/api.ts`; opt out per
+  request with `skipGlobalLoader: true` in the axios config).
+
 ## Conventions
 - Store↔screen contracts: stores call REST first, then update local state;
   Firestore listeners re-sync.

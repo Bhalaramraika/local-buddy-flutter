@@ -21,6 +21,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatRelativeTime, formatTime } from '@/utils/helpers';
+import { Colors } from '@/constants/design';
 
 export default function ChatDetailScreen() {
   const router = useRouter();
@@ -134,7 +135,7 @@ export default function ChatDetailScreen() {
           <View style={[
             styles.messageBubble,
             isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther,
-            { backgroundColor: isOwn ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
+            { backgroundColor: isOwn ? Colors.brand.primary : (isDark ? '#2a2a2a' : '#f0f0f0') }
           ]}>
             {item.type === 'image' && item.imageUrl && (
               <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
@@ -150,12 +151,12 @@ export default function ChatDetailScreen() {
             {item.type === 'task' && (
               <View style={styles.taskMessageCard}>
                 <Text style={[styles.taskMessageTitle, { color: isDark ? '#fff' : '#000' }]}>{item.taskTitle}</Text>
-                <Text style={[styles.taskMessageBudget, { color: isOwn ? '#fff' : '#4F46E5' }]}>{item.taskBudget}</Text>
+                <Text style={[styles.taskMessageBudget, { color: isOwn ? '#fff' : Colors.brand.primary }]}>{item.taskBudget}</Text>
               </View>
             )}
             {item.type === 'location' && (
               <View style={styles.locationMessageCard}>
-                <MaterialCommunityIcons name="map-marker" size={20} color={isOwn ? '#fff' : '#4F46E5'} />
+                <MaterialCommunityIcons name="map-marker" size={20} color={isOwn ? '#fff' : Colors.brand.primary} />
                 <Text style={[styles.locationMessageText, { color: isOwn ? '#fff' : (isDark ? '#ddd' : '#333') }]}>
                   {item.locationName || 'Shared Location'}
                 </Text>
@@ -171,7 +172,7 @@ export default function ChatDetailScreen() {
                   <MaterialCommunityIcons 
                     name={item.status === 'read' ? 'check-all' : 'check'} 
                     size={12} 
-                    color={item.status === 'read' ? '#4F46E5' : '#fff8'}
+                    color={item.status === 'read' ? Colors.brand.primary : '#fff8'}
                     style={{ marginLeft: 4 }}
                   />
                 )}
@@ -274,7 +275,7 @@ export default function ChatDetailScreen() {
           </View>
           <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: isDark ? '#fff' : '#000' }]}
               value={messageText}
               onChangeText={setMessageText}
               placeholder="Type a message..."
@@ -289,7 +290,7 @@ export default function ChatDetailScreen() {
             style={[
               styles.sendButton,
               messageText.trim() ? styles.sendButtonActive : styles.sendButtonInactive,
-              { backgroundColor: messageText.trim() ? '#4F46E5' : (isDark ? '#333' : '#ddd') }
+              { backgroundColor: messageText.trim() ? Colors.brand.primary : (isDark ? '#333' : '#ddd') }
             ]}
             onPress={handleSendMessage}
             disabled={!messageText.trim() || isSending}
@@ -344,17 +345,17 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   headerUser: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  headerAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  headerAvatar: { width: 40, height: 40, borderRadius: 32, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
   headerAvatarImage: { width: '100%', height: '100%' },
   headerAvatarText: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
-  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
+  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 18, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
   headerUserInfo: { flex: 1 },
   headerUserName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   headerUserStatus: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   messagesContent: { padding: 16, paddingBottom: 20 },
   messageContainer: { flexDirection: 'row', marginBottom: 8 },
   avatarWrapper: { width: 36, marginRight: 8, marginTop: 4 },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  avatar: { width: 32, height: 32, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
   messageWrapper: { flex: 1, maxWidth: '75%' },
@@ -365,11 +366,11 @@ const styles = StyleSheet.create({
   messageBubbleOther: { borderBottomLeftRadius: 4 },
   messageText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 22 },
   messageTime: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4, textAlign: 'right' },
-  messageImage: { width: 200, height: 200, borderRadius: 12, marginBottom: 4 },
-  taskMessageCard: { backgroundColor: '#fff2', padding: 12, borderRadius: 10, marginTop: 4 },
+  messageImage: { width: 200, height: 200, borderRadius: 32, marginBottom: 4 },
+  taskMessageCard: { backgroundColor: '#fff2', padding: 12, borderRadius: 18, marginTop: 4 },
   taskMessageTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   taskMessageBudget: { fontSize: 13, fontFamily: 'Inter_500Medium', marginTop: 2 },
-  locationMessageCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff2', padding: 12, borderRadius: 10, marginTop: 4 },
+  locationMessageCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff2', padding: 12, borderRadius: 18, marginTop: 4 },
   locationMessageText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   emptyMessages: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   emptyMessagesText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
@@ -377,9 +378,9 @@ const styles = StyleSheet.create({
   inputContainerWrapper: { flex: 1 },
   inputContainer: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#eee', gap: 8 },
   inputActions: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  inputWrapper: { flex: 1, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 120 },
-  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular', color: '#000' },
-  sendButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  inputWrapper: { flex: 1, borderRadius: 32, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 120 },
+  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular' },
+  sendButton: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   sendButtonActive: {},
   sendButtonInactive: {},
   authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
@@ -392,5 +393,5 @@ const styles = StyleSheet.create({
   modalItemText: { fontSize: 16, fontFamily: 'Inter_500Medium' },
   modalDivider: { height: 1, marginHorizontal: 20 },
   modalCancel: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  modalCancelText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  modalCancelText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
 });

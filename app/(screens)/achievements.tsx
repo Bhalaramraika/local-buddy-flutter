@@ -67,7 +67,7 @@ export default function AchievementsScreen() {
   const getRarityConfig = (rarity: string) => {
     switch (rarity) {
       case 'common': return { label: 'Common', color: '#9CA3AF', bg: '#9CA3AF15', border: '#9CA3AF33' };
-      case 'rare': return { label: 'Rare', color: '#4F46E5', bg: '#4F46E515', border: '#4F46E533' };
+      case 'rare': return { label: 'Rare', color: '#8B85FF', bg: '#8B85FF15', border: '#8B85FF33' };
       case 'epic': return { label: 'Epic', color: '#8B5CF6', bg: '#8B5CF615', border: '#8B5CF633' };
       case 'legendary': return { label: 'Legendary', color: '#F59E0B', bg: '#F59E0B15', border: '#F59E0B33' };
       default: return { label: 'Common', color: '#9CA3AF', bg: '#9CA3AF15', border: '#9CA3AF33' };
@@ -96,7 +96,7 @@ export default function AchievementsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading achievements...</Text>
         </View>
       </View>
@@ -130,8 +130,8 @@ export default function AchievementsScreen() {
         <View style={[styles.progressCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: isDark ? '#fff' : '#000' }]}>Your Progress</Text>
-            <View style={[styles.progressPercentContainer, { backgroundColor: '#4F46E515' }]}>
-              <Text style={[styles.progressPercent, { color: '#4F46E5' }]}>{completionRate}%</Text>
+            <View style={[styles.progressPercentContainer, { backgroundColor: '#8B85FF15' }]}>
+              <Text style={[styles.progressPercent, { color: '#8B85FF' }]}>{completionRate}%</Text>
               <Text style={[styles.progressPercentLabel, { color: isDark ? '#888' : '#666' }]}>Complete</Text>
             </View>
           </View>
@@ -141,7 +141,7 @@ export default function AchievementsScreen() {
               <Animated.View 
                 style={[
                   styles.progressFill, 
-                  { backgroundColor: '#4F46E5', width: `${completionRate}%` }
+                  { backgroundColor: '#8B85FF', width: `${completionRate}%` }
                 ]} 
               />
             </View>
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  progressCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
+  progressCard: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   progressTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   progressPercentContainer: { flexDirection: 'row', alignItems: 'baseline', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
@@ -292,24 +292,24 @@ const styles = StyleSheet.create({
   progressStat: { alignItems: 'center' },
   progressStatValue: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   progressStatLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  categoryContainer: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  categoryContainer: { borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#eee' },
   categoryScroll: { flexDirection: 'row', gap: 10 },
-  categoryTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#eee' },
-  categoryTabActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  categoryTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#eee' },
+  categoryTabActive: { backgroundColor: '#8B85FF', borderColor: '#8B85FF' },
   categoryTabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  emptyState: { alignItems: 'center', paddingVertical: 48, borderRadius: 16, borderWidth: 1, borderColor: '#eee' },
+  emptyState: { alignItems: 'center', paddingVertical: 48, borderRadius: 22, borderWidth: 1, borderColor: '#eee' },
   emptyStateTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
   emptyStateText: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 32 },
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
   achievementCard: { 
     width: '48%', 
-    borderRadius: 16, 
+    borderRadius: 22, 
     padding: 16, 
     borderWidth: 1, 
     borderColor: '#eee',
     overflow: 'hidden',
   },
-  rarityBadge: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, zIndex: 10 },
+  rarityBadge: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 18, zIndex: 10 },
   rarityBadgeText: { fontSize: 9, fontFamily: 'Inter_700Bold', textTransform: 'uppercase', letterSpacing: 0.5 },
   lockedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 5 },
   achievementIcon: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
@@ -322,6 +322,6 @@ const styles = StyleSheet.create({
   achievementProgressText: { fontSize: 10, fontFamily: 'Inter_500Medium', textAlign: 'right' },
   achievementUnlocked: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#eee' },
   achievementUnlockedText: { fontSize: 11, fontFamily: 'Inter_500Medium' },
-  xpBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginLeft: 'auto' },
+  xpBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 18, marginLeft: 'auto' },
   xpBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
 });

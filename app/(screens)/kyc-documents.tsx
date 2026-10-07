@@ -285,7 +285,7 @@ export default function KYCDocumentsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading documents...</Text>
         </View>
       </View>
@@ -313,14 +313,14 @@ export default function KYCDocumentsScreen() {
         <View style={[styles.progressCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressTitle, { color: isDark ? '#fff' : '#000' }]}>Verification Progress</Text>
-            <Text style={[styles.progressPercent, { color: '#4F46E5' }]}>{Math.round((documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100)}%</Text>
+            <Text style={[styles.progressPercent, { color: '#8B85FF' }]}>{Math.round((documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100)}%</Text>
           </View>
           <View style={styles.progressBar}>
             <View 
               style={[
                 styles.progressFill, 
                 { 
-                  backgroundColor: '#4F46E5',
+                  backgroundColor: '#8B85FF',
                   width: `${(documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100}%`
                 }
               ]} 
@@ -343,8 +343,8 @@ export default function KYCDocumentsScreen() {
             return (
               <View key={docType.id} style={styles.documentCard}>
                 <View style={styles.documentHeader}>
-                  <View style={[styles.documentIcon, { backgroundColor: '#4F46E515' }]}>
-                    <Ionicons name={docType.icon as any} size={24} color="#4F46E5" />
+                  <View style={[styles.documentIcon, { backgroundColor: '#8B85FF15' }]}>
+                    <Ionicons name={docType.icon as any} size={24} color="#8B85FF" />
                   </View>
                   <View style={styles.documentInfo}>
                     <View style={styles.documentTitleRow}>
@@ -370,18 +370,18 @@ export default function KYCDocumentsScreen() {
                         onPress={() => showUploadOptions(docType)}
                         disabled={uploading !== null}
                       >
-                        <Ionicons name={existingDoc && existingDoc.side === 'front' ? 'image-outline' : 'camera-outline'} size={20} color="#4F46E5" style={{ marginRight: 8 }} />
+                        <Ionicons name={existingDoc && existingDoc.side === 'front' ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
                         <Text style={styles.uploadButtonText}>Front Side</Text>
                         {existingDoc && existingDoc.side === 'front' && (
                           <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
                         )}
                       </TouchableOpacity>
                       <TouchableOpacity 
-                        style={[styles.uploadButton, uploading === docType.id + '_back' && styles.uploadButtonLoading, { borderColor: '#4F46E5' }]}
+                        style={[styles.uploadButton, uploading === docType.id + '_back' && styles.uploadButtonLoading, { borderColor: '#8B85FF' }]}
                         onPress={() => showUploadOptions(docType)}
                         disabled={uploading !== null}
                       >
-                        <Ionicons name={backDoc ? 'image-outline' : 'camera-outline'} size={20} color="#4F46E5" style={{ marginRight: 8 }} />
+                        <Ionicons name={backDoc ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
                         <Text style={styles.uploadButtonText}>Back Side</Text>
                         {backDoc && (
                           <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
@@ -394,7 +394,7 @@ export default function KYCDocumentsScreen() {
                       onPress={() => showUploadOptions(docType)}
                       disabled={uploading !== null}
                     >
-                      <Ionicons name={existingDoc ? 'image-outline' : 'camera-outline'} size={20} color="#4F46E5" style={{ marginRight: 8 }} />
+                      <Ionicons name={existingDoc ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
                       <Text style={styles.uploadButtonText}>{existingDoc ? 'Replace' : 'Upload'}</Text>
                       {existingDoc && (
                         <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
@@ -473,14 +473,14 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  progressCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
+  progressCard: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   progressTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   progressPercent: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   progressBar: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   progressText: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8 },
-  section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
+  section: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   documentCard: { marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   documentHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
@@ -494,17 +494,17 @@ const styles = StyleSheet.create({
   statusBadgeText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   documentDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18, marginBottom: 12 },
   uploadButtons: { flexDirection: 'row', gap: 10 },
-  uploadButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: '#4F46E5', backgroundColor: '#4F46E515' },
+  uploadButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 18, borderWidth: 1, borderColor: '#8B85FF', backgroundColor: '#8B85FF15' },
   uploadButtonLoading: { opacity: 0.7 },
-  uploadButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  uploadButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#8B85FF' },
   uploadedDocs: { marginTop: 12, gap: 8 },
-  uploadedDoc: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#eee' },
+  uploadedDoc: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: '#eee' },
   uploadedDocIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   uploadedDocInfo: { flex: 1 },
   uploadedDocName: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   uploadedDocStatus: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
   guidelinesList: { gap: 10 },
   guidelineItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  guidelineBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4F46E5', marginTop: 6, flexShrink: 0 },
+  guidelineBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#8B85FF', marginTop: 6, flexShrink: 0 },
   guidelineText: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18, flex: 1 },
 });

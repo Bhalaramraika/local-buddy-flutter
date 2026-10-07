@@ -15,7 +15,7 @@ import {
   TaskSortOptions,
   PaginatedResponse
 } from '@/types';
-import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS } from '@/services/api';
+import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS, getApiErrorMessage } from '@/services/api';
 
 // Review entry as consumed by the task-reviews screen
 export interface TaskReviewEntry {
@@ -293,24 +293,60 @@ export const useTaskStore = create<TaskState>()(
       createTask: async (payload) => {
         set({ isCreating: true, error: null });
         try {
-          const body: Record<string, any> = { ...(payload || {}) };
-          if (typeof body.budget === 'number') {
-            body.budget = { amount: Math.round(body.budget), currency: 'INR', type: 'fixed' };
-          }
+          const src: Record<string, any> = { ...(payload || {}) };
+
+          // Map the screen payload to the backend schema
+          // (backend/src/routes/tasks.ts :: createTaskSchema):
+          //   budget: NUMBER, location: {latitude, longitude, address},
+          //   paymentMode: 'online'|'cash', requirements: string[]
+          const budgetNumber =
+            typeof src.budget === 'number'
+              ? src.budget
+              : Number(src.budget?.amount ?? 0);
+          const location =
+            src.location && typeof src.location === 'object'
+              ? {
+                  latitude: Number(src.location.latitude ?? src.latitude ?? 0),
+                  longitude: Number(src.location.longitude ?? src.longitude ?? 0),
+                  address: String(src.location.address ?? src.location.addressLine ?? '').trim(),
+                }
+              : {
+                  latitude: Number(src.latitude ?? 0),
+                  longitude: Number(src.longitude ?? 0),
+                  address: String(src.location ?? '').trim(),
+                };
+
+          const body = {
+            title: String(src.title ?? '').trim(),
+            description: String(src.description ?? '').trim(),
+            category: String(src.category ?? '').trim(),
+            budget: Math.round(budgetNumber),
+            tip: Number(src.tip ?? 0) || 0,
+            location,
+            deadline: src.deadline ? new Date(src.deadline).toISOString() : undefined,
+            paymentMode: src.paymentMode === 'cash' ? 'cash' : 'online',
+            requirements: Array.isArray(src.requirements)
+              ? src.requirements
+              : Array.isArray(src.skills)
+                ? src.skills.slice(0, 10)
+                : [],
+            attachments: Array.isArray(src.attachments) ? src.attachments.slice(0, 5) : [],
+          };
+
           const data = await apiPost<any>(ENDPOINTS.tasks.create, body);
           const task = (data?.task ?? data) as Task;
           if (task && task.id) {
             get().addTask(task);
           }
-          set({ isCreating: false });
+          set({ isCreating: false, error: null });
           return true;
         } catch (error: any) {
-          console.warn('[TaskStore] createTask failed:', error);
-          set({
-            isCreating: false,
-            error: error?.response?.data?.message || 'Failed to create task',
-          });
-          return false;
+          const message = getApiErrorMessage(error, 'Failed to create task. Please try again.');
+          console.warn('[TaskStore] createTask failed:', error?.response?.data ?? error);
+          set({ isCreating: false, error: message });
+          // Rethrow so screens show the real backend message
+          // (validation error, KYC requirement, ...) instead of failing silently.
+          throw new Error(message);
         }
       },
 

@@ -134,7 +134,7 @@ export default function DataUsageScreen() {
               <StorageBreakdownItem 
                 label="App Data" 
                 value={storageInfo.app} 
-                color="#4F46E5" 
+                color="#8B85FF" 
                 percentage={73}
                 isDark={isDark}
               />
@@ -164,7 +164,7 @@ export default function DataUsageScreen() {
             title="Download Your Data"
             description="Get a copy of all your data in JSON format"
             icon="download-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={handleDownloadData}
             showArrow
@@ -214,7 +214,7 @@ export default function DataUsageScreen() {
             value={autoClearCache}
             onChange={setAutoClearCache}
             icon="refresh-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -239,7 +239,7 @@ export default function DataUsageScreen() {
             value={offlineMode}
             onChange={setOfflineMode}
             icon="wifi-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -281,7 +281,7 @@ export default function DataUsageScreen() {
             value={usageAnalytics}
             onChange={setUsageAnalytics}
             icon="analytics-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   storageCard: { backgroundColor: '#f8f9fa', borderRadius: 12, padding: 16 },
   storageBarContainer: { marginBottom: 16 },
   storageBarBg: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  storageBarFill: { height: '100%', borderRadius: 4, backgroundColor: '#4F46E5' },
+  storageBarFill: { height: '100%', borderRadius: 4, backgroundColor: '#8B85FF' },
   storageUsed: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'right' },
   storageBreakdown: { flexDirection: 'row', justifyContent: 'space-between' },
   storageBreakdownItem: { flex: 1, alignItems: 'center', paddingHorizontal: 8 },

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, ScrollView, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTaskStore } from '@/store/taskStore';
@@ -16,11 +16,13 @@ export default function TasksScreen() {
   const { nearbyTasks: storedNearbyTasks, myTasks: storedMyTasks, assignedTasks: storedAssignedTasks, getFilteredTasks, setFilters } = useTaskStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
+  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'nearby' | 'my' | 'applied'>('nearby');
 
-  const isDark = theme === 'dark';
+  // System-aware: 'system' follows the OS scheme so text/background always contrast
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
   const nearbyTasks = storedNearbyTasks ?? [];
   const myTasks = storedMyTasks ?? [];
   const assignedTasks = storedAssignedTasks ?? [];
@@ -145,7 +147,7 @@ export default function TasksScreen() {
           )}
         </View>
         <TouchableOpacity style={styles.filterButton} onPress={() => router.push('/(screens)/task-filters')}>
-          <Ionicons name="funnel-outline" size={22} color="#4F46E5" />
+          <Ionicons name="funnel-outline" size={22} color="#8B85FF" />
         </TouchableOpacity>
       </View>
 
@@ -157,15 +159,15 @@ export default function TasksScreen() {
             style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]}
             onPress={() => setActiveTab(tab.id as any)}
           >
-            <Text style={[styles.tabLabel, { color: activeTab === tab.id ? '#4F46E5' : isDark ? '#888' : '#666' }]}>{tab.label}</Text>
+            <Text style={[styles.tabLabel, { color: activeTab === tab.id ? '#8B85FF' : isDark ? '#888' : '#666' }]}>{tab.label}</Text>
             {tab.count > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.id ? '#4F46E5' : '#eee' }]}>
-                <Text style={[styles.tabBadgeText, { color: activeTab === tab.id ? '#fff' : '#4F46E5' }]}>{tab.count > 99 ? '99+' : tab.count}</Text>
+              <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.id ? '#8B85FF' : '#eee' }]}>
+                <Text style={[styles.tabBadgeText, { color: activeTab === tab.id ? '#fff' : '#8B85FF' }]}>{tab.count > 99 ? '99+' : tab.count}</Text>
               </View>
             )}
           </TouchableOpacity>
         ))}
-        <View style={[styles.tabIndicator, { backgroundColor: '#4F46E5' }, { transform: [{ translateX: activeTab === 'nearby' ? 0 : activeTab === 'my' ? 100 : 200 }] }]} />
+        <View style={[styles.tabIndicator, { backgroundColor: '#8B85FF' }, { transform: [{ translateX: activeTab === 'nearby' ? 0 : activeTab === 'my' ? 100 : 200 }] }]} />
       </View>
 
       {/* Task List */}
@@ -175,7 +177,7 @@ export default function TasksScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />
         }
         ListEmptyComponent={
           <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
@@ -207,7 +209,7 @@ export default function TasksScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, gap: 8 },
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, gap: 8 },
   searchIcon: { marginRight: 4 },
   searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   filterButton: { padding: 8, marginLeft: 8 },
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
   tabBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
   tabIndicator: { position: 'absolute', bottom: 0, height: 3, width: 80, borderRadius: 3 },
   listContent: { padding: 16, paddingBottom: 100 },
-  taskCard: { marginBottom: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  taskCard: { marginBottom: 16, padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#eee', shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 2 },
   taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   taskCategory: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   taskCategoryText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase' },
@@ -233,14 +235,14 @@ const styles = StyleSheet.create({
   taskMetaText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
   taskFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
   taskPosted: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  applyButton: { backgroundColor: '#4F46E5', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8 },
+  applyButton: { backgroundColor: '#8B85FF', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8 },
   applyButtonText: { color: '#fff', fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, marginTop: 40 },
   emptyText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
   emptySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  createTaskButton: { marginTop: 20, backgroundColor: '#4F46E5', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
+  createTaskButton: { marginTop: 20, backgroundColor: '#8B85FF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
   createTaskButtonText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', shadowColor: '#8B85FF', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 6 },
   authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
   authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },

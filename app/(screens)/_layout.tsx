@@ -4,10 +4,18 @@
  */
 
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useAuthStore } from '@/store/authStore';
 
 export default function ScreensLayout() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Auth guard: screens in this group require a signed-in user.
+  // On logout this redirects to "/" (welcome) immediately instead of
+  // leaving the user stranded on the same screen until an app restart.
+  if (!isAuthenticated) return <Redirect href="/" />;
+
   return (
     <Stack
       screenOptions={{

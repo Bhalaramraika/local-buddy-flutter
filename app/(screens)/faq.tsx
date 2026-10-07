@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   searchIcon: { marginRight: 12 },
   searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  section: { borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#eee' },
   categoryTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   faqList: { gap: 0 },
   faqItem: { paddingVertical: 16 },
@@ -278,6 +278,6 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 32 },
   helpDesc: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  contactButton: { backgroundColor: '#4F46E5', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  contactButton: { backgroundColor: '#8B85FF', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
   contactButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
 });

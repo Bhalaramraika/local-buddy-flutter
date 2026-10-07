@@ -47,7 +47,7 @@ export default function NotificationDetailScreen() {
 
   const getTypeConfig = (type: string) => {
     const configs: Record<string, { icon: string; color: string; bgColor: string }> = {
-      task: { icon: 'clipboard-outline', color: '#4F46E5', bgColor: '#4F46E515' },
+      task: { icon: 'clipboard-outline', color: '#8B85FF', bgColor: '#8B85FF15' },
       message: { icon: 'chatbubbles-outline', color: '#10B981', bgColor: '#10B98115' },
       payment: { icon: 'card-outline', color: '#F59E0B', bgColor: '#F59E0B15' },
       system: { icon: 'information-circle-outline', color: '#6B7280', bgColor: '#6B728015' },

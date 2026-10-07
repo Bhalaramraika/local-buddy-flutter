@@ -287,6 +287,7 @@ router.post(
           language: 'en',
           city: '',
           kyc: { status: 'not_started', documents: [] },
+          kycApproved: false,
           wallet: { balance: 0, pendingBalance: 0, currency: 'INR', bankAccounts: [] },
           rating: { average: 0, count: 0, breakdown: {} },
           stats: { tasksCompleted: 0, tasksPosted: 0, totalEarnings: 0, totalSpent: 0, responseTime: 0, completionRate: 100 },

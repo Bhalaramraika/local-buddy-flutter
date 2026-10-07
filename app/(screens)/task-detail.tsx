@@ -20,6 +20,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/helpers';
+import { Colors } from '@/constants/design';
 
 export default function TaskDetailScreen() {
   const router = useRouter();
@@ -134,7 +135,7 @@ export default function TaskDetailScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading task...</Text>
         </View>
       </View>
@@ -303,7 +304,7 @@ export default function TaskDetailScreen() {
                 {isPoster && (
                   <TouchableOpacity style={styles.viewAllButton}>
                     <Text style={styles.viewAllButtonText}>View All</Text>
-                    <Ionicons name="chevron-forward-outline" size={18} color="#4F46E5" />
+                    <Ionicons name="chevron-forward-outline" size={18} color="#8B85FF" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -343,7 +344,7 @@ export default function TaskDetailScreen() {
               <>
                 {task.status === 'open' && (
                   <TouchableOpacity style={styles.editButton} onPress={() => router.push({ pathname: `/(screens)/edit-task`, params: { taskId: task.id } })}>
-                    <Ionicons name="create-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="create-outline" size={20} color="#8B85FF" />
                     <Text style={styles.editButtonText}>Edit Task</Text>
                   </TouchableOpacity>
                 )}
@@ -384,7 +385,7 @@ export default function TaskDetailScreen() {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.chatButton} onPress={handleChat}>
-                  <Ionicons name="chatbubble-outline" size={20} color="#4F46E5" />
+                  <Ionicons name="chatbubble-outline" size={20} color="#8B85FF" />
                   <Text style={styles.chatButtonText}>Chat</Text>
                 </TouchableOpacity>
               </>
@@ -394,8 +395,8 @@ export default function TaskDetailScreen() {
           {/* Save/Report */}
           <View style={styles.bottomActions}>
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#4F46E5' : (isDark ? '#888' : '#666')} />
-              <Text style={[styles.saveButtonText, { color: saved ? '#4F46E5' : (isDark ? '#fff' : '#000') }]}>
+              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? Colors.brand.primary : (isDark ? '#888' : '#666')} />
+              <Text style={[styles.saveButtonText, { color: saved ? Colors.brand.primary : (isDark ? '#fff' : '#000') }]}>
                 {saved ? 'Saved' : 'Save'}
               </Text>
             </TouchableOpacity>
@@ -442,14 +443,14 @@ const styles = StyleSheet.create({
   taskImage: { width: '100%', height: '100%' },
   urgentBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   urgentBadgeText: { color: '#fff', fontSize: 11, fontFamily: 'Inter_700Bold' },
-  remoteBadge: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#4F46E5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  remoteBadge: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.brand.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   remoteBadgeText: { color: '#fff', fontSize: 11, fontFamily: 'Inter_700Bold' },
   content: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
   titleSection: { marginBottom: 20 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   categoryBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   categoryBadgeText: { color: '#fff', fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  hourlyBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, backgroundColor: '#F59E0B20' },
+  hourlyBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 28, backgroundColor: '#F59E0B20' },
   hourlyBadgeText: { color: '#F59E0B', fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   taskTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 12 },
   budgetRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
@@ -462,13 +463,13 @@ const styles = StyleSheet.create({
   skillsSection: { marginTop: 12 },
   skillsLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 8 },
   skillsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skillTag: { backgroundColor: '#4F46E515', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  skillTagText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#4F46E5' },
+  skillTag: { backgroundColor: '#8B85FF15', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  skillTagText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.brand.primary },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 12 },
   descriptionText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
   posterCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: '#fafafa', borderRadius: 12 },
-  posterAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  posterAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   posterAvatarImage: { width: '100%', height: '100%' },
   posterAvatarText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
   posterInfo: { flex: 1 },
@@ -480,10 +481,10 @@ const styles = StyleSheet.create({
   posterStatDivider: { fontSize: 12 },
   applicationsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   viewAllButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  viewAllButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  viewAllButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
   applicationsList: { gap: 10 },
   applicationCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: '#fafafa', borderRadius: 10 },
-  applicantAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  applicantAvatar: { width: 44, height: 44, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   applicantAvatarImage: { width: '100%', height: '100%' },
   applicantAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
   applicantInfo: { flex: 1, minWidth: 0 },
@@ -495,16 +496,16 @@ const styles = StyleSheet.create({
   declineButton: { backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   declineButtonText: { color: '#fff', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   actionButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  applyButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#4F46E5', borderRadius: 12 },
+  applyButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: Colors.brand.primary, borderRadius: 12 },
   applyButtonDisabled: { opacity: 0.7 },
   applyButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
   appliedButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#10B981', borderRadius: 12 },
   appliedButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
-  chatButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#4F46E515', borderRadius: 12, borderWidth: 1, borderColor: '#4F46E5' },
-  chatButtonText: { color: '#4F46E5', fontSize: 16, fontFamily: 'Inter_700Bold' },
-  editButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#4F46E515', borderRadius: 12, borderWidth: 1, borderColor: '#4F46E5' },
-  editButtonText: { color: '#4F46E5', fontSize: 16, fontFamily: 'Inter_700Bold' },
-  closeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#EF444415', borderRadius: 12, borderWidth: 1, borderColor: '#EF4444' },
+  chatButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#8B85FF15', borderRadius: 32, borderWidth: 1, borderColor: Colors.brand.primary },
+  chatButtonText: { color: Colors.brand.primary, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  editButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#8B85FF15', borderRadius: 32, borderWidth: 1, borderColor: Colors.brand.primary },
+  editButtonText: { color: Colors.brand.primary, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  closeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: '#EF444415', borderRadius: 32, borderWidth: 1, borderColor: '#EF4444' },
   closeButtonText: { color: '#EF4444', fontSize: 16, fontFamily: 'Inter_700Bold' },
   bottomActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#eee' },
   saveButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },

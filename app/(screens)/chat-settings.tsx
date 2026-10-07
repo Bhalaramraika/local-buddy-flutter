@@ -50,7 +50,7 @@ const SettingToggle = ({ title, subtitle, value, onValueChange, isDark }: { titl
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: '#767577', true: '#4F46E5' }}
+      trackColor={{ false: '#767577', true: '#8B85FF' }}
       thumbColor={isDark ? '#fff' : '#f5f5f5'}
     />
   </View>
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 13, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   chatInfoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  chatAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  chatAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
   chatAvatarText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
   chatInfoDetails: { flex: 1 },
   chatName: { fontSize: 17, fontFamily: 'Inter_600SemiBold' },

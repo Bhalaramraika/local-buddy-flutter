@@ -1,69 +1,80 @@
 /**
- * Design System Constants
- * Based on Design.md specifications
+ * Design System - Soft Premium
+ * One source of truth for colors, typography, spacing, radius, shadows, animation.
  */
 
-// Brand Colors
-export const Colors = {
-  // Brand Colors
-  brand: {
-    primary: '#4F46E5',    // Indigo-600
-    secondary: '#06B6D4',  // Cyan-500
-    accent: '#F97316',     // Orange-500 (welcome/login CTA)
-    accentPressed: '#EA580C',
-  },
-  
-  // Surface Colors
-  surface: {
-    primary: '#F8FAFC',    // Slate-50
-    secondary: '#FFFFFF',  // White
-    elevated: '#F1F5F9',   // Slate-100
-  },
-  
-  // Semantic Colors
-  semantic: {
-    success: '#10B981',    // Emerald-500
-    warning: '#F59E0B',    // Amber-500
-    error: '#EF4444',      // Red-500
-    info: '#3B82F6',       // Blue-500
-  },
-  
-  // Text Colors
-  text: {
-    primary: '#0F172A',    // Slate-900
-    secondary: '#475569',  // Slate-600
-    muted: '#94A3B8',      // Slate-400
-    inverse: '#FFFFFF',    // White
-  },
-  
-  // Border Colors
-  border: {
-    light: '#E2E8F0',      // Slate-200
-    medium: '#CBD5E1',     // Slate-300
-    dark: '#94A3B8',       // Slate-400
-  },
-  
-  // Overlay
-  overlay: 'rgba(15, 23, 42, 0.5)', // Slate-900/50
-  
-  // Status specific
-  status: {
-    open: '#3B82F6',       // Blue-500
-    assigned: '#8B5CF6',   // Violet-500
-    in_progress: '#F59E0B', // Amber-500
-    completed: '#10B981',  // Emerald-500
-    cancelled: '#EF4444',  // Red-500
-    disputed: '#F97316',   // Orange-500
-  },
-  
-  // Role specific
-  role: {
-    poster: '#4F46E5',     // Indigo-600
-    buddy: '#06B6D4',      // Cyan-500
-  },
-} as const;
+// ============================================================
+// COLOR TOKENS
+// ============================================================
 
-// Spacing Scale (4px base)
+export const Colors = {
+  // Brand (Soft Lavender family)
+  brand: {
+    primary: '#8B85FF',
+    primaryPressed: '#5750C8',
+    primaryDeep: '#5750C8',       // @deprecated alias kept for compatibility
+    accent: '#FF8FAB',
+    accentSoft: '#FFD6E0',
+    accentPressed: '#F96E93',     // pressed hover state
+    coral: '#FF6B35',
+    secondary: '#06B6D4',         // @deprecated alias kept for compat
+  },
+
+  // Surfaces
+  surface: {
+    primary: '#FAF9F7',
+    secondary: '#FFFFFF',
+    tertiary: '#F0EFF7',
+    elevated: '#FFFFFF',
+  },
+
+  // Text
+  text: {
+    primary: '#1E1B2E',
+    secondary: '#6B6880',
+    muted: '#A8A5BC',
+    inverse: '#FFFFFF',
+  },
+
+  // Semantic
+  semantic: {
+    success: '#4ADE80',
+    successSoft: '#DCFCE7',
+    warning: '#FBBF24',
+    warningSoft: '#FEF3C7',
+    error: '#F43F5E',
+    errorSoft: '#FEE2E2',
+    info: '#60A5FA',
+    infoSoft: '#DBEAFE',
+  },
+
+  // Dark mode (pure night)
+  dark: {
+    surface: {
+      primary: '#0D0D1A',
+      secondary: '#16162A',
+      tertiary: '#1F1F3A',
+      elevated: '#1C1C33',
+    },
+    text: {
+      primary: '#F0EFFA',
+      secondary: '#9E9BB8',
+      muted: '#6B6880',
+      inverse: '#1E1B2E',
+    },
+  },
+
+  // Kitchen tools (used across components)
+  border: {
+    light: '#E9E6F5',
+    medium: '#D4D0EC',
+  },
+};
+
+// ============================================================
+// SPACING — 4 base, tight to airy scale (px)
+// ============================================================
+
 export const Spacing = {
   0: 0,
   1: 4,
@@ -74,181 +85,128 @@ export const Spacing = {
   6: 24,
   7: 28,
   8: 32,
+  9: 36,
   10: 40,
   12: 48,
+  14: 56,
   16: 64,
   20: 80,
   24: 96,
 } as const;
 
-// Border Radius
+// ============================================================
+// BORDER RADIUS — Soft-first, all round
+// ============================================================
+
 export const BorderRadius = {
-  none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  '2xl': 24,
-  full: 9999,
+  sm: 8,
+  md: 14,
+  lg: 20,
+  xl: 26,
+  '2xl': 32,
+  pill: 999,
+  full: 999,
 } as const;
 
-// Typography
+// ============================================================
+// TYPOGRAPHY — Inter only
+// ============================================================
+
 export const Typography = {
   fontFamily: {
-    sans: 'Inter',
-    heading: 'Inter',
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
-  
   fontSize: {
-    'display-lg': 48,
-    'display-md': 36,
-    'display-sm': 28,
-    'heading-lg': 24,
-    'heading-md': 20,
-    'heading-sm': 18,
-    'body-lg': 16,
-    'body-md': 14,
-    'body-sm': 12,
-    'label-lg': 14,
-    'label-md': 12,
-    'caption': 11,
+    xs: 11,
+    sm: 13,
+    base: 15,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    '2xl': 22,
+    '3xl': 26,
+    '4xl': 30,
+    '5xl': 36,
   },
-  
   lineHeight: {
-    'display-lg': 56,
-    'display-md': 44,
-    'display-sm': 36,
-    'heading-lg': 32,
-    'heading-md': 28,
-    'heading-sm': 24,
-    'body-lg': 24,
-    'body-md': 20,
-    'body-sm': 16,
-    'label-lg': 20,
-    'label-md': 16,
-    'caption': 14,
-  },
-  
-  fontWeight: {
-    regular: '400',
-    medium: '500',
-    semiBold: '600',
-    bold: '700',
-  },
-  
-  letterSpacing: {
-    tight: '-0.02em',
-    normal: '0',
-    wide: '0.01em',
+    tight: 1.2,
+    normal: 1.4,
+    relaxed: 1.6,
+    relaxedLarge: 1.8,
   },
 } as const;
 
-// Shadows
+// ============================================================
+// SHADOWS — soft, wide, low opacity
+// ============================================================
+
 export const Shadows = {
   card: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: '#B0A8FF',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 3,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  cardPressed: {
+    shadowColor: Colors.brand.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
     elevation: 2,
   },
-  'card-hover': {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
+  elevated: {
+    shadowColor: '#B0A8FF',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 16,
     elevation: 4,
   },
-  elevated: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
+  button: {
+    shadowColor: Colors.brand.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  modal: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 25 },
-    shadowOpacity: 0.25,
-    shadowRadius: 50,
-    elevation: 24,
+  floating: {
+    shadowColor: Colors.brand.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    elevation: 10,
   },
 } as const;
 
-// Animation Durations
+// ============================================================
+// ANIMATIONS — spring-based tokens for Reanimated
+// ============================================================
+
 export const Animation = {
-  duration: {
-    fast: 150,
-    normal: 200,
-    medium: 300,
-    slow: 500,
-  },
-  easing: {
-    easeOut: 'ease-out',
-    easeIn: 'ease-in',
-    easeInOut: 'ease-in-out',
-  },
+  spring: { damping: 15, stiffness: 150 },
+  gentle: { damping: 20, stiffness: 100 },
+  snappy: { damping: 14, stiffness: 220 },
+  slow: { damping: 22, stiffness: 80 },
+  pulse: { damping: 12, stiffness: 400 },
 } as const;
 
-// Breakpoints (for reference, RN doesn't use CSS breakpoints)
-export const Breakpoints = {
-  sm: 640,
-  md: 768,
-  lg: 1024,
-  xl: 1280,
-  '2xl': 1536,
+// ============================================================
+// ELEVATION alias (Android)
+// ============================================================
+
+export const Elevation = Shadows;
+
+// ============================================================
+// Breakpoints / layout
+// ============================================================
+
+export const Layout = {
+  minTouchTarget: 44,
+  tabBarHeight: 72,
+  screenHorizontalPadding: Spacing[5],
 } as const;
 
-// Z-Index Scale
-export const ZIndex = {
-  hide: -1,
-  base: 0,
-  dropdown: 100,
-  sticky: 200,
-  fixed: 300,
-  modalBackdrop: 400,
-  modal: 500,
-  popover: 600,
-  tooltip: 700,
-  toast: 800,
-} as const;
-
-// Screen Padding
-export const ScreenPadding = {
-  horizontal: 16,
-  vertical: 16,
-} as const;
-
-// Icon Sizes
-export const IconSize = {
-  xs: 16,
-  sm: 20,
-  md: 24,
-  lg: 28,
-  xl: 32,
-  '2xl': 40,
-} as const;
-
-// Avatar Sizes
-export const AvatarSize = {
-  xs: 28,
-  sm: 36,
-  md: 44,
-  lg: 56,
-  xl: 72,
-  '2xl': 96,
-} as const;
-
-// Input Heights
-export const InputHeight = {
-  sm: 40,
-  md: 48,
-  lg: 56,
-} as const;
-
-// Button Heights
-export const ButtonHeight = {
-  sm: 40,
-  md: 48,
-  lg: 56,
-} as const;
+export default { Colors, Spacing, BorderRadius, Typography, Shadows, Elevation, Layout };

@@ -21,6 +21,7 @@ service cloud.firestore {
         && !('wallet' in request.resource.data.diff(resource.data).affectedKeys())
         && !('stats' in request.resource.data.diff(resource.data).affectedKeys())
         && !('kyc' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('kycApproved' in request.resource.data.diff(resource.data).affectedKeys())
         && !('fcmTokens' in request.resource.data.diff(resource.data).affectedKeys())
         && !('commissionDue' in request.resource.data.diff(resource.data).affectedKeys())
         && !('rating' in request.resource.data.diff(resource.data).affectedKeys())

@@ -79,7 +79,7 @@ export default function PrivacySettingsScreen() {
             title="Friends Only"
             description="Only your connections can see your profile"
             icon="people-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             selected={profileVisibility === 'friends'}
             onPress={() => setProfileVisibility('friends')}
             isDark={isDark}
@@ -106,7 +106,7 @@ export default function PrivacySettingsScreen() {
             value={showOnlineStatus}
             onChange={setShowOnlineStatus}
             icon="person-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -139,7 +139,7 @@ export default function PrivacySettingsScreen() {
             title="Friends Only"
             description="Only your connections can message you"
             icon="people-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             selected={allowMessages === 'friends'}
             onPress={() => setAllowMessages('friends')}
             isDark={isDark}
@@ -166,7 +166,7 @@ export default function PrivacySettingsScreen() {
             value={dataCollection}
             onChange={setDataCollection}
             icon="analytics-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -199,7 +199,7 @@ export default function PrivacySettingsScreen() {
             title="Download My Data"
             description="Get a copy of all your data"
             icon="download-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={handleDownloadData}
             showArrow
@@ -225,7 +225,7 @@ export default function PrivacySettingsScreen() {
             title="Privacy Policy"
             description="Read our privacy policy"
             icon="document-text-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/privacy')}
             showArrow

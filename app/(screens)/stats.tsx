@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useTaskStore } from '@/store/taskStore';
 import { apiGet } from '@/services/api';
+import { Colors } from '@/constants/design';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -138,7 +139,7 @@ export default function StatsScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading statistics...</Text>
         </View>
       </View>
@@ -227,12 +228,12 @@ const OverviewTab = ({ stats, isDark, formatCurrency }: any) => (
           <Text style={[styles.levelLabel, { color: isDark ? '#888' : '#666' }]}>Current Level</Text>
           <Text style={[styles.levelNumber, { color: isDark ? '#fff' : '#000' }]}>Level {stats.level}</Text>
         </View>
-        <View style={[styles.levelProgressContainer, { backgroundColor: '#4F46E515' }]}>
-          <Text style={[styles.levelProgressText, { color: '#4F46E5' }]}>{stats.xp} / {stats.nextLevelXp} XP</Text>
+        <View style={[styles.levelProgressContainer, { backgroundColor: '#8B85FF15' }]}>
+          <Text style={[styles.levelProgressText, { color: Colors.brand.primary }]}>{stats.xp} / {stats.nextLevelXp} XP</Text>
         </View>
       </View>
       <View style={styles.levelProgressBar}>
-        <View style={[styles.levelProgressFill, { backgroundColor: '#4F46E5', width: `${(stats.xp / stats.nextLevelXp) * 100}%` }]} />
+        <View style={[styles.levelProgressFill, { backgroundColor: Colors.brand.primary, width: `${(stats.xp / stats.nextLevelXp) * 100}%` }]} />
       </View>
     </View>
 
@@ -249,7 +250,7 @@ const OverviewTab = ({ stats, isDark, formatCurrency }: any) => (
         title="Tasks Posted" 
         value={stats.totalTasksPosted} 
         icon="add-circle-outline" 
-        color="#4F46E5" 
+        color="#8B85FF" 
         isDark={isDark} 
       />
       <StatCard 
@@ -312,8 +313,8 @@ const OverviewTab = ({ stats, isDark, formatCurrency }: any) => (
     <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
       <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Member Since</Text>
       <View style={styles.memberSinceRow}>
-        <View style={[styles.memberSinceIcon, { backgroundColor: '#4F46E515' }]}>
-          <Ionicons name="calendar-outline" size={24} color="#4F46E5" />
+        <View style={[styles.memberSinceIcon, { backgroundColor: '#8B85FF15' }]}>
+          <Ionicons name="calendar-outline" size={24} color="#8B85FF" />
         </View>
         <View>
           <Text style={[styles.memberSinceDate, { color: isDark ? '#fff' : '#000' }]}>{new Date(stats.memberSince).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
@@ -355,7 +356,7 @@ const TasksTab = ({ stats, isDark }: any) => (
           <View key={month.month} style={styles.chartBarGroup}>
             <View style={styles.chartBars}>
               <View style={[styles.chartBar, { height: `${(month.completed / 10) * 100}%`, backgroundColor: '#10B981' }]} />
-              <View style={[styles.chartBar, { height: `${(month.posted / 10) * 100}%`, backgroundColor: '#4F46E5', marginLeft: 4 }]} />
+              <View style={[styles.chartBar, { height: `${(month.posted / 10) * 100}%`, backgroundColor: Colors.brand.primary, marginLeft: 4 }]} />
             </View>
             <Text style={[styles.chartLabel, { color: isDark ? '#888' : '#666' }]}>{month.month}</Text>
           </View>
@@ -367,7 +368,7 @@ const TasksTab = ({ stats, isDark }: any) => (
           <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Completed</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#4F46E5' }]} />
+          <View style={[styles.legendColor, { backgroundColor: Colors.brand.primary }]} />
           <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Posted</Text>
         </View>
       </View>
@@ -447,7 +448,7 @@ const EarningsTab = ({ stats, isDark, formatCurrency }: any) => (
 
     {/* Summary Stats */}
     <View style={styles.statsGrid}>
-      <StatCard title="This Month" value={formatCurrency(stats.thisMonth)} icon="calendar-outline" color="#4F46E5" isDark={isDark} />
+      <StatCard title="This Month" value={formatCurrency(stats.thisMonth)} icon="calendar-outline" color="#8B85FF" isDark={isDark} />
       <StatCard title="Last Month" value={formatCurrency(stats.lastMonth)} icon="calendar-outline" color="#8B5CF6" isDark={isDark} />
       <StatCard title="Avg/Task" value={formatCurrency(stats.avgPerTask)} icon="calculator-outline" color="#10B981" isDark={isDark} />
       <StatCard title="Highest" value={formatCurrency(stats.highestEarning)} icon="trending-up-outline" color="#F59E0B" isDark={isDark} />
@@ -465,7 +466,7 @@ const ActivityTab = ({ stats, isDark }: any) => (
         {stats.weeklyActivity.map((day: any) => (
           <View key={day.day} style={styles.chartBarGroup}>
             <View style={styles.chartBars}>
-              <View style={[styles.chartBar, { height: `${(day.tasks / 5) * 100}%`, backgroundColor: '#4F46E5' }]} />
+              <View style={[styles.chartBar, { height: `${(day.tasks / 5) * 100}%`, backgroundColor: Colors.brand.primary }]} />
               <View style={[styles.chartBar, { height: `${(day.hours / 5) * 100}%`, backgroundColor: '#10B981', marginLeft: 4 }]} />
             </View>
             <Text style={[styles.chartLabel, { color: isDark ? '#888' : '#666' }]}>{day.day}</Text>
@@ -474,7 +475,7 @@ const ActivityTab = ({ stats, isDark }: any) => (
       </View>
       <View style={styles.chartLegend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#4F46E5' }]} />
+          <View style={[styles.legendColor, { backgroundColor: Colors.brand.primary }]} />
           <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Tasks</Text>
         </View>
         <View style={styles.legendItem}>
@@ -487,12 +488,12 @@ const ActivityTab = ({ stats, isDark }: any) => (
     {/* Activity Stats */}
     <View style={styles.statsGrid}>
       <StatCard title="Login Streak" value={stats.loginStreak} icon="flame-outline" color="#EF4444" isDark={isDark} subtitle="days" />
-      <StatCard title="Tasks This Week" value={stats.tasksThisWeek} icon="calendar-outline" color="#4F46E5" isDark={isDark} />
+      <StatCard title="Tasks This Week" value={stats.tasksThisWeek} icon="calendar-outline" color="#8B85FF" isDark={isDark} />
       <StatCard title="Tasks This Month" value={stats.tasksThisMonth} icon="calendar-outline" color="#10B981" isDark={isDark} />
       <StatCard title="Hours Active" value={stats.hoursActive} icon="time-outline" color="#F59E0B" isDark={isDark} />
       <StatCard title="Messages Sent" value={stats.messagesSent} icon="chatbubble-outline" color="#8B5CF6" isDark={isDark} />
       <StatCard title="Reviews Written" value={stats.reviewsWritten} icon="star-outline" color="#F59E0B" isDark={isDark} />
-      <StatCard title="Referrals Made" value={stats.referralsMade} icon="person-add-outline" color="#4F46E5" isDark={isDark} />
+      <StatCard title="Referrals Made" value={stats.referralsMade} icon="person-add-outline" color="#8B85FF" isDark={isDark} />
       <StatCard title="Achievements" value={stats.achievementsUnlocked} icon="trophy-outline" color="#EF4444" isDark={isDark} />
     </View>
 
@@ -532,33 +533,33 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  timeRangeContainer: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  timeRangeContainer: { borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee' },
   timeRangeLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
   timeRangeTabs: { flexDirection: 'row', gap: 8 },
-  timeRangeTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#eee' },
-  timeRangeTabActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  timeRangeTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
+  timeRangeTabActive: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary },
   timeRangeTabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  tabContainer: { borderRadius: 16, padding: 4, borderWidth: 1, borderColor: '#eee' },
+  tabContainer: { borderRadius: 28, padding: 4, borderWidth: 1, borderColor: '#eee' },
   tabScroll: { flexDirection: 'row', gap: 4 },
   tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16 },
-  tabActive: { backgroundColor: '#4F46E5' },
+  tabActive: { backgroundColor: Colors.brand.primary },
   tabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginTop: 16 },
-  statCard: { width: '48%', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  statIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  statCard: { width: '48%', borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
+  statIcon: { width: 48, height: 48, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   statValue: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   statTitle: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center', marginTop: 4 },
   statSubtitle: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
-  sectionCard: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  sectionCard: { borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  levelCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
+  levelCard: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   levelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   levelInfo: { flex: 1 },
   levelLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   levelNumber: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   levelProgressContainer: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   levelProgressText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  levelProgressBar: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
+  levelProgressBar: { height: 8, borderRadius: 28, backgroundColor: '#E5E7EB', overflow: 'hidden' },
   levelProgressFill: { height: '100%', borderRadius: 4 },
   streakRow: { flexDirection: 'row' },
   streakItem: { flex: 1, alignItems: 'center', gap: 8 },
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
   categoryInfo: { flex: 1 },
   categoryName: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   categoryCount: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  categoryBar: { width: 60, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB', marginHorizontal: 12 },
+  categoryBar: { width: 60, height: 6, borderRadius: 5, backgroundColor: '#E5E7EB', marginHorizontal: 12 },
   categoryBarFill: { height: '100%', borderRadius: 3 },
   categoryValue: { fontSize: 14, fontFamily: 'Inter_700Bold', minWidth: 50, textAlign: 'right' },
   chartContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 120, paddingVertical: 16 },
@@ -589,7 +590,7 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendColor: { width: 12, height: 12, borderRadius: 3 },
   legendText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  netEarningsCard: { borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16, alignItems: 'center' },
+  netEarningsCard: { borderRadius: 28, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16, alignItems: 'center' },
   netEarningsLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
   netEarningsValue: { fontSize: 36, fontFamily: 'Inter_700Bold' },
   netEarningsBreakdown: { flexDirection: 'row', alignItems: 'center', marginTop: 16, width: '100%' },

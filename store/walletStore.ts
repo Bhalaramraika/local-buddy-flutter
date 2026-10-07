@@ -14,7 +14,7 @@ import {
   WalletStats,
   PaginatedResponse
 } from '@/types';
-import { apiGet, apiPost, ENDPOINTS } from '@/services/api';
+import { apiGet, apiPost, ENDPOINTS, getApiErrorMessage } from '@/services/api';
 import { initWalletTopup, refreshWalletAfterPayment, type PayUInitResponse } from '@/services/payment';
 import { formatCurrency as formatINR } from '@/utils/helpers';
 
@@ -142,6 +142,17 @@ const defaultPagination = {
   limit: 20,
   total: 0,
   hasMore: true,
+};
+
+// Firestore timestamps arrive over REST JSON as {_seconds, _nanoseconds}
+// objects; plain strings/numbers pass through unchanged.
+const toIsoString = (v: any): string => {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return new Date(v).toISOString();
+  if (typeof v._seconds === 'number') return new Date(v._seconds * 1000).toISOString();
+  if (typeof v.seconds === 'number') return new Date(v.seconds * 1000).toISOString();
+  return '';
 };
 
 export const useWalletStore = create<WalletState>()(
@@ -354,8 +365,8 @@ export const useWalletStore = create<WalletState>()(
             referenceId: t.taskId ?? t.txnid,
             referenceType: t.taskId ? 'task' : 'payment',
             metadata: t.metadata,
-            createdAt: t.createdAt ?? '',
-            updatedAt: t.updatedAt ?? t.createdAt ?? '',
+            createdAt: toIsoString(t.createdAt),
+            updatedAt: toIsoString(t.updatedAt) || toIsoString(t.createdAt),
           }));
           set((state) => ({
             transactions: page === 1
@@ -425,8 +436,9 @@ export const useWalletStore = create<WalletState>()(
           set({ isProcessing: false });
           return res;
         } catch (error: any) {
-          set({ isProcessing: false, error: error?.response?.data?.message || error?.message || 'Top-up failed' });
-          return { success: false, error: error?.response?.data?.message || error?.message || 'Top-up failed' };
+          const message = getApiErrorMessage(error, 'Unable to start payment. Please try again.');
+          set({ isProcessing: false, error: message });
+          return { success: false, error: message };
         }
       },
 

@@ -18,6 +18,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
+import { Colors } from '@/constants/design';
 
 export default function MyTasksScreen() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function MyTasksScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return '#4F46E5';
+      case 'open': return Colors.brand.primary;
       case 'in_progress': return '#F59E0B';
       case 'completed': return '#10B981';
       case 'cancelled': return '#EF4444';
@@ -136,7 +137,7 @@ export default function MyTasksScreen() {
         </Text>
         {item.status === 'open' && (
           <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#4F46E5' }]}
+            style={[styles.actionButton, { backgroundColor: Colors.brand.primary }]}
             onPress={(e) => { e.stopPropagation(); handleStatusChange(item, 'in_progress'); }}
           >
             <Text style={styles.actionButtonText}>Start</Text>
@@ -194,7 +195,7 @@ export default function MyTasksScreen() {
             style={[
               styles.filterTab,
               filter === f ? styles.filterTabActive : {},
-              { backgroundColor: filter === f ? '#4F46E5' : (isDark ? '#2a2a2a' : '#fff') }
+              { backgroundColor: filter === f ? Colors.brand.primary : (isDark ? '#2a2a2a' : '#fff') }
             ]}
             onPress={() => setFilter(f as any)}
           >
@@ -227,7 +228,7 @@ export default function MyTasksScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : Colors.brand.primary]} />
         }
         ListEmptyComponent={renderEmptyState}
       />
@@ -240,13 +241,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   filterContainer: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  filterTab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#eee' },
-  filterTabActive: { borderColor: '#4F46E5' },
+  filterTab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
+  filterTabActive: { borderColor: Colors.brand.primary },
   filterTabText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   filterBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   filterBadgeText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   listContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 12 },
-  taskCard: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
+  taskCard: { borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee' },
   taskCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   taskTitleContainer: { flex: 1, gap: 8 },
   taskTitle: { fontSize: 17, fontFamily: 'Inter_600SemiBold' },
@@ -260,9 +261,9 @@ const styles = StyleSheet.create({
   applicantsCount: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   actionButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   actionButtonText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: '#fff' },
-  emptyState: { paddingVertical: 60, alignItems: 'center', gap: 16, borderRadius: 16, borderWidth: 1, borderColor: '#eee', marginHorizontal: 16, marginTop: 16 },
+  emptyState: { paddingVertical: 60, alignItems: 'center', gap: 16, borderRadius: 28, borderWidth: 1, borderColor: '#eee', marginHorizontal: 16, marginTop: 16 },
   emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 40 },
-  emptyAction: { marginTop: 8, paddingVertical: 12, paddingHorizontal: 32, backgroundColor: '#4F46E5', borderRadius: 10 },
+  emptyAction: { marginTop: 8, paddingVertical: 12, paddingHorizontal: 32, backgroundColor: Colors.brand.primary, borderRadius: 10 },
   emptyActionText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#fff' },
 });

@@ -30,7 +30,14 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => logout() },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: () => {
+          logout();
+          router.replace('/');
+        },
+      },
     ]);
   };
 
@@ -229,7 +236,7 @@ export default function SettingsScreen() {
           <Switch
             value={item.value}
             onValueChange={item.onValueChange}
-            trackColor={{ false: '#767577', true: '#4F46E5' }}
+            trackColor={{ false: '#767577', true: Colors.brand.primary }}
             thumbColor={isDark ? '#fff' : '#f5f5f5'}
             disabled={isDisabled}
           />
@@ -316,6 +323,7 @@ export default function SettingsScreen() {
 
 // Need to import Image
 import { Image } from 'react-native';
+import { Colors } from '@/constants/design';
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -323,17 +331,17 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
-  userCard: { borderRadius: 16, padding: 16, marginBottom: 8 },
+  userCard: { borderRadius: 28, padding: 16, marginBottom: 8 },
   userCardContent: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  userAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  userAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   userAvatarImage: { width: '100%', height: '100%' },
   userAvatarText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
   userInfo: { flex: 1 },
   userName: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   userEmail: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  section: { borderRadius: 16, overflow: 'hidden' },
+  section: { borderRadius: 28, overflow: 'hidden' },
   sectionTitle: { fontSize: 13, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  sectionContent: { borderRadius: 12, overflow: 'hidden' },
+  sectionContent: { borderRadius: 32, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 14 },
   itemDisabled: { opacity: 0.5 },
   itemIcon: { width: 28, alignItems: 'center' },

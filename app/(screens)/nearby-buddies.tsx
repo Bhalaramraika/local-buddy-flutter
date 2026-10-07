@@ -102,7 +102,7 @@ export default function NearbyBuddiesScreen() {
 
   const getSkillColor = (skill: string) => {
     const colors: Record<string, string> = {
-      'Cleaning': '#4F46E5',
+      'Cleaning': '#8B85FF',
       'Organization': '#10B981',
       'Pet Care': '#F59E0B',
       'Handyman': '#EF4444',
@@ -139,9 +139,9 @@ export default function NearbyBuddiesScreen() {
         <View style={styles.buddyInfo}>
           <View style={styles.buddyNameRow}>
             <Text style={[styles.buddyName, { color: isDark ? '#fff' : '#000' }]}>{item.name}</Text>
-            <View style={[styles.ratingBadge, { backgroundColor: item.rating >= 4.8 ? '#F59E0B15' : '#4F46E515' }]}>
-              <Ionicons name="star" size={12} color={item.rating >= 4.8 ? '#F59E0B' : '#4F46E5'} />
-              <Text style={[styles.ratingText, { color: item.rating >= 4.8 ? '#F59E0B' : '#4F46E5' }]}>{item.rating}</Text>
+            <View style={[styles.ratingBadge, { backgroundColor: item.rating >= 4.8 ? '#F59E0B15' : '#8B85FF15' }]}>
+              <Ionicons name="star" size={12} color={item.rating >= 4.8 ? '#F59E0B' : '#8B85FF'} />
+              <Text style={[styles.ratingText, { color: item.rating >= 4.8 ? '#F59E0B' : '#8B85FF' }]}>{item.rating}</Text>
             </View>
           </View>
           <View style={styles.buddyMeta}>
@@ -215,7 +215,7 @@ export default function NearbyBuddiesScreen() {
           <Text style={[styles.radiusLabel, { color: isDark ? '#fff' : '#000' }]}>Search Radius: {radius} km</Text>
           <View style={styles.sliderContainer}>
             <View style={[styles.sliderTrack, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}>
-              <View style={[styles.sliderProgress, { backgroundColor: '#4F46E5', width: `${(radius / 50) * 100}%` }]} />
+              <View style={[styles.sliderProgress, { backgroundColor: '#8B85FF', width: `${(radius / 50) * 100}%` }]} />
             </View>
           </View>
         </View>
@@ -229,7 +229,7 @@ export default function NearbyBuddiesScreen() {
             style={[
               styles.filterTab,
               filter === tab && styles.filterTabActive,
-              { backgroundColor: filter === tab ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
+              { backgroundColor: filter === tab ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
             ]}
             onPress={() => setFilter(tab as any)}
           >

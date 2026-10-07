@@ -65,7 +65,7 @@ Prohibited:
       id: 'respect',
       title: '2. Respect & Inclusion',
       icon: 'people-outline',
-      color: '#4F46E5',
+      color: '#8B85FF',
       content: `Treat everyone with dignity and respect.
 
 Zero Tolerance for:
@@ -166,7 +166,7 @@ Prohibited:
       id: 'privacy',
       title: '6. Privacy & Data',
       icon: 'lock-closed-outline',
-      color: '#4F46E5',
+      color: '#8B85FF',
       content: `Respect everyone's privacy.
 
 • Don't share other users' personal info (address, phone, ID docs) outside the task
@@ -254,7 +254,7 @@ Recognitions:
       id: 'changes',
       title: '10. Changes to Guidelines',
       icon: 'document-text-outline',
-      color: '#4F46E5',
+      color: '#8B85FF',
       content: `We may update these guidelines as our community evolves. Material changes will be announced via in-app notification and email. Continued use constitutes acceptance.
 
 Last updated: ${lastUpdated} | Version ${version}`,
@@ -302,7 +302,7 @@ Last updated: ${lastUpdated} | Version ${version}`,
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
           <View style={styles.quickLinks}>
             <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/contact-support')}>
-              <Ionicons name="chatbubble-outline" size={22} color="#4F46E5" style={{ marginRight: 12 }} />
+              <Ionicons name="chatbubble-outline" size={22} color="#8B85FF" style={{ marginRight: 12 }} />
               <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Contact Support</Text>
               <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
             </TouchableOpacity>

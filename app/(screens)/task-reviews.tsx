@@ -72,7 +72,7 @@ export default function TaskReviewsScreen() {
             style={[
               styles.filterTab,
               filter === tab && styles.filterTabActive,
-              { backgroundColor: filter === tab ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
+              { backgroundColor: filter === tab ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
             ]}
             onPress={() => setFilter(tab as any)}
           >
@@ -109,7 +109,7 @@ export default function TaskReviewsScreen() {
             value="42"
             subtitle="Average: 4.7"
             icon="send-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           <ReviewStatCard
@@ -171,8 +171,8 @@ export default function TaskReviewsScreen() {
                       <View style={styles.reviewNameRow}>
                         <Text style={[styles.reviewerName, { color: isDark ? '#fff' : '#000' }]}>{review.reviewerName}</Text>
                         <View style={styles.reviewTypeBadge}>
-                          <Ionicons name={review.type === 'given' ? 'send-outline' : 'download-outline'} size={12} color="#4F46E5" />
-                          <Text style={[styles.reviewTypeText, { color: '#4F46E5' }]}>{review.type === 'given' ? 'Given' : 'Received'}</Text>
+                          <Ionicons name={review.type === 'given' ? 'send-outline' : 'download-outline'} size={12} color="#8B85FF" />
+                          <Text style={[styles.reviewTypeText, { color: '#8B85FF' }]}>{review.type === 'given' ? 'Given' : 'Received'}</Text>
                         </View>
                       </View>
                       <View style={styles.reviewMeta}>
@@ -248,12 +248,12 @@ const styles = StyleSheet.create({
   reviewsList: { },
   reviewItem: { paddingVertical: 16 },
   reviewHeader: { flexDirection: 'row', marginBottom: 12 },
-  reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   reviewAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
   reviewInfo: { flex: 1 },
   reviewNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   reviewerName: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  reviewTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#4F46E515', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  reviewTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8B85FF15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   reviewTypeText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   reviewMeta: { gap: 2 },
   reviewTask: { fontSize: 13, fontFamily: 'Inter_500Medium' },

@@ -257,7 +257,7 @@ Last updated: ${lastUpdated} | Version ${version}`,
         {/* Acceptance Notice */}
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
           <View style={styles.noticeBox}>
-            <Ionicons name="information-circle-outline" size={24} color="#4F46E5" style={{ marginRight: 12 }} />
+            <Ionicons name="information-circle-outline" size={24} color="#8B85FF" style={{ marginRight: 12 }} />
             <Text style={[styles.noticeText, { color: isDark ? '#ccc' : '#333' }]}>
               By continuing to use LocalBuddy, you acknowledge that you have read, understood, and agree to these Terms of Service.
             </Text>
@@ -281,6 +281,6 @@ const styles = StyleSheet.create({
   section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 12 },
   sectionContent: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  noticeBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, backgroundColor: '#4F46E515', borderRadius: 12 },
+  noticeBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, backgroundColor: '#8B85FF15', borderRadius: 12 },
   noticeText: { fontSize: 14, fontFamily: 'Inter_500Medium', lineHeight: 22, flex: 1 },
 });

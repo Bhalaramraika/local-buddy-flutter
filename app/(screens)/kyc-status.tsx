@@ -140,7 +140,7 @@ export default function KYCStatusScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading verification status...</Text>
         </View>
       </View>
@@ -192,8 +192,8 @@ export default function KYCStatusScreen() {
               { icon: 'lock-closed-outline', title: 'Account Security', desc: 'Protect against fraud' },
             ].map((benefit) => (
               <View key={benefit.title} style={styles.benefitCard}>
-                <View style={[styles.benefitIcon, { backgroundColor: '#4F46E515' }]}>
-                  <Ionicons name={benefit.icon as any} size={22} color="#4F46E5" />
+                <View style={[styles.benefitIcon, { backgroundColor: '#8B85FF15' }]}>
+                  <Ionicons name={benefit.icon as any} size={22} color="#8B85FF" />
                 </View>
                 <Text style={[styles.benefitTitle, { color: isDark ? '#fff' : '#000' }]}>{benefit.title}</Text>
                 <Text style={[styles.benefitDesc, { color: isDark ? '#888' : '#666' }]}>{benefit.desc}</Text>
@@ -236,19 +236,19 @@ export default function KYCStatusScreen() {
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Information</Text>
           <View style={styles.infoList}>
             <View style={styles.infoItem}>
-              <Ionicons name="information-circle-outline" size={20} color="#4F46E5" style={styles.infoIcon} />
+              <Ionicons name="information-circle-outline" size={20} color="#8B85FF" style={styles.infoIcon} />
               <Text style={[styles.infoText, { color: isDark ? '#ddd' : '#444' }]}>Your data is encrypted and stored securely</Text>
             </View>
             <View style={styles.infoItem}>
-              <Ionicons name="information-circle-outline" size={20} color="#4F46E5" style={styles.infoIcon} />
+              <Ionicons name="information-circle-outline" size={20} color="#8B85FF" style={styles.infoIcon} />
               <Text style={[styles.infoText, { color: isDark ? '#ddd' : '#444' }]}>We never share your documents with third parties</Text>
             </View>
             <View style={styles.infoItem}>
-              <Ionicons name="information-circle-outline" size={20} color="#4F46E5" style={styles.infoIcon} />
+              <Ionicons name="information-circle-outline" size={20} color="#8B85FF" style={styles.infoIcon} />
               <Text style={[styles.infoText, { color: isDark ? '#ddd' : '#444' }]}>Verification typically takes 24-48 hours</Text>
             </View>
             <View style={styles.infoItem}>
-              <Ionicons name="information-circle-outline" size={20} color="#4F46E5" style={styles.infoIcon} />
+              <Ionicons name="information-circle-outline" size={20} color="#8B85FF" style={styles.infoIcon} />
               <Text style={[styles.infoText, { color: isDark ? '#ddd' : '#444' }]}>You can update documents anytime from settings</Text>
             </View>
           </View>
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  statusCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
+  statusCard: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee' },
   statusHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
   statusIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   statusInfo: { flex: 1 },
@@ -274,15 +274,15 @@ const styles = StyleSheet.create({
   statusSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },
   statusAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 10 },
   statusActionText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
+  section: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   benefitsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  benefitCard: { flex: 1, minWidth: '45%', maxWidth: '50%', padding: 16, borderRadius: 12, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee' },
-  benefitIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  benefitCard: { flex: 1, minWidth: '45%', maxWidth: '50%', padding: 16, borderRadius: 32, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee' },
+  benefitIcon: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   benefitTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', textAlign: 'center', marginBottom: 4 },
   benefitDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center' },
   requirementItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  requirementIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  requirementIcon: { width: 40, height: 40, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
   requirementInfo: { flex: 1 },
   requirementHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   requirementLabel: { fontSize: 15, fontFamily: 'Inter_500Medium' },

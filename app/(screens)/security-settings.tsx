@@ -98,7 +98,7 @@ export default function SecuritySettingsScreen() {
             title="Change Password"
             description="Update your account password"
             icon="lock-closed-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={handleChangePassword}
             showArrow
@@ -160,7 +160,7 @@ export default function SecuritySettingsScreen() {
               title="Enable 2FA"
               description="Add an extra layer of security to your account"
               icon="shield-outline"
-              color="#4F46E5"
+              color="#8B85FF"
               isDark={isDark}
               onPress={handleSetup2FA}
               showArrow
@@ -178,7 +178,7 @@ export default function SecuritySettingsScreen() {
             value={biometricEnabled}
             onChange={setBiometricEnabled}
             icon="fingerprint-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -211,7 +211,7 @@ export default function SecuritySettingsScreen() {
             title="Login History"
             description="View all recent login activity"
             icon="time-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/(screens)/security-settings')}
             showArrow
@@ -263,7 +263,7 @@ export default function SecuritySettingsScreen() {
             title="Auto Logout"
             description={`Log out after ${sessionTimeout} minutes of inactivity`}
             icon="timer-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => {
               const options = [5, 15, 30, 60, 120, 0];
@@ -285,7 +285,7 @@ export default function SecuritySettingsScreen() {
             title="Manage Security Keys"
             description="Add or remove hardware security keys"
             icon="key-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => Alert.alert('Security Keys', 'Connect a hardware security key to add it.')}
             showArrow

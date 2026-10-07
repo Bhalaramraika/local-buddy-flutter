@@ -18,6 +18,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { Colors } from '@/constants/design';
 
 export default function ContactSupportScreen() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function ContactSupportScreen() {
           <View style={styles.quickActionsGrid}>
             {[
               { id: 'chat', icon: 'chatbubbles-outline', title: 'Live Chat', desc: '9 AM - 6 PM EST', color: '#10B981' },
-              { id: 'email', icon: 'mail-outline', title: 'Email Us', desc: 'support@localbuddy.app', color: '#4F46E5' },
+              { id: 'email', icon: 'mail-outline', title: 'Email Us', desc: 'support@localbuddy.app', color: Colors.brand.primary },
               { id: 'phone', icon: 'call-outline', title: 'Call Us', desc: '+1 (800) 555-0123', color: '#F59E0B' },
               { id: 'faq', icon: 'help-circle-outline', title: 'Browse FAQ', desc: 'Common questions', color: '#6B7280' },
             ].map((action, index) => (
@@ -144,8 +145,8 @@ export default function ContactSupportScreen() {
                 style={[
                   styles.categoryChip,
                   { 
-                    backgroundColor: category === cat.id ? '#4F46E5' : (isDark ? '#333' : '#f0f0f0'),
-                    borderColor: category === cat.id ? '#4F46E5' : '#ddd',
+                    backgroundColor: category === cat.id ? Colors.brand.primary : (isDark ? '#333' : '#f0f0f0'),
+                    borderColor: category === cat.id ? Colors.brand.primary : '#ddd',
                   }
                 ]}
                 onPress={() => setCategory(cat.id)}
@@ -199,7 +200,7 @@ export default function ContactSupportScreen() {
 
           {/* Submit Button */}
           <TouchableOpacity 
-            style={[styles.submitButton, { backgroundColor: isSubmitting ? '#999' : '#4F46E5' }, { marginTop: 24 }]}
+            style={[styles.submitButton, { backgroundColor: isSubmitting ? '#999' : Colors.brand.primary }, { marginTop: 24 }]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
@@ -223,8 +224,8 @@ export default function ContactSupportScreen() {
             </View>
           </View>
           <View style={[styles.infoRow, { marginTop: 12 }]}>
-            <View style={[styles.infoIcon, { backgroundColor: '#4F46E515' }]}>
-              <Ionicons name="mail-outline" size={22} color="#4F46E5" />
+            <View style={[styles.infoIcon, { backgroundColor: '#8B85FF15' }]}>
+              <Ionicons name="mail-outline" size={22} color="#8B85FF" />
             </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoTitle, { color: isDark ? '#fff' : '#000' }]}>Email Confirmation</Text>
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   quickActionCard: { 
     width: '48%', 
     padding: 16, 
-    borderRadius: 12, 
+    borderRadius: 26, 
     borderWidth: 1, 
     borderColor: '#eee',
     alignItems: 'center',
@@ -276,14 +277,14 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     paddingHorizontal: 14, 
     paddingVertical: 8, 
-    borderRadius: 20, 
+    borderRadius: 26, 
     borderWidth: 1,
   },
   categoryChipText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   textInput: { 
     paddingHorizontal: 16, 
     paddingVertical: 14, 
-    borderRadius: 12, 
+    borderRadius: 26, 
     borderWidth: 1, 
     borderColor: '#ddd',
     fontSize: 16, 
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   textArea: { 
     paddingHorizontal: 16, 
     paddingVertical: 14, 
-    borderRadius: 12, 
+    borderRadius: 26, 
     borderWidth: 1, 
     borderColor: '#ddd',
     fontSize: 16, 
@@ -300,10 +301,10 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   charCount: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  submitButton: { paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  submitButton: { paddingVertical: 16, borderRadius: 26, alignItems: 'center' },
   submitButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  infoIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12, flexShrink: 0 },
+  infoIcon: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginRight: 12, flexShrink: 0 },
   infoContent: { flex: 1 },
   infoTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
   infoDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 20 },

@@ -76,7 +76,7 @@ export default function TransactionDetailScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#8B85FF" />
       </View>
     );
   }
@@ -114,7 +114,7 @@ export default function TransactionDetailScreen() {
       switch (category) {
         case 'task_payment': return { icon: 'cash-check', color: '#10B981' };
         case 'referral_bonus': return { icon: 'gift', color: '#8B5CF6' };
-        case 'topup': return { icon: 'add-circle', color: '#4F46E5' };
+        case 'topup': return { icon: 'add-circle', color: '#8B85FF' };
         case 'refund': return { icon: 'undo', color: '#06B6D4' };
         default: return { icon: 'arrow-down-circle', color: '#10B981' };
       }
@@ -239,7 +239,7 @@ export default function TransactionDetailScreen() {
           <Text style={styles.sectionTitle}>Bank Account</Text>
           <View style={styles.bankAccountCard}>
             <View style={styles.bankAccountRow}>
-              <MaterialCommunityIcons name="bank" size={24} color="#4F46E5" />
+              <MaterialCommunityIcons name="bank" size={24} color="#8B85FF" />
               <View style={styles.bankAccountInfo}>
                 <Text style={styles.bankAccountName}>{transaction.bankAccount.bankName}</Text>
                 <Text style={styles.bankAccountNumber}>
@@ -265,9 +265,9 @@ export default function TransactionDetailScreen() {
             <View style={styles.taskCardContent}>
               <View style={[
                 styles.taskCategoryIcon,
-                { backgroundColor: '#4F46E520' }
+                { backgroundColor: '#8B85FF20' }
               ]}>
-                <Ionicons name="briefcase-outline" size={20} color="#4F46E5" />
+                <Ionicons name="briefcase-outline" size={20} color="#8B85FF" />
               </View>
               <View style={styles.taskInfo}>
                 <Text style={styles.taskTitle}>{transaction.taskTitle || 'Task'}</Text>
@@ -306,7 +306,7 @@ export default function TransactionDetailScreen() {
             // TODO: Implement download receipt
             showToast('Receipt downloaded', 'success');
           }}>
-            <Ionicons name="download" size={20} color="#4F46E5" />
+            <Ionicons name="download" size={20} color="#8B85FF" />
             <Text style={styles.actionBtnTextSecondary}>Download Receipt</Text>
           </TouchableOpacity>
         )}
@@ -538,9 +538,9 @@ const styles = StyleSheet.create({
   actionBtnPrimary: {
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#8B85FF',
     alignItems: 'center',
-    shadowColor: '#4F46E5',
+    shadowColor: '#8B85FF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

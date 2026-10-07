@@ -36,7 +36,8 @@ export default function WalletTopupScreen() {
   const router = useRouter();
   const { amount: paramAmount } = useLocalSearchParams<{ amount?: string }>();
 
-  const { wallet, startTopup, refreshAfterPayment, isProcessing } = useWalletStore();
+  const { wallet, balance, startTopup, refreshAfterPayment, isProcessing } = useWalletStore();
+  const currentBalance = wallet?.balance ?? balance.available;
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
 
@@ -72,18 +73,23 @@ export default function WalletTopupScreen() {
     }
     const res = await startTopup(parseFloat(amount));
     if ('payuParams' in res) {
+      setError(null);
       setCheckout({ html: buildPayUHtml(res.payuParams, res.payuUrl) });
-    } else if ((res as any).error?.includes('KYC')) {
-      Alert.alert(
-        'Complete KYC required',
-        'PayU payments require verified KYC. Please complete your KYC first.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Complete KYC', onPress: () => router.push('/(screens)/kyc-status') },
-        ]
-      );
     } else {
-      showToast(res.error || 'Failed to initiate payment', 'error');
+      const msg = (res as any).error || 'Failed to initiate payment';
+      // Always show the exact server message — inline (stays visible) + toast
+      setError(msg);
+      showToast(msg, 'error');
+      if (String(msg).toLowerCase().includes('kyc')) {
+        Alert.alert(
+          'Complete KYC required',
+          'PayU payments require verified KYC. Please complete your KYC first.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Complete KYC', onPress: () => router.push('/(screens)/kyc-status') },
+          ]
+        );
+      }
     }
   };
 
@@ -152,7 +158,7 @@ export default function WalletTopupScreen() {
         {/* Current Balance (real server data via wallet store) */}
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Current Wallet Balance</Text>
-          <Text style={styles.balanceAmount}>{formatCurrency(wallet?.balance || 0)}</Text>
+          <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
         </View>
 
         {/* Amount Input */}

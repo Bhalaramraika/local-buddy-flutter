@@ -183,7 +183,7 @@ export default function EditTaskScreen() {
                   style={[
                     styles.categoryChip,
                     category === cat ? styles.categoryChipActive : {},
-                    { backgroundColor: category === cat ? '#4F46E5' : (isDark ? '#333' : '#f5f5f5') }
+                    { backgroundColor: category === cat ? '#8B85FF' : (isDark ? '#333' : '#f5f5f5') }
                   ]}
                   onPress={() => setCategory(cat)}
                 >
@@ -254,7 +254,7 @@ export default function EditTaskScreen() {
                 placeholder="Enter location or use current"
               />
               <TouchableOpacity onPress={() => setLocation('Current Location')}>
-                <Ionicons name="navigate-outline" size={22} color="#4F46E5" />
+                <Ionicons name="navigate-outline" size={22} color="#8B85FF" />
               </TouchableOpacity>
             </View>
           </FormField>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 100, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: 16, fontSize: 16, fontFamily: 'Inter_400Regular', textAlignVertical: 'top' },
   categorySelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   categoryChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#ddd' },
-  categoryChipActive: { borderColor: '#4F46E5' },
+  categoryChipActive: { borderColor: '#8B85FF' },
   categoryChipText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   halfField: { flex: 1 },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   datePickerText: { fontSize: 16, fontFamily: 'Inter_400Regular', flex: 1 },
   locationInput: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, paddingHorizontal: 16, backgroundColor: '#fafafa' },
   errorText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#EF4444', marginTop: 6 },
-  submitButton: { height: 56, borderRadius: 16, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  submitButton: { height: 56, borderRadius: 16, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#fff' },
 });

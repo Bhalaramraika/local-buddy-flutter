@@ -77,7 +77,7 @@ export default function WalletDetailsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#8B85FF']} />
         }
       >
         {/* Balance Card */}
@@ -85,8 +85,8 @@ export default function WalletDetailsScreen() {
           <View style={styles.balanceHeader}>
             <Text style={[styles.balanceLabel, { color: isDark ? '#888' : '#666' }]}>Available Balance</Text>
             <TouchableOpacity onPress={handleViewHistory} style={styles.viewAllButton}>
-              <Text style={[styles.viewAllText, { color: '#4F46E5' }]}>View All</Text>
-              <Ionicons name="chevron-forward-outline" size={18} color="#4F46E5" />
+              <Text style={[styles.viewAllText, { color: '#8B85FF' }]}>View All</Text>
+              <Ionicons name="chevron-forward-outline" size={18} color="#8B85FF" />
             </TouchableOpacity>
           </View>
           
@@ -101,7 +101,7 @@ export default function WalletDetailsScreen() {
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#4F46E5' }]} onPress={handleTopUp}>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#8B85FF' }]} onPress={handleTopUp}>
               <MaterialCommunityIcons name="wallet-plus" size={24} color="#fff" />
               <Text style={styles.actionButtonText}>Top Up</Text>
             </TouchableOpacity>
@@ -145,7 +145,7 @@ export default function WalletDetailsScreen() {
               title="Pending" 
               value={formatCurrency(pendingBalance)} 
               icon="clock-outline" 
-              color="#4F46E5" 
+              color="#8B85FF" 
               isDark={isDark} 
             />
           </View>
@@ -157,7 +157,7 @@ export default function WalletDetailsScreen() {
             <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Recent Transactions</Text>
             <TouchableOpacity onPress={handleViewHistory}>
               <Text style={styles.viewAllLink}>View All</Text>
-              <Ionicons name="chevron-forward-outline" size={18} color="#4F46E5" />
+              <Ionicons name="chevron-forward-outline" size={18} color="#8B85FF" />
             </TouchableOpacity>
           </View>
           
@@ -170,7 +170,7 @@ export default function WalletDetailsScreen() {
               <Ionicons name="receipt-outline" size={48} color={isDark ? '#555' : '#ccc'} />
               <Text style={[styles.emptyTitle, { color: isDark ? '#888' : '#666' }]}>No transactions yet</Text>
               <Text style={[styles.emptyDesc, { color: isDark ? '#666' : '#999' }]}>Your transaction history will appear here</Text>
-              <TouchableOpacity style={[styles.emptyAction, { backgroundColor: '#4F46E5' }]} onPress={handleTopUp}>
+              <TouchableOpacity style={[styles.emptyAction, { backgroundColor: '#8B85FF' }]} onPress={handleTopUp}>
                 <Text style={styles.emptyActionText}>Add Funds</Text>
               </TouchableOpacity>
             </View>

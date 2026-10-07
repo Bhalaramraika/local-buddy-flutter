@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vect
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import * as ImagePicker from 'expo-image-picker';
+import { Colors } from '@/constants/design';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -176,7 +177,7 @@ export default function EditProfileScreen() {
             </View>
             <View style={styles.avatarActions}>
               <TouchableOpacity style={styles.changePhotoButton} onPress={pickImage}>
-                <Ionicons name="image-outline" size={18} color="#4F46E5" />
+                <Ionicons name="image-outline" size={18} color="#8B85FF" />
                 <Text style={styles.changePhotoButtonText}>Change Photo</Text>
               </TouchableOpacity>
               {(avatar || user?.avatar) && (
@@ -196,7 +197,7 @@ export default function EditProfileScreen() {
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Full Name *</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               placeholder="Enter your full name"
@@ -209,7 +210,7 @@ export default function EditProfileScreen() {
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Email *</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               placeholder="Enter your email"
@@ -223,7 +224,7 @@ export default function EditProfileScreen() {
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Phone Number</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               placeholder="Enter your phone number"
@@ -236,7 +237,7 @@ export default function EditProfileScreen() {
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Location</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.location}
               onChangeText={(text) => setFormData({ ...formData, location: text })}
               placeholder="Your city/area"
@@ -252,7 +253,7 @@ export default function EditProfileScreen() {
           
           <View style={styles.field}>
             <TextInput
-              style={[styles.textInput, styles.textArea, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, styles.textArea, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.bio}
               onChangeText={(text) => setFormData({ ...formData, bio: text })}
               placeholder="Tell others about yourself..."
@@ -274,7 +275,7 @@ export default function EditProfileScreen() {
           
           <View style={styles.field}>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
               value={formData.skills}
               onChangeText={(text) => setFormData({ ...formData, skills: text })}
               placeholder="Cleaning, Delivery, Handyman, Tutoring..."
@@ -341,24 +342,24 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   saveButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  saveButtonTextActive: { color: '#4F46E5' },
+  saveButtonTextActive: { color: Colors.brand.primary },
   saveButtonTextDisabled: { color: '#888' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 20 },
+  section: { borderRadius: 28, padding: 20 },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 20 },
   avatarSection: { alignItems: 'center' },
   avatarWrapper: { position: 'relative', marginBottom: 16 },
   avatarImage: { width: 100, height: 100, borderRadius: 50 },
-  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', fontSize: 36, fontFamily: 'Inter_700Bold' },
-  avatarEditButton: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#fff' },
+  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', fontSize: 36, fontFamily: 'Inter_700Bold' },
+  avatarEditButton: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#fff' },
   avatarActions: { flexDirection: 'row', gap: 16 },
   changePhotoButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  changePhotoButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  changePhotoButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
   removePhotoButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   removePhotoButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#EF4444' },
   field: { marginBottom: 20 },
   fieldLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
-  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#eee', color: '#000' },
+  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: '#eee' },
   textArea: { paddingTop: 14, textAlignVertical: 'top' },
   errorText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#EF4444', marginTop: 6 },
   charCount: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'right', marginTop: 6 },
@@ -366,10 +367,10 @@ const styles = StyleSheet.create({
   skillSuggestions: { marginTop: 12 },
   skillSuggestionsLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 10 },
   skillTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skillTag: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#4F46E5', backgroundColor: '#4F46E515' },
-  skillTagSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
-  skillTagText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#4F46E5' },
+  skillTag: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 32, borderWidth: 1, borderColor: Colors.brand.primary, backgroundColor: '#8B85FF15' },
+  skillTagSelected: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary },
+  skillTagText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.brand.primary },
   skillTagTextSelected: { color: '#fff' },
-  dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#EF444415', borderRadius: 12, borderWidth: 1, borderColor: '#EF4444' },
+  dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#EF444415', borderRadius: 32, borderWidth: 1, borderColor: '#EF4444' },
   dangerButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#EF4444' },
 });

@@ -1,24 +1,40 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Text, TextInput, Pressable, View, StyleSheet } from 'react-native';
+/**
+ * OTP Verification Screen — Soft Premium ◆ animated boxes
+ */
+
+import React, { useEffect, useState, useRef } from 'react';
+import { Text, View, StyleSheet, TextInput, Pressable, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, Typography, Animation } from '@/constants/design';
+import { SoftButton, SoftCard } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService, normalizeEmail } from '@/services/auth';
+import { getApiErrorMessage } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
-import { ErrorMessage, FlowHeader, FlowScreen, PrimaryButton, TextButton, Card, flowStyles } from '@/components/FlowUI';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Shadows, Animation } from '@/constants/design';
+
+const OTP_LEN = 6;
 
 export default function OtpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; mode?: string; name?: string; phone?: string }>();
   const { login, updateProfile, isLoading, error } = useAuth();
   const email = normalizeEmail(String(params.email || ''));
+
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(60);
   const [timerActive, setTimerActive] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.94)).current;
   const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    Animated.spring(fadeAnim, { toValue: 1, ...Animation.gentle, useNativeDriver: true }).start();
+    Animated.spring(scaleAnim, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }).start();
+  }, []);
 
   useEffect(() => {
     if (!email) router.replace('/login');
@@ -26,21 +42,20 @@ export default function OtpScreen() {
 
   useEffect(() => {
     if (timerActive && timer > 0) {
-      const interval = setInterval(() => setTimer(t => t - 1), 1000);
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
       return () => clearInterval(interval);
-    } else if (timer === 0) {
-      setTimerActive(false);
-    }
+    } else if (timer === 0) setTimerActive(false);
   }, [timer, timerActive]);
 
+  // Popsosed
   const startTimer = () => {
     setTimer(60);
     setTimerActive(true);
   };
 
   const verify = async () => {
-    if (!/^\d{6}$/.test(otp)) {
-      setLocalError('Enter the 6-digit OTP sent to your email.');
+    if (otp.length !== OTP_LEN || !/^\d+$/.test(otp)) {
+      setLocalError(`Enter the 6-digit OTP sent to your email.`);
       return;
     }
     try {
@@ -54,9 +69,7 @@ export default function OtpScreen() {
       }
       const currentUser = useAuthStore.getState().user;
       router.replace(currentUser?.profileCompleted || currentUser?.city ? '/home' : '/permissions');
-    } catch {
-      // AuthContext exposes the error below.
-    }
+    } catch { /* AuthContext exposes the error */ }
   };
 
   const resend = async () => {
@@ -66,189 +79,171 @@ export default function OtpScreen() {
       setLocalError('A new OTP was sent.');
       startTimer();
     } catch (resendError: any) {
-      setLocalError(resendError?.message || 'Unable to resend OTP.');
+      setLocalError(getApiErrorMessage(resendError, 'Unable to resend OTP.'));
     } finally {
       setResending(false);
     }
   };
 
+  useEffect(() => { startTimer(); }, []);
   useEffect(() => {
-    startTimer();
-  }, []);
+    if (otp.length === OTP_LEN) {
+      // Small auto-submit delay; no jarring instant feels → we want subtle happiness
+      const t = setTimeout(() => verify(), 350);
+      return () => clearTimeout(t);
+    }
+  }, [otp]);
 
   return (
-    <FlowScreen style={styles.container}>
-      <View style={styles.backgroundDecor}>
-        <View style={styles.decorTop} />
-        <View style={styles.decorBottom} />
-      </View>
+    <View style={styles.screen}>
+      {/* Soft deco */}
+      <View style={[styles.blob, styles.blobTop]} />
 
-      <View style={styles.contentContainer}>
-        <FlowHeader 
-          onBack={() => router.back()} 
-          eyebrow="VERIFY EMAIL" 
-          title="Enter your OTP" 
-          subtitle={`We sent a 6-digit code to ${email}.`} 
-        />
-
-        <Card style={styles.otpCard}>
-          <Pressable onPress={() => inputRef.current?.focus()} style={styles.otpContainer}>
-            {[1, 2, 3, 4, 5, 6].map((index) => (
-              <View key={index} style={[
-                styles.otpBox,
-                otp.length >= index ? styles.otpBoxFilled : styles.otpBoxEmpty,
-                otp.length >= index && styles.otpBoxFocused
-              ]}>
-                <Text style={styles.otpDigit}>
-                  {otp[index - 1] || ''}
-                </Text>
-              </View>
-            ))}
-            {/* Invisible full-size input overlaying the boxes: tap anywhere to type */}
-            <TextInput
-              ref={inputRef}
-              value={otp}
-              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
-              keyboardType="number-pad"
-              maxLength={6}
-              autoComplete="sms-otp"
-              textContentType="oneTimeCode"
-              autoFocus
-              style={styles.hiddenInput}
-              accessibilityLabel="One-time password"
-            />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back-outline" size={22} color={Colors.text.secondary} />
           </Pressable>
+          <Text style={styles.brand}>Local Buddy</Text>
+        </View>
 
-          <ErrorMessage message={localError || error} />
+        {/* Hero */}
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="shield-half-outline" size={28} color={Colors.brand.primary} />
+          </View>
+          <Text style={styles.heroTitle}>Check your inbox</Text>
+          <Text style={styles.heroSub}>
+            We sent a {OTP_LEN}-digit code to{'\n'}
+            <Text style={styles.emph}>{email || 'your email'}</Text>
+          </Text>
+        </View>
 
-          <PrimaryButton 
-            label="Verify and continue" 
-            onPress={verify} 
+        {/* OTP Card */}
+        <Animated.View style={[styles.cardWrap, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          <SoftCard padding={0} style={styles.cardInner}>
+            {/*
+             * The TextInput OVERLAYS the digit boxes (absolute fill, nearly
+             * invisible). Taps anywhere on the boxes hit the native input
+             * directly, so the keyboard opens reliably on Android + iOS.
+             * (The old 1x1px "hidden" input at the corner wasn't focusable,
+             * so tapping the boxes never opened the keyboard.)
+             */}
+            <View style={styles.otpField}>
+              <View style={styles.boxes} pointerEvents="none">
+                {Array.from({ length: OTP_LEN }, (_, i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      styles.box,
+                      {
+                        backgroundColor: otp.length > i ? Colors.brand.primary + '14' : Colors.surface.tertiary,
+                        borderColor: otp.length === i ? Colors.brand.primary : Colors.border.light,
+                        transform: otp.length >= i ? [{ scale: 1.04 }] : [{ scale: 1 }],
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.digit, { color: otp.length > i ? Colors.brand.primary : Colors.text.muted }]}>
+                      {otp[i] || ''}
+                    </Text>
+                  </Animated.View>
+                ))}
+              </View>
+              <TextInput
+                ref={inputRef}
+                value={otp}
+                onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, OTP_LEN))}
+                keyboardType="number-pad"
+                maxLength={OTP_LEN}
+                autoComplete="sms-otp"
+                textContentType="oneTimeCode"
+                autoFocus
+                caretHidden
+                selectionColor="transparent"
+                style={styles.overlayInput}
+                accessibilityLabel="One-time password input"
+              />
+            </View>
+          </SoftCard>
+
+          {localError || error ? (
+            <Text style={styles.errorText}>
+              <Ionicons name="alert-circle-outline" size={12} color={Colors.semantic.error} /> {localError || error}
+            </Text>
+          ) : null}
+
+          <SoftButton
+            label="Verify & continue"
+            onPress={verify}
             loading={isLoading}
             size="lg"
-            variant="primary"
-            disabled={otp.length !== 6}
+            tone="brand"
+            withGlow
+            style={styles.cta}
           />
 
-          <View style={styles.resendContainer}>
+          <View style={styles.helpers}>
             <Text style={styles.resendText}>
-              Didn't receive the code?{' '}
-              <TextButton 
-                label={timerActive ? `${timer}s` : 'Resend OTP'} 
-                onPress={resend}
-                disabled={resending || timerActive}
-              />
+              Didn't receive the code?{'\n'}
+              <Text style={styles.resendPlus} onPress={resend} disabled={resending || timerActive}>
+                {timerActive ? `Resend in ${timer}s` : 'Resend OTP'}
+              </Text>
             </Text>
           </View>
-        </Card>
-
+        </Animated.View>
       </View>
-    </FlowScreen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface.primary,
-  },
-  backgroundDecor: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  decorTop: {
-    position: 'absolute',
-    top: -120,
-    right: -80,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+  screen: { flex: 1, backgroundColor: Colors.surface.primary },
+  container: { flex: 1, paddingHorizontal: Spacing[6], paddingTop: Spacing[2] },
+  blob: {
+    position: 'absolute', borderRadius: BorderRadius.pill,
+    top: -100, right: -120, width: 300, height: 300,
     backgroundColor: Colors.brand.primary + '08',
   },
-  decorBottom: {
-    position: 'absolute',
-    bottom: -100,
-    left: -60,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: Colors.brand.secondary + '08',
+  blobTop: { top: -120, right: -130, width: 310, height: 310 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[8] },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.secondary,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border.light, marginRight: Spacing[3],
   },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: Spacing[6],
-    paddingVertical: Spacing[8],
-    justifyContent: 'center',
+  brand: { fontFamily: Typography.fontFamily.semiBold, fontSize: 13, color: Colors.text.muted, letterSpacing: 1 },
+  hero: { alignItems: 'center', marginBottom: Spacing[7] },
+  heroBadge: {
+    width: 48, height: 48, borderRadius: 16, backgroundColor: Colors.brand.primary + '15',
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
   },
-  otpCard: {
-    padding: Spacing[6],
+  heroTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 26, color: Colors.text.primary, marginBottom: Spacing[2], letterSpacing: -0.3 },
+  heroSub: { fontFamily: Typography.fontFamily.regular, fontSize: 15, color: Colors.text.secondary, textAlign: 'center', lineHeight: 22 },
+  emph: { fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.primary },
+  cardWrap: { marginBottom: Spacing[6] },
+  cardInner: { borderRadius: BorderRadius.xl, padding: Spacing[6], alignItems: 'center', marginBottom: Spacing[5] },
+  boxes: { flexDirection: 'row', gap: Spacing[3], justifyContent: 'center', flexWrap: 'wrap' },
+  box: {
+    width: 48, height: 58, borderRadius: BorderRadius.lg, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center',
   },
-  otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing[3],
-    marginBottom: Spacing[6],
-    position: 'relative',
-  },
-  otpBox: {
-    width: 52,
-    height: 56,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.surface.secondary,
-  },
-  otpBoxEmpty: {
-    borderColor: Colors.border.light,
-    backgroundColor: Colors.surface.secondary,
-  },
-  otpBoxFilled: {
-    borderColor: Colors.brand.primary,
-    borderWidth: 3,
-    backgroundColor: Colors.brand.primary + '10',
-  },
-  otpBoxFocused: {
-    shadowColor: Colors.brand.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  otpDigit: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  hiddenInput: {
+  digit: { fontFamily: Typography.fontFamily.bold, fontSize: 22, includeFontPadding: false },
+  errorText: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.semantic.error, textAlign: 'center', marginBottom: Spacing[4] },
+  cta: { width: '100%', maxWidth: 320 },
+  otpField: { position: 'relative', alignSelf: 'center' },
+  // Full-size transparent overlay: receives the tap directly so the
+  // keyboard always opens; opacity must stay > 0 for Android hit-testing.
+  overlayInput: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0,
+    opacity: 0.02,
     color: 'transparent',
-    backgroundColor: 'transparent',
+    fontSize: 1,
   },
-  mockHint: {
-    textAlign: 'center',
-    color: Colors.text.muted,
-    fontSize: 13,
-    marginBottom: Spacing[4],
-    paddingHorizontal: Spacing[4],
-  },
-  resendContainer: {
-    marginTop: Spacing[6],
-    alignItems: 'center',
-  },
-  resendText: {
-    color: Colors.text.secondary,
-    fontSize: 14,
-    lineHeight: 22,
-  },
+  helpers: { marginTop: Spacing[6] },
+  resendText: { fontFamily: Typography.fontFamily.regular, fontSize: 13, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+  resendPlus: { color: Colors.brand.accent, fontFamily: Typography.fontFamily.semiBold, fontSize: 14 },
 });
-

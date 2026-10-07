@@ -31,7 +31,7 @@ export default function AppearanceSettingsScreen() {
 
   const themes = [
     { id: 'light', name: 'Light', icon: 'sunny-outline', color: '#F59E0B' },
-    { id: 'dark', name: 'Dark', icon: 'moon-outline', color: '#4F46E5' },
+    { id: 'dark', name: 'Dark', icon: 'moon-outline', color: '#8B85FF' },
     { id: 'system', name: 'System', icon: 'phone-portrait-outline', color: '#10B981' },
   ];
 
@@ -100,7 +100,7 @@ export default function AppearanceSettingsScreen() {
                 styles.fontOption,
                 { 
                   backgroundColor: isDark ? '#2a2a2a' : '#fff',
-                  borderColor: fontSize === fs.id ? '#4F46E5' : '#eee',
+                  borderColor: fontSize === fs.id ? '#8B85FF' : '#eee',
                   borderWidth: fontSize === fs.id ? 2 : 1,
                 }
               ]}
@@ -115,7 +115,7 @@ export default function AppearanceSettingsScreen() {
                 <Text style={[styles.fontName, { color: isDark ? '#fff' : '#000' }]}>{fs.name}</Text>
                 <Text style={[styles.fontSize, { color: isDark ? '#888' : '#666' }]}>{fs.size}pt</Text>
               </View>
-              {fontSize === fs.id && <Ionicons name="checkmark-circle" size={24} color="#4F46E5" />}
+              {fontSize === fs.id && <Ionicons name="checkmark-circle" size={24} color="#8B85FF" />}
             </TouchableOpacity>
           ))}
         </View>
@@ -130,7 +130,7 @@ export default function AppearanceSettingsScreen() {
             value={animationsEnabled}
             onChange={setAnimationsEnabled}
             icon="flash-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -175,7 +175,7 @@ export default function AppearanceSettingsScreen() {
             value={showAvatars}
             onChange={setShowAvatars}
             icon="person-circle-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -208,7 +208,7 @@ export default function AppearanceSettingsScreen() {
                   <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
                     <Text style={styles.badgeText}>⭐</Text>
                   </View>
-                  <View style={[styles.badge, { backgroundColor: '#4F46E5' }]}>
+                  <View style={[styles.badge, { backgroundColor: '#8B85FF' }]}>
                     <Text style={styles.badgeText}>✓</Text>
                   </View>
                 </View>
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     width: 48, 
     height: 48, 
     borderRadius: 24, 
-    backgroundColor: '#4F46E5', 
+    backgroundColor: '#8B85FF', 
     justifyContent: 'center', 
     alignItems: 'center',
     marginRight: 12,

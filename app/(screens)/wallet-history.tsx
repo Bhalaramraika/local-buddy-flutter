@@ -19,6 +19,7 @@ import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/helpers';
+import { Colors } from '@/constants/design';
 
 export default function WalletHistoryScreen() {
   const router = useRouter();
@@ -173,7 +174,7 @@ export default function WalletHistoryScreen() {
               style={[
                 styles.filterButton,
                 activeFilter === filter && styles.filterButtonActive,
-                { backgroundColor: activeFilter === filter ? '#4F46E5' : isDark ? '#2a2a2a' : '#f0f0f0' }
+                { backgroundColor: activeFilter === filter ? Colors.brand.primary : isDark ? '#2a2a2a' : '#f0f0f0' }
               ]}
               onPress={() => setActiveFilter(filter as any)}
             >
@@ -195,7 +196,7 @@ export default function WalletHistoryScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.primary]} />
         }
         ListEmptyComponent={
           <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   searchContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, gap: 8 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, gap: 8 },
   searchIcon: { marginRight: 4 },
   searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   filterContainer: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
@@ -235,9 +236,9 @@ const styles = StyleSheet.create({
   filterButtonActive: {},
   filterButtonText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   listContent: { padding: 16, paddingBottom: 40 },
-  transactionCard: { flexDirection: 'row', alignItems: 'center', padding: 16, marginBottom: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  transactionCard: { flexDirection: 'row', alignItems: 'center', padding: 16, marginBottom: 12, borderRadius: 32, borderWidth: 1, borderColor: '#eee', shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 2 },
   transactionIconContainer: { marginRight: 12 },
-  transactionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  transactionIcon: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   transactionDetails: { flex: 1, minWidth: 0 },
   transactionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   transactionTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', flex: 1 },

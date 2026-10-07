@@ -5,8 +5,15 @@
  */
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, initializeAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+
+// getReactNativePersistence only exists in the React Native entry of
+// firebase/auth (the package's "react-native" export condition), which
+// TypeScript's module resolution does not pick up — load it via require.
+// Metro resolves the same entry at runtime.
+const { getReactNativePersistence } = require('firebase/auth');
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
@@ -46,8 +53,23 @@ if (isFirebaseConfigured()) {
   console.warn('[Firebase] Firebase not configured - missing or placeholder EXPO_PUBLIC_FIREBASE_API_KEY or EXPO_PUBLIC_FIREBASE_PROJECT_ID. Auth/Firestore/Storage will be unavailable. Please add your Firebase config to .env file.');
 }
 
-// Initialize Auth
-export const auth: Auth | null = app ? getAuth(app) : null;
+// Initialize Auth with AsyncStorage persistence.
+// Without this, React Native keeps the Firebase session in memory only:
+// after an app restart auth.currentUser is null, so every Firestore
+// listener is rejected by security rules and every REST call goes out
+// without an Authorization header (data silently stops loading).
+let authInstance: Auth | null = null;
+if (app) {
+  try {
+    authInstance = typeof getReactNativePersistence === 'function'
+      ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
+      : getAuth(app);
+  } catch (e) {
+    // initializeAuth throws if Auth was already initialized (Fast Refresh)
+    authInstance = getAuth(app);
+  }
+}
+export const auth: Auth | null = authInstance;
 
 // Initialize Firestore
 export const db: Firestore | null = app ? getFirestore(app) : null;

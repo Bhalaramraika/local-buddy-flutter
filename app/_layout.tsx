@@ -26,8 +26,11 @@ import { useLocationStore } from '@/store/locationStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { initializeStores } from '@/store';
 import { initializeServices, startRealtimeSync, stopRealtimeSync } from '@/services';
+import { auth as firebaseAuth } from '@/services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { GlobalLoader } from '@/components/ui/GlobalLoader';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts as useExpoFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -157,12 +160,26 @@ function NotificationInitializer() {
 }
 
 // Firestore realtime sync (replaces the old Socket.IO layer)
+// Listeners start only when BOTH the app user and the Firebase Auth session
+// are ready — otherwise Firestore security rules reject every listener
+// (request.auth == null) and no realtime data ever arrives.
 function RealtimeInitializer() {
-  const { user } = useAuthStore();
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(
+    () => firebaseAuth?.currentUser?.uid ?? null
+  );
 
   useEffect(() => {
-    if (user?.id) {
-      startRealtimeSync(user.id);
+    if (!firebaseAuth) return;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (fbUser) => {
+      setFirebaseUid(fbUser?.uid ?? null);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (userId && firebaseUid) {
+      startRealtimeSync(userId);
     } else {
       stopRealtimeSync();
     }
@@ -170,7 +187,7 @@ function RealtimeInitializer() {
     return () => {
       stopRealtimeSync();
     };
-  }, [user?.id]);
+  }, [userId, firebaseUid]);
 
   return null;
 }
@@ -325,6 +342,8 @@ function AppProviders({ children }: { children: React.ReactNode }) {
                         <NotificationInitializer />
                         <RealtimeInitializer />
                         {children}
+                        {/* App-wide centered orange loader (auto-wired to API calls) */}
+                        <GlobalLoader />
                       </FontLoader>
                     </ErrorBoundary>
                   </SafeAreaProvider>

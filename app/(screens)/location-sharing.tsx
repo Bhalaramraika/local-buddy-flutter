@@ -63,7 +63,7 @@ const SettingToggle = ({ title, subtitle, value, onValueChange }: any) => (
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: '#767577', true: '#4F46E5' }}
+      trackColor={{ false: '#767577', true: '#8B85FF' }}
       thumbColor="#fff"
     />
   </View>
@@ -72,7 +72,7 @@ const SettingToggle = ({ title, subtitle, value, onValueChange }: any) => (
 const ShareCard = ({ share, onToggleShare, onExtendShare }: { share: LocationShare; onToggleShare: (id: string, val: boolean) => void; onExtendShare: (id: string) => void }) => (
   <View style={{ backgroundColor: '#fff', borderRadius: 12, marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: '#eee', overflow: 'hidden' }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
-      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>{share.avatar}</Text>
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
@@ -82,7 +82,7 @@ const ShareCard = ({ share, onToggleShare, onExtendShare }: { share: LocationSha
       <Switch
         value={share.isActive}
         onValueChange={(val: boolean) => onToggleShare(share.id, val)}
-        trackColor={{ false: '#767577', true: '#4F46E5' }}
+        trackColor={{ false: '#767577', true: '#8B85FF' }}
         thumbColor="#fff"
       />
     </View>
@@ -108,15 +108,15 @@ const ShareCard = ({ share, onToggleShare, onExtendShare }: { share: LocationSha
 
     {share.isActive && share.expiresAt && share.expiresAt !== 'expired' && (
       <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#EEF2FF', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => onExtendShare(share.id)}>
-        <Ionicons name="time-outline" size={14} color="#4F46E5" />
-        <Text style={{ color: '#4F46E5', fontWeight: '600', marginLeft: 8 }}>Extend Sharing</Text>
+        <Ionicons name="time-outline" size={14} color="#8B85FF" />
+        <Text style={{ color: '#8B85FF', fontWeight: '600', marginLeft: 8 }}>Extend Sharing</Text>
       </TouchableOpacity>
     )}
 
     {!share.isActive && (
       <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#f0f0f0', marginHorizontal: 16, marginBottom: 16, borderRadius: 8 }} onPress={() => onToggleShare(share.id, true)}>
-        <Ionicons name="location-outline" size={14} color="#4F46E5" />
-        <Text style={{ color: '#4F46E5', fontWeight: '600', marginLeft: 8 }}>Resume Sharing</Text>
+        <Ionicons name="location-outline" size={14} color="#8B85FF" />
+        <Text style={{ color: '#8B85FF', fontWeight: '600', marginLeft: 8 }}>Resume Sharing</Text>
       </TouchableOpacity>
     )}
   </View>
@@ -377,7 +377,7 @@ export default function LocationSharingScreen() {
                     style={[
                       styles.durationOption,
                       newShareDuration === duration && styles.durationOptionSelected,
-                      { backgroundColor: newShareDuration === duration ? '#4F46E5' : (isDark ? '#1a1a1a' : '#f0f0f0'), borderColor: newShareDuration === duration ? '#4F46E5' : (isDark ? '#333' : '#ddd') }
+                      { backgroundColor: newShareDuration === duration ? '#8B85FF' : (isDark ? '#1a1a1a' : '#f0f0f0'), borderColor: newShareDuration === duration ? '#8B85FF' : (isDark ? '#333' : '#ddd') }
                     ]}
                     onPress={() => setNewShareDuration(duration as any)}
                   >
@@ -401,7 +401,7 @@ export default function LocationSharingScreen() {
                       <View style={[
                         styles.permissionCheckbox,
                         newSharePermissions.includes(perm) && styles.permissionCheckboxChecked,
-                        { backgroundColor: newSharePermissions.includes(perm) ? '#4F46E5' : 'transparent', borderColor: newSharePermissions.includes(perm) ? '#4F46E5' : (isDark ? '#555' : '#ccc') }
+                        { backgroundColor: newSharePermissions.includes(perm) ? '#8B85FF' : 'transparent', borderColor: newSharePermissions.includes(perm) ? '#8B85FF' : (isDark ? '#555' : '#ccc') }
                       ]}>
                         {newSharePermissions.includes(perm) && <Ionicons name="checkmark" size={16} color="#fff" />}
                       </View>
@@ -419,9 +419,9 @@ export default function LocationSharingScreen() {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.modalButtonSecondary} onPress={() => setShowAddModal(false)}>
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={[styles.modalButtonTextSecondary, { color: isDark ? '#fff' : '#000' }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButtonPrimary, { backgroundColor: newShareContact.trim() ? '#4F46E5' : '#999' }]} onPress={handleAddShare} disabled={!newShareContact.trim()}>
+              <TouchableOpacity style={[styles.modalButtonPrimary, { backgroundColor: newShareContact.trim() ? '#8B85FF' : '#999' }]} onPress={handleAddShare} disabled={!newShareContact.trim()}>
                 <Text style={styles.modalButtonTextPrimary}>Start Sharing</Text>
               </TouchableOpacity>
             </View>
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   settingSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
   shareCard: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 12 },
   shareHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  shareAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  shareAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
   shareAvatarText: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
   shareInfo: { flex: 1 },
   shareName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
@@ -460,8 +460,8 @@ const styles = StyleSheet.create({
   shareDetails: { gap: 8, marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  extendButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, backgroundColor: '#4F46E515', borderRadius: 10 },
-  extendButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  extendButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, backgroundColor: '#8B85FF15', borderRadius: 10 },
+  extendButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#8B85FF' },
   loadingContainer: { alignItems: 'center', paddingVertical: 40 },
   loadingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   emptyShares: { alignItems: 'center', paddingVertical: 40 },

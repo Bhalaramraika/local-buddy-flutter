@@ -90,7 +90,7 @@ export default function NewChatScreen() {
         </View>
       </View>
       <View style={styles.userActions}>
-        <Ionicons name="chatbubble-outline" size={22} color="#4F46E5" />
+        <Ionicons name="chatbubble-outline" size={22} color="#8B85FF" />
       </View>
     </TouchableOpacity>
   );
@@ -134,7 +134,7 @@ export default function NewChatScreen() {
         <View style={[styles.searchWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
           <Ionicons name="search-outline" size={22} color={isDark ? '#888' : '#999'} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: isDark ? '#fff' : '#000' }]}
             placeholder="Search users..."
             placeholderTextColor={isDark ? '#888' : '#999'}
             value={searchQuery}
@@ -152,7 +152,7 @@ export default function NewChatScreen() {
       {/* Users List */}
       {usersLoading ? (
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading users...</Text>
         </View>
       ) : filteredUsers.length === 0 ? (
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
   searchContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   searchWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 16, height: 48 },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', color: '#000' },
+  searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   listContent: { padding: 16, paddingBottom: 40 },
   userItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  userAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  userAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
   userAvatarImage: { width: '100%', height: '100%' },
   userAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
   onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },

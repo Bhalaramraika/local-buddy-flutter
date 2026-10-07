@@ -47,6 +47,16 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const userDoc = await collections.users.doc(decodedToken.uid).get();
     const userData = userDoc.data();
 
+    // Self-healing: guarantee every user doc has the `kycApproved` boolean
+    // (admins toggle it in the Firestore console). Docs created before the
+    // field existed are backfilled with `false` on their first API call.
+    if (userDoc.exists && userData && userData.kycApproved === undefined) {
+      collections.users
+        .doc(decodedToken.uid)
+        .update({ kycApproved: false, updatedAt: new Date().toISOString() })
+        .catch((err) => console.warn('[Auth Middleware] kycApproved backfill failed:', err));
+    }
+
     // Check if user is banned/suspended
     if (userData?.status === 'banned') {
       res.status(403).json({ error: 'Account has been banned', code: 'ACCOUNT_BANNED' });
@@ -141,9 +151,9 @@ export function requireKYC(req: Request, res: Response, next: NextFunction): voi
     return;
   }
   const kyc = req.user.userDoc.kyc || {};
-  // Supports both legacy status=verified AND the manual Firestore toggle
-  // `kyc.approved: true` (used for MVP admin review without an admin portal).
-  const ok = kyc.status === 'verified' || kyc.approved === true;
+  // Supports: legacy status=verified, kyc.approved=true, and the simple
+  // manual Firestore toggle `kycApproved: true` on the user doc (MVP admin).
+  const ok = kyc.status === 'verified' || kyc.approved === true || req.user.userDoc.kycApproved === true;
   if (!ok) {
     res.status(403).json({
       error: 'KYC verification required',

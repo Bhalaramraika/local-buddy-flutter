@@ -68,7 +68,7 @@ export default function LocationSettingsScreen() {
             value={locationEnabled}
             onChange={setLocationEnabled}
             icon="location-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -105,7 +105,7 @@ export default function LocationSettingsScreen() {
             value={shareLocation}
             onChange={setShareLocation}
             icon="share-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             disabled={!locationEnabled}
           />
@@ -152,7 +152,7 @@ export default function LocationSettingsScreen() {
             title="Manage Geofences"
             description="Add, edit, or remove geofence areas"
             icon="map-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/geofences')}
             showArrow
@@ -170,7 +170,7 @@ export default function LocationSettingsScreen() {
             value={locationHistory}
             onChange={setLocationHistory}
             icon="time-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             disabled={!locationEnabled}
           />
@@ -207,7 +207,7 @@ export default function LocationSettingsScreen() {
             title="Location Privacy"
             description="Control who can see your location"
             icon="lock-closed-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/(screens)/location-settings')}
             showArrow

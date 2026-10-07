@@ -18,6 +18,7 @@ import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vect
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { apiGet } from '@/services/api';
+import { Colors } from '@/constants/design';
 
 export default function ReferralScreen() {
   const router = useRouter();
@@ -128,7 +129,7 @@ export default function ReferralScreen() {
           </View>
         </View>
         <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#4F46E5" />
+          <Ionicons name="refresh" size={32} color="#8B85FF" />
           <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading referral data...</Text>
         </View>
       </View>
@@ -145,7 +146,7 @@ export default function ReferralScreen() {
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Referral Program</Text>
           <TouchableOpacity onPress={() => router.push('/(screens)/my-referrals')}>
-            <Text style={[styles.myReferralsText, { color: '#4F46E5' }]}>My Referrals</Text>
+            <Text style={[styles.myReferralsText, { color: Colors.brand.primary }]}>My Referrals</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -169,7 +170,7 @@ export default function ReferralScreen() {
                   style={[styles.copyButton, copied && styles.copyButtonCopied]}
                   onPress={copyReferralCode}
                 >
-                  <Ionicons name={copied ? 'checkmark-outline' : 'copy-outline'} size={20} color={copied ? '#10B981' : '#4F46E5'} />
+                  <Ionicons name={copied ? 'checkmark-outline' : 'copy-outline'} size={20} color={copied ? '#10B981' : Colors.brand.primary} />
                 </TouchableOpacity>
               </View>
               <Text style={[styles.codeCopied, { color: copied ? '#10B981' : 'transparent' }]}>Copied!</Text>
@@ -191,7 +192,7 @@ export default function ReferralScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.shareButton, { backgroundColor: '#4F46E5' }]} onPress={shareReferral}>
+          <TouchableOpacity style={[styles.shareButton, { backgroundColor: Colors.brand.primary }]} onPress={shareReferral}>
             <Ionicons name="share-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.shareButtonText}>Share Referral Link</Text>
           </TouchableOpacity>
@@ -208,7 +209,7 @@ export default function ReferralScreen() {
               style={[
                 styles.progressFill, 
                 { 
-                  backgroundColor: '#4F46E5',
+                  backgroundColor: Colors.brand.primary,
                   width: `${Math.min((referralData.successfulReferrals / referralData.nextTierRequirement) * 100, 100)}%`
                 }
               ]} 
@@ -271,7 +272,7 @@ export default function ReferralScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Recent Activity</Text>
             <TouchableOpacity onPress={() => router.push('/(screens)/my-referrals')}>
-              <Text style={[styles.seeAllText, { color: '#4F46E5' }]}>See All</Text>
+              <Text style={[styles.seeAllText, { color: Colors.brand.primary }]}>See All</Text>
             </TouchableOpacity>
           </View>
           {referralData.recentActivity.length === 0 ? (
@@ -320,16 +321,16 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  heroCard: { borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
+  heroCard: { borderRadius: 32, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   heroTop: { marginBottom: 20 },
   tierBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
-  tierLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#4F46E5' },
-  tierName: { fontSize: 20, fontFamily: 'Inter_700Bold', color: '#4F46E5' },
-  referralCodeCard: { backgroundColor: '#4F46E515', borderRadius: 16, padding: 20 },
+  tierLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.brand.primary },
+  tierName: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.brand.primary },
+  referralCodeCard: { backgroundColor: '#8B85FF15', borderRadius: 28, padding: 20 },
   codeLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 8 },
   codeContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   codeText: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
-  copyButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  copyButton: { width: 44, height: 44, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center' },
   copyButtonCopied: { backgroundColor: '#10B981' },
   codeCopied: { fontSize: 12, fontFamily: 'Inter_500Medium', marginTop: 8, textAlign: 'center' },
   heroStats: { flexDirection: 'row', marginBottom: 20 },
@@ -338,26 +339,26 @@ const styles = StyleSheet.create({
   heroStatLabel: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4 },
   shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 12 },
   shareButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#fff' },
-  section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
+  section: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
   tierProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   tierProgressText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  progressBar: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
+  progressBar: { height: 8, borderRadius: 28, backgroundColor: '#E5E7EB', overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   tierProgressDetail: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8 },
   stepsContainer: { gap: 20 },
   step: { flexDirection: 'row', gap: 16 },
-  stepNumber: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  stepNumber: { width: 32, height: 32, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   stepContent: { flex: 1 },
   stepTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   stepDescription: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2, lineHeight: 18 },
   rewardsList: { gap: 12 },
-  rewardItem: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
+  rewardItem: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
   rewardAchieved: { borderColor: '#10B981', backgroundColor: '#10B98110' },
-  rewardCurrent: { borderColor: '#4F46E5', backgroundColor: '#4F46E510' },
-  rewardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' },
+  rewardCurrent: { borderColor: Colors.brand.primary, backgroundColor: '#8B85FF10' },
+  rewardIcon: { width: 44, height: 44, borderRadius: 28, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' },
   rewardIconAchieved: { backgroundColor: '#10B981' },
-  rewardIconCurrent: { backgroundColor: '#4F46E5' },
+  rewardIconCurrent: { backgroundColor: Colors.brand.primary },
   rewardInfo: { flex: 1 },
   rewardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rewardReferrals: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
@@ -370,8 +371,8 @@ const styles = StyleSheet.create({
   emptyActivitySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },
   activityList: { gap: 12 },
   activityItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  activityAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E515', justifyContent: 'center', alignItems: 'center' },
-  activityAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#4F46E5' },
+  activityAvatar: { width: 44, height: 44, borderRadius: 28, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
+  activityAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.brand.primary },
   activityInfo: { flex: 1 },
   activityName: { fontSize: 15, fontFamily: 'Inter_500Medium' },
   activityDate: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },

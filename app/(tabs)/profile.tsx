@@ -12,6 +12,7 @@ import {
   Image,
   RefreshControl,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
@@ -29,9 +30,11 @@ export default function ProfileScreen() {
     updateProfile,
   } = useAuthStore();
   const { theme, setTheme } = useUIStore();
+  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
 
-  const isDark = theme === 'dark';
+  // System-aware: 'system' follows the OS scheme so text/background always contrast
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -46,7 +49,14 @@ export default function ProfileScreen() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            router.replace('/');
+          },
+        },
       ]
     );
   };
@@ -55,7 +65,7 @@ export default function ProfileScreen() {
     {
       section: 'Account',
       items: [
-        { id: 'edit-profile', icon: 'person-outline', label: 'Edit Profile', route: '/(screens)/edit-profile', color: '#4F46E5' },
+        { id: 'edit-profile', icon: 'person-outline', label: 'Edit Profile', route: '/(screens)/edit-profile', color: '#8B85FF' },
         { id: 'kyc-status', icon: 'shield-checkmark-outline', label: 'KYC Status', route: '/(screens)/kyc-status', color: '#10B981' },
         { id: 'kyc-documents', icon: 'card-outline', label: 'KYC Documents', route: '/(screens)/kyc-documents', color: '#06B6D4' },
         { id: 'referral', icon: 'share-outline', label: 'Refer & Earn', route: '/(screens)/referral', color: '#F59E0B' },
@@ -66,7 +76,7 @@ export default function ProfileScreen() {
       section: 'Activity',
       items: [
         { id: 'achievements', icon: 'trophy-outline', label: 'Achievements', route: '/(screens)/achievements', color: '#F59E0B' },
-        { id: 'stats', icon: 'chart-bar-outline', label: 'My Stats', route: '/(screens)/stats', color: '#4F46E5' },
+        { id: 'stats', icon: 'chart-bar-outline', label: 'My Stats', route: '/(screens)/stats', color: '#8B85FF' },
       ],
     },
     {
@@ -82,7 +92,7 @@ export default function ProfileScreen() {
     {
       section: 'Support',
       items: [
-        { id: 'help', icon: 'help-circle-outline', label: 'Help & Support', route: '/(screens)/help', color: '#4F46E5' },
+        { id: 'help', icon: 'help-circle-outline', label: 'Help & Support', route: '/(screens)/help', color: '#8B85FF' },
         { id: 'faq', icon: 'question-mark-circle-outline', label: 'FAQ', route: '/(screens)/faq', color: '#06B6D4' },
         { id: 'contact', icon: 'headset-outline', label: 'Contact Support', route: '/(screens)/contact-support', color: '#10B981' },
         { id: 'terms', icon: 'document-text-outline', label: 'Terms of Service', route: '/(screens)/terms', color: '#6B7280' },
@@ -93,7 +103,7 @@ export default function ProfileScreen() {
   ];
 
   const stats = [
-    { label: 'Tasks Posted', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-outline', color: '#4F46E5' },
+    { label: 'Tasks Posted', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-outline', color: '#8B85FF' },
     { label: 'Tasks Completed', value: user?.stats?.completedTasks || 0, icon: 'check-circle-outline', color: '#10B981' },
     { label: 'Total Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: '#F59E0B' },
     { label: 'Rating', value: user?.stats?.rating?.toFixed(1) || '0.0', icon: 'star-outline', color: '#EF4444' },
@@ -114,9 +124,9 @@ export default function ProfileScreen() {
         <View style={styles.authPrompt}>
           <View style={[
             styles.authIcon,
-            { backgroundColor: isDark ? '#4F46E520' : '#EEF2FF' }
+            { backgroundColor: isDark ? '#8B85FF20' : '#EEF2FF' }
           ]}>
-            <Ionicons name="person-circle-outline" size={64} color="#4F46E5" />
+            <Ionicons name="person-circle-outline" size={64} color="#8B85FF" />
           </View>
           <Text style={[
             styles.authTitle,
@@ -148,7 +158,7 @@ export default function ProfileScreen() {
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh}
-          colors={['#4F46E5']}
+          colors={['#8B85FF']}
           progressBackgroundColor={isDark ? '#1E293B' : '#fff'}
         />
       }
@@ -303,7 +313,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.walletCardHeader}>
           <View style={styles.walletIconWrapper}>
-            <Ionicons name="wallet-outline" size={24} color="#4F46E5" />
+            <Ionicons name="wallet-outline" size={24} color="#8B85FF" />
           </View>
           <View style={styles.walletInfo}>
             <Text style={[
@@ -333,7 +343,7 @@ export default function ProfileScreen() {
               router.push('/(screens)/wallet-topup');
             }}
           >
-            <Ionicons name="add-circle-outline" size={20} color="#4F46E5" />
+            <Ionicons name="add-circle-outline" size={20} color="#8B85FF" />
             <Text style={styles.walletActionText}>Add Money</Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -460,9 +470,9 @@ const styles = StyleSheet.create({
   loadingSpinner: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 3,
-    borderColor: '#4F46E5',
+    borderColor: '#8B85FF',
     borderTopColor: 'transparent',
   },
   loadingText: {
@@ -498,12 +508,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 32,
     paddingVertical: 14,
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: '#8B85FF',
+    borderRadius: 24,
+    shadowColor: '#8B85FF',
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 20,
     elevation: 4,
   },
   authButtonText: {
@@ -517,9 +527,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowColor: '#B0A8FF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
     shadowRadius: 16,
     elevation: 4,
   },
@@ -549,10 +559,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     marginTop: -48,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowColor: '#B0A8FF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.075,
+    shadowRadius: 24,
     elevation: 4,
   },
   avatarImage: {
@@ -570,7 +580,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: '#10B981',
     justifyContent: 'center',
     alignItems: 'center',
@@ -624,7 +634,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 24,
   },
   editProfileText: {
     fontSize: 14,
@@ -642,7 +652,7 @@ const styles = StyleSheet.create({
     width: '48%',
     alignItems: 'center',
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
@@ -666,11 +676,11 @@ const styles = StyleSheet.create({
   walletCard: {
     marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowColor: '#B0A8FF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
     shadowRadius: 16,
     elevation: 4,
     borderWidth: 1,
@@ -721,7 +731,7 @@ const styles = StyleSheet.create({
   menuSection: {
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 16,
+    borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#F1F5F9',
@@ -752,7 +762,7 @@ const styles = StyleSheet.create({
   menuItemIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -769,14 +779,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
   logoutIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

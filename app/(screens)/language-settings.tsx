@@ -97,7 +97,7 @@ export default function LanguageSettingsScreen() {
                 styles.languageOption,
                 { 
                   backgroundColor: isDark ? '#2a2a2a' : '#fff',
-                  borderColor: language === lang.code ? '#4F46E5' : '#eee',
+                  borderColor: language === lang.code ? '#8B85FF' : '#eee',
                   borderWidth: language === lang.code ? 2 : 1,
                 }
               ]}
@@ -108,7 +108,7 @@ export default function LanguageSettingsScreen() {
                 <Text style={[styles.languageName, { color: isDark ? '#fff' : '#000' }]}>{lang.name}</Text>
                 <Text style={[styles.languageNative, { color: isDark ? '#888' : '#666' }]}>{lang.nativeName}</Text>
               </View>
-              {language === lang.code && <Ionicons name="checkmark-circle" size={24} color="#4F46E5" />}
+              {language === lang.code && <Ionicons name="checkmark-circle" size={24} color="#8B85FF" />}
             </TouchableOpacity>
           ))}
         </View>
@@ -127,7 +127,7 @@ export default function LanguageSettingsScreen() {
                 styles.regionOption,
                 { 
                   backgroundColor: isDark ? '#2a2a2a' : '#fff',
-                  borderColor: region === reg.code ? '#4F46E5' : '#eee',
+                  borderColor: region === reg.code ? '#8B85FF' : '#eee',
                   borderWidth: region === reg.code ? 2 : 1,
                 }
               ]}
@@ -138,7 +138,7 @@ export default function LanguageSettingsScreen() {
                 <Text style={[styles.regionName, { color: isDark ? '#fff' : '#000' }]}>{reg.name}</Text>
                 <Text style={[styles.regionCurrency, { color: isDark ? '#888' : '#666' }]}>Currency: {reg.currency}</Text>
               </View>
-              {region === reg.code && <Ionicons name="checkmark-circle" size={24} color="#4F46E5" />}
+              {region === reg.code && <Ionicons name="checkmark-circle" size={24} color="#8B85FF" />}
             </TouchableOpacity>
           ))}
         </View>
@@ -153,7 +153,7 @@ export default function LanguageSettingsScreen() {
             value={autoTranslate}
             onChange={setAutoTranslate}
             icon="translate-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -184,7 +184,7 @@ export default function LanguageSettingsScreen() {
             title="Date Format"
             description="MM/DD/YYYY (US) • DD/MM/YYYY (UK/EU) • YYYY-MM-DD (ISO)"
             icon="calendar-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => Alert.alert('Date Format', 'Date format follows your region setting.') }
             showArrow
@@ -219,7 +219,7 @@ export default function LanguageSettingsScreen() {
             title="Decimal Separator"
             description="Period (1,234.56) • Comma (1.234,56)"
             icon="ellipsis-horizontal-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => Alert.alert('Decimal Separator', 'Number format follows your region setting.') }
             showArrow

@@ -12,6 +12,7 @@
 
 import {
   collection,
+  doc,
   query,
   where,
   orderBy,
@@ -24,6 +25,8 @@ import {
 import { db } from './firebase';
 import { useChatStore } from '@/store/chatStore';
 import { useTaskStore } from '@/store/taskStore';
+import { useAuthStore } from '@/store/authStore';
+import { useKYCStore } from '@/store/kycStore';
 import type { Task, Chat, Message } from '@/types';
 
 const listeners: Map<string, Unsubscribe> = new Map();
@@ -123,12 +126,115 @@ function snapshotToArray<T>(snap: QuerySnapshot<DocumentData>, map: (id: string,
   return snap.docs.map((docSnap) => map(docSnap.id, docSnap.data()));
 }
 
+/**
+ * Convert any timestamp-ish value (Firestore Timestamp, ISO string, epoch
+ * ms, Date) to epoch milliseconds for sorting.
+ */
+function toMillis(v: any): number {
+  if (!v) return 0;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? 0 : t;
+  }
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  if (typeof v.seconds === 'number') return v.seconds * 1000;
+  if (v instanceof Date) return v.getTime();
+  return 0;
+}
+
+/**
+ * Sort newest-first by a timestamp field.
+ * Client-side sorting keeps the listeners free of compound indexes
+ * (a `where(...) + orderBy(...)` mix requires a composite index; when it is
+ * missing the whole listener fails and the app shows no data at all).
+ */
+function sortNewestFirst<T>(arr: T[], pickField: (item: T) => any): T[] {
+  return [...arr].sort((a, b) => toMillis(pickField(b)) - toMillis(pickField(a)));
+}
+
 /** Subscribe to all realtime data for the signed-in user. */
 export function startRealtimeSync(userId: string): void {
   if (!db) return;
   stopRealtimeSync();
 
   const firestore = db;
+
+  // --- My user profile (KYC approval is controlled by the `kycApproved`
+  // boolean field on the user doc — admin toggles it in the Firestore
+  // console and the app unlocks KYC-gated features instantly) ---
+  listeners.set(
+    'userProfile',
+    onSnapshot(
+      doc(firestore, 'users', userId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const d = snap.data() as any;
+
+        const approved = d.kycApproved === true || d.kyc?.status === 'verified';
+        const kycStatus = approved
+          ? 'verified'
+          : (d.kyc?.status || 'not_started');
+
+        // Sync auth store (drives KYC gating across the app)
+        try {
+          useAuthStore.getState().updateKYCStatus(kycStatus, {
+            ...(d.kyc || {}),
+            approved,
+          });
+        } catch (e) {
+          console.warn('[Realtime] auth KYC sync failed:', e);
+        }
+
+        // Sync KYC store
+        try {
+          useKYCStore.getState().setIsVerified(approved);
+          useKYCStore.getState().setKYCStatus({
+            status: approved ? 'approved' : (d.kyc?.status === 'pending' ? 'pending' : d.kyc?.status === 'rejected' ? 'rejected' : 'not_started'),
+            submittedAt: d.kyc?.submittedAt ?? null,
+            reviewedAt: d.kyc?.reviewedAt ?? null,
+            rejectionReason: d.kyc?.rejectionReason ?? null,
+            documents: d.kyc?.documents ?? [],
+          });
+        } catch (e) {
+          console.warn('[Realtime] KYC store sync failed:', e);
+        }
+
+        // Sync wallet from user doc — balance AND the `wallet` object used
+        // by the Wallet tab, with the SAME semantics as GET /api/v1/wallet
+        // (balance = available; pendingBalance separate; total = sum).
+        try {
+          if (d.wallet && typeof d.wallet.balance === 'number') {
+            const { useWalletStore } = require('@/store/walletStore');
+            const bal = d.wallet.balance;
+            const pending = d.wallet.pendingBalance ?? 0;
+            const currency = d.wallet.currency ?? 'INR';
+            const earnings = d.stats?.totalEarnings ?? 0;
+            const spent = d.stats?.totalSpent ?? 0;
+            useWalletStore.setState({
+              wallet: {
+                balance: bal,
+                pendingBalance: pending,
+                currency,
+                upiId: d.wallet.upiId,
+                totalEarnings: earnings,
+                totalSpent: spent,
+              },
+              balance: {
+                available: bal,
+                pending,
+                total: bal + pending,
+                currency,
+              },
+            });
+          }
+        } catch {
+          // wallet store sync is best-effort — non-fatal
+        }
+      },
+      (err) => console.warn('[Realtime] userProfile listener error:', err?.code, err?.message)
+    )
+  );
 
   // --- Chats for this user ---
   listeners.set(
@@ -137,14 +243,13 @@ export function startRealtimeSync(userId: string): void {
       query(
         collection(firestore, 'chats'),
         where('participants', 'array-contains', userId),
-        orderBy('updatedAt', 'desc'),
         fbLimit(50)
       ),
       (snap) => {
         const chats = snapshotToArray(snap, (id, d) => mapChat(id, d, userId));
-        useChatStore.getState().setChats(chats);
+        useChatStore.getState().setChats(sortNewestFirst(chats, (c) => c.updatedAt));
       },
-      (err) => console.warn('[Realtime] chats listener error:', err)
+      (err) => console.warn('[Realtime] chats listener error:', err?.code, err?.message)
     )
   );
 
@@ -155,13 +260,13 @@ export function startRealtimeSync(userId: string): void {
       query(
         collection(firestore, 'tasks'),
         where('posterId', '==', userId),
-        orderBy('createdAt', 'desc'),
         fbLimit(50)
       ),
       (snap) => {
-        useTaskStore.getState().setMyTasks(snapshotToArray(snap, mapTask));
+        const tasks = snapshotToArray(snap, mapTask);
+        useTaskStore.getState().setMyTasks(sortNewestFirst(tasks, (t) => t.createdAt));
       },
-      (err) => console.warn('[Realtime] myTasks listener error:', err)
+      (err) => console.warn('[Realtime] myTasks listener error:', err?.code, err?.message)
     )
   );
 
@@ -172,13 +277,13 @@ export function startRealtimeSync(userId: string): void {
       query(
         collection(firestore, 'tasks'),
         where('buddyId', '==', userId),
-        orderBy('createdAt', 'desc'),
         fbLimit(50)
       ),
       (snap) => {
-        useTaskStore.getState().setAssignedTasks(snapshotToArray(snap, mapTask));
+        const tasks = snapshotToArray(snap, mapTask);
+        useTaskStore.getState().setAssignedTasks(sortNewestFirst(tasks, (t) => t.createdAt));
       },
-      (err) => console.warn('[Realtime] assignedTasks listener error:', err)
+      (err) => console.warn('[Realtime] assignedTasks listener error:', err?.code, err?.message)
     )
   );
 
@@ -189,13 +294,13 @@ export function startRealtimeSync(userId: string): void {
       query(
         collection(firestore, 'tasks'),
         where('status', '==', 'open'),
-        orderBy('createdAt', 'desc'),
         fbLimit(100)
       ),
       (snap) => {
-        useTaskStore.getState().setNearbyTasks(snapshotToArray(snap, mapTask));
+        const tasks = snapshotToArray(snap, mapTask);
+        useTaskStore.getState().setNearbyTasks(sortNewestFirst(tasks, (t) => t.createdAt));
       },
-      (err) => console.warn('[Realtime] nearbyTasks listener error:', err)
+      (err) => console.warn('[Realtime] nearbyTasks listener error:', err?.code, err?.message)
     )
   );
 }
@@ -224,7 +329,7 @@ export function subscribeToChatMessages(chatId: string): (() => void) | null {
         }
       });
     },
-    (err) => console.warn('[Realtime] messages listener error:', err)
+    (err) => console.warn('[Realtime] messages listener error:', err?.code, err?.message)
   );
 
   listeners.set(key, unsub);

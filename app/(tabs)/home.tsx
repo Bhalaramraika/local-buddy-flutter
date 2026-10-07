@@ -1,333 +1,323 @@
 /**
- * Home Screen - Main dashboard
+ * Home Screen — Soft Premium Dashboard
+ * Clean greeting, capsule wallet card, quick actions, nearby tasks feed.
  */
 
-import React, { useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Pressable, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, Typography } from '@/constants/design';
+import { SoftCard, SoftBadge, SoftSkeleton, useAppColors } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useWalletStore } from '@/store/walletStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useChatStore } from '@/store/chatStore';
-import { useLocationStore } from '@/store/locationStore';
-import { useUIStore } from '@/store/uiStore';
-import { formatCurrency, formatDistance } from '@/utils/helpers';
+import { formatCurrency } from '@/utils/helpers';
+
+const QUICK_ACTIONS = [
+  { icon: 'add-circle-outline' as const, label: 'Post task', route: '/(screens)/create-task' },
+  { icon: 'people-outline' as const, label: 'Find buddy', route: '/(screens)/nearby-buddies' },
+  { icon: 'wallet-outline' as const, label: 'Wallet', route: '/(tabs)/wallet' },
+  { icon: 'star-outline' as const, label: 'My stats', route: '/(screens)/stats' },
+];
+
+const TASK_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  open: { bg: Colors.semantic.infoSoft, text: Colors.semantic.info },
+  in_progress: { bg: Colors.semantic.warningSoft, text: Colors.semantic.warning },
+  completed: { bg: Colors.semantic.successSoft, text: Colors.semantic.success },
+  cancelled: { bg: Colors.semantic.errorSoft, text: Colors.semantic.error },
+};
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
-  const { nearbyTasks, isLoading: tasksLoading } = useTaskStore();
+  const { nearbyTasks, isLoading: tasksLoading, fetchTasks } = useTaskStore();
   const { getAvailableBalance } = useWalletStore();
   const { unreadCount } = useNotificationStore();
   const { getTotalUnreadCount } = useChatStore();
-  const totalUnreadCount = getTotalUnreadCount();
-  const { nearbyBuddies } = useLocationStore();
-  const { theme } = useUIStore();
+  const t = useAppColors();
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const isDark = theme === 'dark';
+  const isDark = t.isDark;
+  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
+  const balance = getAvailableBalance();
+  const totalUnreadCount = getTotalUnreadCount();
 
   useEffect(() => {
-    if (isAuthenticated) {
-    }
-  }, [isAuthenticated]);
+    if (isAuthenticated) { void fetchTasks({ status: 'open' }); }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRefresh = async () => {
     setRefreshing(true);
-    getAvailableBalance();
-    setRefreshing(false);
+    try {
+      getAvailableBalance();
+      void fetchTasks({ status: 'open' });
+    } finally { setRefreshing(false); }
   };
 
-  const quickActions = [
-    { id: 'create-task', icon: 'plus-circle', label: 'Post Task', color: '#4F46E5', route: '/create-task' },
-    { id: 'find-buddy', icon: 'account-group', label: 'Find Buddy', color: '#10B981', route: '/nearby-buddies' },
-    { id: 'wallet', icon: 'wallet', label: 'Wallet', color: '#F59E0B', route: '/wallet' },
-    { id: 'chat', icon: 'chat', label: 'Messages', color: '#EF4444', route: '/chat', badge: totalUnreadCount },
-  ];
-
-  const stats = [
-    { label: 'Posted Tasks', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-check', color: '#4F46E5' },
-    { label: 'Completed', value: user?.stats?.tasksCompleted || 0, icon: 'check-circle', color: '#10B981' },
-    { label: 'Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: '#F59E0B' },
-    { label: 'Rating', value: user?.rating?.average?.toFixed(1) || '0.0', icon: 'star', color: '#EF4444' },
-  ];
+  const tasksToShow = useMemo(
+    () => nearbyTasks.slice(0, 4),
+    [nearbyTasks]
+  );
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
+      <View style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.authPrompt}>
-          <Ionicons name="person-circle-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Welcome to LocalBuddy</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Sign in to find local tasks and buddies</Text>
-          <TouchableOpacity style={styles.authButton} onPress={() => router.push('/login')}>
-            <Text style={styles.authButtonText}>Get Started</Text>
-          </TouchableOpacity>
+          <View style={styles.authIconWrap}>
+            <Ionicons name="people-outline" size={60} color={t.primary} />
+          </View>
+          <Text style={[styles.authTitle, { color: t.text }]}>Welcome to LocalBuddy</Text>
+          <Text style={[styles.authSub, { color: t.textSecondary }]}>Sign in to find local tasks and buddies</Text>
+          <Pressable style={styles.authCta} onPress={() => router.push('/login')}>
+            <Text style={styles.authCtaText}>Sign in / Create account</Text>
+          </Pressable>
         </View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[isDark ? '#fff' : '#000']} />}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.content}
-    >
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.greeting}>
-            <Text style={[styles.greetingText, { color: isDark ? '#fff' : '#000' }]}>
-              Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}!
-            </Text>
-            <Text style={[styles.nameText, { color: isDark ? '#fff' : '#000' }]}>{user?.name || 'Buddy'}</Text>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.primary]} tintColor={Colors.brand.primary} />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Greeting + notification */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.greeting, { color: t.textSecondary }]}>{greeting}</Text>
+            <Text style={[styles.name, { color: t.text }]}>{user?.name || 'Buddy'} 👋</Text>
           </View>
-          <TouchableOpacity
-            style={styles.notificationButton}
+          <Pressable
+            style={[styles.notificationBtn, { backgroundColor: t.surface, borderColor: t.border }]}
             onPress={() => router.push('/(screens)/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            accessibilityHint={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'No notifications'}
           >
-            <Ionicons name="notifications-outline" size={24} color={isDark ? '#fff' : '#000'} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            <Ionicons name="notifications-outline" size={22} color={t.text} />
+            {unreadCount > 0 ? (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
               </View>
-            )}
-          </TouchableOpacity>
+            ) : null}
+          </Pressable>
         </View>
-      </View>
 
-      {/* Wallet Balance Card */}
-      <View style={[styles.walletCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-        <View style={styles.walletHeader}>
-          <Text style={[styles.walletLabel, { color: isDark ? '#aaa' : '#666' }]}>Wallet Balance</Text>
-          <TouchableOpacity onPress={() => router.push('/wallet')}>
-            <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#666'} />
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.walletAmount, { color: isDark ? '#fff' : '#000' }]}>
-          {formatCurrency(getAvailableBalance())}
-        </Text>
-        <View style={styles.walletActions}>
-          <TouchableOpacity style={[styles.walletActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-topup')}>
-            <Ionicons name="add-circle-outline" size={20} color="#4F46E5" />
-            <Text style={[styles.walletActionText, { color: '#4F46E5' }]}>Add Money</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.walletActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-withdraw')}>
-            <Ionicons name="remove-circle-outline" size={20} color="#10B981" />
-            <Text style={[styles.walletActionText, { color: '#10B981' }]}>Withdraw</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.walletActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-history')}>
-            <Ionicons name="time-outline" size={20} color="#F59E0B" />
-            <Text style={[styles.walletActionText, { color: '#F59E0B' }]}>History</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
-        </View>
-        <View style={styles.quickActions}>
-          {quickActions.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              style={[styles.quickActionBtn, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-              onPress={() => router.push(action.route)}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}20` }]}>
-                <MaterialCommunityIcons name={action.icon as any} size={24} color={action.color} />
+        {/* Wallet Card */}
+        <SoftCard animated delay={0}>
+          <View style={styles.walletCardInner}>
+            <View style={styles.walletTop}>
+              <View style={styles.walletLabelRow}>
+                <Ionicons name="wallet-outline" size={16} color={t.textMuted} />
+                <Text style={[styles.walletLabel, { color: t.textMuted }]}>Wallet balance</Text>
               </View>
-              <Text style={[styles.quickActionLabel, { color: isDark ? '#fff' : '#000' }]}>{action.label}</Text>
-              {action.badge && action.badge > 0 && (
-                <View style={styles.quickActionBadge}>
-                  <Text style={styles.quickActionBadgeText}>{action.badge > 99 ? '99+' : action.badge}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Stats Grid */}
-      <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Your Stats</Text>
-          <TouchableOpacity onPress={() => router.push('/(screens)/stats')}>
-            <Text style={styles.seeAll}>See All</Text>
-            <Ionicons name="chevron-forward-outline" size={16} color="#4F46E5" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.statsGrid}>
-          {stats.map((stat) => (
-            <View key={stat.label} style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa' }]}>
-              <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
-              </View>
-              <Text style={[styles.statValue, { color: isDark ? '#fff' : '#000' }]}>{stat.value}</Text>
-              <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>{stat.label}</Text>
+              <Pressable onPress={() => router.push('/(tabs)/wallet')}>
+                <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
+              </Pressable>
             </View>
+            <Text style={[styles.walletAmount, { color: t.text }]}>{formatCurrency(balance)}</Text>
+            <View style={styles.walletActions}>
+              <Pressable
+                style={[styles.actionPill, { backgroundColor: Colors.brand.primary }]}
+                onPress={() => router.push('/(screens)/wallet-topup')}
+              >
+                <Ionicons name="add" size={14} color="#fff" />
+                <Text style={styles.actionPillText}>Add money</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionPill, { backgroundColor: t.surfaceAlt, borderWidth: 1, borderColor: t.border }]}
+                onPress={() => router.push('/(screens)/wallet-history')}
+              >
+                <Ionicons name="time-outline" size={14} color={t.textSecondary} />
+                <Text style={[styles.actionPillText, { color: t.textSecondary }]}>History</Text>
+              </Pressable>
+            </View>
+          </View>
+        </SoftCard>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsRow}>
+          {QUICK_ACTIONS.map((a) => (
+            <Pressable key={a.label} style={styles.quickAction} onPress={() => router.push(a.route as any)}>
+              <SoftCard padding={3} style={styles.quickActionInner} onPress={() => router.push(a.route as any)}>
+                <View style={[styles.quickIconWrap, { backgroundColor: Colors.brand.primary + '12' }]}>
+                  <Ionicons name={a.icon} size={22} color={Colors.brand.primary} />
+                </View>
+                <Text style={[styles.quickLabel, { color: t.text }]} numberOfLines={1}>{a.label}</Text>
+              </SoftCard>
+            </Pressable>
           ))}
         </View>
-      </View>
 
-      {/* Nearby Tasks */}
-      <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Nearby Tasks</Text>
-          <TouchableOpacity onPress={() => router.push('/tasks')}>
-            <Text style={styles.seeAll}>See All</Text>
-            <Ionicons name="chevron-forward-outline" size={16} color="#4F46E5" />
-          </TouchableOpacity>
-        </View>
-        {tasksLoading ? (
-          <View style={styles.loading}>
-            <Text style={[styles.loadingText, { color: isDark ? '#888' : '#666' }]}>Loading tasks...</Text>
+        {/* Stats Row */}
+        <SoftCard animated delay={100} padding={4}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: t.text }]}>{String(user?.stats?.tasksPosted || 0)}</Text>
+              <Text style={[styles.statLabel, { color: t.textMuted }]}>Posted</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: t.border }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.semantic.success }]}>
+                {String(user?.stats?.tasksCompleted || 0)}
+              </Text>
+              <Text style={[styles.statLabel, { color: t.textMuted }]}>Completed</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: t.border }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: Colors.brand.primary }]}>
+                {String(Math.round(user?.rating?.average || 0))}
+              </Text>
+              <Text style={[styles.statLabel, { color: t.textMuted }]}>Rating</Text>
+            </View>
           </View>
-        ) : nearbyTasks.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="clipboard-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyText, { color: isDark ? '#888' : '#666' }]}>No tasks nearby</Text>
-            <Text style={[styles.emptySubtext, { color: isDark ? '#666' : '#999' }]}>Pull to refresh or create your own task</Text>
+        </SoftCard>
+
+        {/* Nearby Tasks */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: t.text }]}>Nearby tasks</Text>
+          <Pressable style={styles.sectionAction} onPress={() => router.push('/(screens)/create-task')}>
+            <Text style={styles.sectionActionText}>Post task</Text>
+            <Ionicons name="add" size={14} color={Colors.text.inverse} />
+          </Pressable>
+        </View>
+
+        {tasksLoading && tasksToShow.length === 0 ? (
+          <View style={styles.taskSkeletonRow}>
+            <SoftSkeleton height={96} borderRadius={BorderRadius.lg} />
+            <SoftSkeleton height={96} borderRadius={BorderRadius.lg} width="90%" />
+          </View>
+        ) : tasksToShow.length === 0 ? (
+          <View style={styles.Empty}>
+            <Ionicons name="clipboard-outline" size={48} color={t.textMuted} />
+            <Text style={[styles.emptyTitle, { color: t.text }]}>No nearby tasks yet</Text>
+            <Text style={[styles.emptySub, { color: t.textSecondary }]}>Post one or check back soon — things pick up fast around you.</Text>
           </View>
         ) : (
-          <View style={styles.taskList}>
-            {nearbyTasks.slice(0, 3).map((task) => (
-              <TouchableOpacity
+          tasksToShow.map((task, i) => {
+            const budgetText = task.budget?.amount ? `₹${task.budget.amount}` : 'Negotiable';
+            const statusColor = TASK_STATUS_COLOR[task.status] || TASK_STATUS_COLOR.open;
+            return (
+              <Pressable
                 key={task.id}
-                style={[styles.taskCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-                onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: task.id } })}
+                onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { id: task.id } })}
+                style={({ pressed }) => [styles.taskCardWrap, pressed && { opacity: 0.92 }]}
               >
-                <View style={styles.taskHeader}>
-                  <View style={[styles.taskCategory, { backgroundColor: '#4F46E520' }]}>
-                    <Text style={[styles.taskCategoryText, { color: '#4F46E5' }]}>{task.category}</Text>
-                  </View>
-                  <Text style={[styles.taskDistance, { color: isDark ? '#888' : '#666' }]}>
-                    {formatDistance(task.buddy?.distance || 0)}
-                  </Text>
-                </View>
-                <Text style={[styles.taskTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{task.title}</Text>
-                <View style={styles.taskFooter}>
-                  <View style={styles.taskMeta}>
-                    <Ionicons name="cash-outline" size={14} color="#10B981" />
-                    <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(task.budget.amount)}</Text>
-                  </View>
-                  <View style={styles.taskMeta}>
-                    <Ionicons name="time-outline" size={14} color={isDark ? '#888' : '#666'} />
-                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{task.estimatedDuration ? `${task.estimatedDuration} min` : 'Flexible'}</Text>
-                  </View>
-                  <View style={styles.taskMeta}>
-                    <Ionicons name="person-outline" size={14} color={isDark ? '#888' : '#666'} />
-                    <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>Open task</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                <AnimatedCardWrapper index={i}>
+                  <SoftCard padding={4}>
+                    <View style={styles.taskRow}>
+                      <View style={[styles.taskEmoji, { backgroundColor: Colors.brand.secondary + '12' }]}>
+                        <Ionicons name="briefcase-outline" size={18} color={Colors.brand.primary} />
+                      </View>
+                      <View style={styles.taskInfo}>
+                        <Text style={[styles.taskTitle, { color: t.text }]} numberOfLines={1}>{task.title}</Text>
+                        <Text style={[styles.taskSub, { color: t.textMuted }]} numberOfLines={1}>{task.category} · ₹{(task.budget as any)?.amount ?? task.budget} · {(task.budget as any)?.type || 'fixed'}</Text>
+                      </View>
+                      <View style={styles.taskRight}>
+                        <SoftBadge label={budgetText} variant="neutral" />
+                        <View style={[styles.statusDot, { backgroundColor: statusColor.bg }]}>
+                          <View style={[styles.statusDotInner, { backgroundColor: statusColor.text }]} />
+                        </View>
+                      </View>
+                    </View>
+                  </SoftCard>
+                </AnimatedCardWrapper>
+              </Pressable>
+            );
+          })
         )}
-      </View>
-
-      {/* Nearby Buddies */}
-      {nearbyBuddies.length > 0 && (
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Nearby Buddies</Text>
-            <TouchableOpacity onPress={() => router.push('/(screens)/nearby-buddies')}>
-              <Text style={styles.seeAll}>See All</Text>
-              <Ionicons name="chevron-forward-outline" size={16} color="#4F46E5" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.buddiesList}>
-            {nearbyBuddies.slice(0, 5).map((buddy) => (
-              <TouchableOpacity
-                key={buddy.id}
-                style={styles.buddyCard}
-                onPress={() => router.push({ pathname: `/(screens)/chat-detail`, params: { conversationId: buddy.id } })}
-              >
-                <View style={styles.buddyAvatar}>
-                  {buddy.avatar ? (
-                    <Image source={{ uri: buddy.avatar }} style={styles.buddyAvatarImage} />
-                  ) : (
-                    <Text style={styles.buddyAvatarInitial}>{buddy.name.charAt(0)}</Text>
-                  )}
-                  {buddy.isAvailable && <View style={styles.onlineIndicator} />}
-                </View>
-                <View style={styles.buddyInfo}>
-                  <Text style={[styles.buddyName, { color: isDark ? '#fff' : '#000' }]}>{buddy.name}</Text>
-                  <Text style={[styles.buddyDistance, { color: isDark ? '#888' : '#666' }]}>{formatDistance(buddy.distance)} away</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
+}
+
+function AnimatedCardWrapper({ index, children }: { index: number; children: React.ReactNode }) {
+  const anim = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 280, delay: index * 60, useNativeDriver: true }).start();
+  }, [index]);
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
+  return <Animated.View style={{ opacity: anim, transform: [{ translateY }] }}>{children}</Animated.View>;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: 100 },
-  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  greeting: { flex: 1 },
-  greetingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  nameText: { fontSize: 22, fontFamily: 'Inter_700Bold' },
-  notificationButton: { position: 'relative', padding: 4 },
-  badge: { position: 'absolute', top: 0, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
-  badgeText: { color: '#fff', fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-  walletCard: { margin: 16, padding: 20, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
-  walletHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  walletLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  walletAmount: { fontSize: 32, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  walletActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  walletActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
-  walletActionText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  section: { marginHorizontal: 16, marginTop: 24, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
-  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  quickActions: { flexDirection: 'row', justifyContent: 'space-between' },
-  quickActionBtn: { alignItems: 'center', width: '23%', paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
-  quickActionIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  quickActionLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center' },
-  quickActionBadge: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
-  quickActionBadgeText: { color: '#fff', fontSize: 9, fontFamily: 'Inter_600SemiBold' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  statCard: { width: '48%', alignItems: 'center', paddingVertical: 16, borderRadius: 12 },
-  statIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  statValue: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  statLabel: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  loading: { paddingVertical: 32, alignItems: 'center' },
-  loadingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  emptyState: { paddingVertical: 32, alignItems: 'center' },
-  emptyText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginTop: 12 },
-  emptySubtext: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4, textAlign: 'center', paddingHorizontal: 24 },
-  taskList: { gap: 12 },
-  taskCard: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
-  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  taskCategory: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  taskCategoryText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase' },
-  taskDistance: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  taskTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
-  taskFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  taskMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  taskMetaText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  buddiesList: { gap: 12 },
-  buddyCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  buddyAvatar: { position: 'relative', width: 48, height: 48, borderRadius: 24, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  buddyAvatarImage: { width: 48, height: 48, borderRadius: 24 },
-  buddyAvatarInitial: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
-  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
-  buddyInfo: { flex: 1 },
-  buddyName: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  buddyDistance: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  authButton: { marginTop: 24, backgroundColor: '#4F46E5', paddingVertical: 14, paddingHorizontal: 48, borderRadius: 12 },
-  authButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[24] },
+  authPrompt: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing[8] },
+  authIconWrap: {
+    width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.brand.primary + '15',
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  authTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 22, marginBottom: Spacing[2] },
+  authSub: { fontFamily: Typography.fontFamily.regular, fontSize: 15, textAlign: 'center', marginBottom: Spacing[6] },
+  authCta: {
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill,
+    paddingVertical: Spacing[3], paddingHorizontal: Spacing[8],
+  },
+  authCtaText: { color: Colors.text.inverse, fontFamily: Typography.fontFamily.semiBold, fontSize: 15 },
+
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[6] },
+  headerLeft: { flex: 1 },
+  greeting: { fontFamily: Typography.fontFamily.medium, fontSize: 13, color: Colors.text.secondary },
+  name: { fontFamily: Typography.fontFamily.bold, fontSize: 24, color: Colors.text.primary, marginTop: Spacing[1] },
+  notificationBtn: {
+    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  notificationBadge: {
+    position: 'absolute', top: -3, right: -3, backgroundColor: Colors.semantic.error,
+    borderRadius: BorderRadius.pill, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.surface.secondary,
+  },
+  notificationBadgeText: { color: Colors.text.inverse, fontSize: 9, fontFamily: Typography.fontFamily.bold, paddingHorizontal: 3 },
+
+  walletCardInner: { paddingVertical: Spacing[5], paddingHorizontal: Spacing[5] },
+  walletTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[3] },
+  walletLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  walletLabel: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
+  walletAmount: { fontFamily: Typography.fontFamily.bold, fontSize: 30, color: Colors.text.primary, marginBottom: Spacing[5] },
+  walletActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[3] },
+  actionPill: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[1],
+    borderRadius: BorderRadius.pill, paddingVertical: Spacing[2], paddingHorizontal: Spacing[4],
+  },
+  actionPillText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 13, color: Colors.text.inverse },
+
+  quickActionsRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[6] },
+  quickAction: { flex: 1 },
+  quickActionInner: { alignItems: 'center', paddingVertical: Spacing[4], paddingHorizontal: Spacing[2] },
+  quickIconWrap: {
+    width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  quickLabel: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12, color: Colors.text.primary },
+
+  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontFamily: Typography.fontFamily.bold, fontSize: 22, color: Colors.text.primary },
+  statLabel: { fontFamily: Typography.fontFamily.medium, fontSize: 11, color: Colors.text.muted, marginTop: Spacing[1] },
+  statDivider: { width: 1, height: 28, backgroundColor: Colors.border.light, marginHorizontal: Spacing[3] },
+
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[4] },
+  sectionTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 18, color: Colors.text.primary },
+  sectionAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing[1], backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill, paddingVertical: Spacing[2], paddingHorizontal: Spacing[3] },
+  sectionActionText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12, color: Colors.text.inverse },
+
+  taskSkeletonRow: { gap: Spacing[3], marginTop: Spacing[2] },
+  Empty: { alignItems: 'center', paddingVertical: Spacing[10], paddingHorizontal: Spacing[4] },
+  emptyTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 16, color: Colors.text.primary, marginTop: Spacing[4], marginBottom: Spacing[2] },
+  emptySub: { fontFamily: Typography.fontFamily.regular, fontSize: 14, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+
+  taskCardWrap: { marginBottom: Spacing[3] },
+  taskRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
+  taskEmoji: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  taskInfo: { flex: 1 },
+  taskTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: 15, color: Colors.text.primary, marginBottom: 2 },
+  taskSub: { fontFamily: Typography.fontFamily.regular, fontSize: 12, color: Colors.text.muted },
+  taskRight: { alignItems: 'flex-end', gap: Spacing[2] },
+  statusDot: { borderRadius: BorderRadius.pill, padding: 6 },
+  statusDotInner: { width: 6, height: 6, borderRadius: 3 },
 });

@@ -98,7 +98,7 @@ export default function TaskApplicationsScreen() {
     >
       <View style={styles.applicationHeader}>
         <View style={styles.applicantInfo}>
-          <View style={[styles.avatar, { backgroundColor: '#4F46E5' }]}>
+          <View style={[styles.avatar, { backgroundColor: '#8B85FF' }]}>
             <Text style={styles.avatarText}>{item.applicantName.charAt(0)}</Text>
           </View>
           <View style={styles.applicantDetails}>
@@ -188,7 +188,7 @@ export default function TaskApplicationsScreen() {
             style={[
               styles.filterTab,
               filter === f ? styles.filterTabActive : {},
-              { backgroundColor: filter === f ? '#4F46E5' : (isDark ? '#2a2a2a' : '#fff') }
+              { backgroundColor: filter === f ? '#8B85FF' : (isDark ? '#2a2a2a' : '#fff') }
             ]}
             onPress={() => setFilter(f as any)}
           >
@@ -221,7 +221,7 @@ export default function TaskApplicationsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#4F46E5']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#8B85FF']} />
         }
         ListEmptyComponent={renderEmptyState}
       />
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   filterContainer: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterTab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#eee' },
-  filterTabActive: { borderColor: '#4F46E5' },
+  filterTabActive: { borderColor: '#8B85FF' },
   filterTabText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   filterBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   filterBadgeText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },

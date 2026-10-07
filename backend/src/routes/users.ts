@@ -374,6 +374,8 @@ router.put(
     const update: Record<string, any> = {
       'kyc.status': approve ? 'verified' : 'rejected',
       'kyc.approved': approve === true,
+      // Top-level one-click toggle (Firestore console) stays in sync
+      kycApproved: approve === true,
       'kyc.reviewedAt': timestamp(),
       ...(approve ? { 'kyc.verifiedAt': timestamp(), status: 'active' } : { 'kyc.rejectionReason': reason || null }),
       updatedAt: timestamp(),

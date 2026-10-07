@@ -217,7 +217,7 @@ export default function GeofencesScreen() {
     switch (type) {
       case 'arrival': return '#10B981';
       case 'departure': return '#F59E0B';
-      case 'both': return '#4F46E5';
+      case 'both': return '#8B85FF';
       default: return '#6B7280';
     }
   };
@@ -238,7 +238,7 @@ export default function GeofencesScreen() {
         <Switch
           value={geofence.isActive}
           onValueChange={(val) => handleToggleGeofence(geofence.id, val)}
-          trackColor={{ false: '#767577', true: '#4F46E5' }}
+          trackColor={{ false: '#767577', true: '#8B85FF' }}
           thumbColor={isDark ? '#fff' : '#f5f5f5'}
         />
       </View>
@@ -307,7 +307,7 @@ export default function GeofencesScreen() {
         <View style={[styles.summaryCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginHorizontal: 16, marginTop: 16 }]}>
           <View style={styles.summaryRow}>
             {[
-              { label: 'Total Geofences', value: geofences.length, icon: 'location-outline', color: '#4F46E5' },
+              { label: 'Total Geofences', value: geofences.length, icon: 'location-outline', color: '#8B85FF' },
               { label: 'Active', value: geofences.filter(g => g.isActive).length, icon: 'checkmark-circle-outline', color: '#10B981' },
               { label: 'Total Triggers', value: geofences.reduce((sum, g) => sum + g.triggerCount, 0), icon: 'flash-outline', color: '#F59E0B' },
               { label: 'Contacts Notified', value: new Set(geofences.flatMap(g => g.contacts)).size, icon: 'people-outline', color: '#EC4899' },
@@ -436,7 +436,7 @@ export default function GeofencesScreen() {
                 <Text style={[styles.modalSectionTitle, { color: isDark ? '#fff' : '#000' }]}>Radius: {formData.radius}m</Text>
                 <View style={styles.sliderContainer}>
                   <View style={[styles.sliderTrack, { backgroundColor: isDark ? '#333' : '#e0e0e0' }]}>
-                    <View style={[styles.sliderProgress, { backgroundColor: '#4F46E5', width: `${(formData.radius / 500) * 100}%` }]} />
+                    <View style={[styles.sliderProgress, { backgroundColor: '#8B85FF', width: `${(formData.radius / 500) * 100}%` }]} />
                   </View>
                 </View>
                 <View style={styles.sliderLabels}>
@@ -479,7 +479,7 @@ export default function GeofencesScreen() {
                     style={[
                       styles.contactOption,
                       formData.contacts.includes(contact.id) && styles.contactOptionSelected,
-                      { backgroundColor: formData.contacts.includes(contact.id) ? '#4F46E515' : (isDark ? '#1a1a1a' : '#f0f0f0'), borderColor: formData.contacts.includes(contact.id) ? '#4F46E5' : (isDark ? '#333' : '#ddd') }
+                      { backgroundColor: formData.contacts.includes(contact.id) ? '#8B85FF15' : (isDark ? '#1a1a1a' : '#f0f0f0'), borderColor: formData.contacts.includes(contact.id) ? '#8B85FF' : (isDark ? '#333' : '#ddd') }
                     ]}
                     onPress={() => setFormData(prev => ({
                       ...prev,
@@ -491,8 +491,8 @@ export default function GeofencesScreen() {
                     <View style={styles.contactAvatar}>
                       <Text style={styles.contactAvatarText}>{contact.avatar}</Text>
                     </View>
-                    <Text style={[styles.contactName, { color: formData.contacts.includes(contact.id) ? '#4F46E5' : (isDark ? '#fff' : '#000') }]}>{contact.name}</Text>
-                    {formData.contacts.includes(contact.id) && <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />}
+                    <Text style={[styles.contactName, { color: formData.contacts.includes(contact.id) ? '#8B85FF' : (isDark ? '#fff' : '#000') }]}>{contact.name}</Text>
+                    {formData.contacts.includes(contact.id) && <Ionicons name="checkmark-circle" size={20} color="#8B85FF" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -500,9 +500,9 @@ export default function GeofencesScreen() {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.modalButtonSecondary} onPress={() => setShowAddModal(false)}>
-                <Text style={styles.modalButtonTextSecondary}>Cancel</Text>
+                <Text style={[styles.modalButtonTextSecondary, { color: isDark ? '#fff' : '#000' }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButtonPrimary, { backgroundColor: formData.name && formData.address && selectedLocation ? '#4F46E5' : '#999' }]} onPress={handleSaveGeofence} disabled={!formData.name || !formData.address || !selectedLocation}>
+              <TouchableOpacity style={[styles.modalButtonPrimary, { backgroundColor: formData.name && formData.address && selectedLocation ? '#8B85FF' : '#999' }]} onPress={handleSaveGeofence} disabled={!formData.name || !formData.address || !selectedLocation}>
                 <Text style={styles.modalButtonTextPrimary}>{editingGeofence ? 'Save Changes' : 'Create Geofence'}</Text>
               </TouchableOpacity>
             </View>
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 },
   geofenceCard: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  cardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4F46E515', justifyContent: 'center', alignItems: 'center' },
+  cardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
   cardInfo: { flex: 1 },
   cardName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   cardAddress: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 40 },
-  emptyAction: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#4F46E5', borderRadius: 10 },
+  emptyAction: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#8B85FF', borderRadius: 10 },
   emptyActionText: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#fff' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '85%' },
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
   contactOptions: { gap: 8, marginTop: 8 },
   contactOption: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
   contactOptionSelected: {},
-  contactAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  contactAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
   contactAvatarText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: '#fff' },
   contactName: { fontSize: 15, fontFamily: 'Inter_500Medium', flex: 1 },
   modalFooter: { flexDirection: 'row', gap: 12, marginTop: 24 },

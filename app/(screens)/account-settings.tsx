@@ -116,7 +116,7 @@ export default function AccountSettingsScreen() {
           </View>
 
           <TouchableOpacity 
-            style={[styles.saveButton, { backgroundColor: '#4F46E5' }]}
+            style={[styles.saveButton, { backgroundColor: '#8B85FF' }]}
             onPress={handleSave}
             disabled={loading}
           >
@@ -134,7 +134,7 @@ export default function AccountSettingsScreen() {
             value={pushNotifications}
             onChange={setPushNotifications}
             icon="notifications-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
           />
           
@@ -187,7 +187,7 @@ export default function AccountSettingsScreen() {
             title="Login History"
             description="View recent login activity"
             icon="time-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/(screens)/security-settings')}
             showArrow
@@ -212,7 +212,7 @@ export default function AccountSettingsScreen() {
             title="Profile Visibility"
             description="Control who can see your profile"
             icon="person-outline"
-            color="#4F46E5"
+            color="#8B85FF"
             isDark={isDark}
             onPress={() => router.push('/(screens)/privacy-settings')}
             showArrow

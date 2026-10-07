@@ -260,7 +260,7 @@ Last updated: ${lastUpdated} | Version ${version}`,
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
           <View style={styles.quickLinks}>
             <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/(screens)/data-usage')}>
-              <Ionicons name="settings-outline" size={22} color="#4F46E5" style={{ marginRight: 12 }} />
+              <Ionicons name="settings-outline" size={22} color="#8B85FF" style={{ marginRight: 12 }} />
               <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Manage Your Data</Text>
               <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
             </TouchableOpacity>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  metaContainer: { paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
+  metaContainer: { paddingVertical: 12, borderRadius: 26, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
   metaText: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center' },
   section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
   sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 12 },

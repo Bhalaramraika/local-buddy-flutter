@@ -49,7 +49,7 @@ export default function AboutScreen() {
         {/* App Logo & Info */}
         <View style={styles.appInfoSection}>
           <View style={styles.logoContainer}>
-            <View style={[styles.logo, { backgroundColor: '#4F46E5' }]}>
+            <View style={[styles.logo, { backgroundColor: '#8B85FF' }]}>
               <Ionicons name="people-outline" size={48} color="#fff" />
             </View>
           </View>
@@ -88,8 +88,8 @@ export default function AboutScreen() {
               { icon: 'gift-outline', title: 'Referral Rewards', desc: 'Earn credits by inviting friends' },
             ].map((feature, index) => (
               <View key={index} style={styles.featureItem}>
-                <View style={[styles.featureIcon, { backgroundColor: '#4F46E515' }]}>
-                  <Ionicons name={feature.icon as any} size={24} color="#4F46E5" />
+                <View style={[styles.featureIcon, { backgroundColor: '#8B85FF15' }]}>
+                  <Ionicons name={feature.icon as any} size={24} color="#8B85FF" />
                 </View>
                 <View style={styles.featureContent}>
                   <Text style={[styles.featureTitle, { color: isDark ? '#fff' : '#000' }]}>{feature.title}</Text>
@@ -177,8 +177,8 @@ export default function AboutScreen() {
 
 const LegalLinkItem = ({ icon, title, onPress, isDark }: any) => (
   <TouchableOpacity style={styles.legalLinkItem} onPress={onPress}>
-    <View style={[styles.legalLinkIcon, { backgroundColor: '#4F46E515' }]}>
-      <Ionicons name={icon} size={22} color="#4F46E5" />
+    <View style={[styles.legalLinkIcon, { backgroundColor: '#8B85FF15' }]}>
+      <Ionicons name={icon} size={22} color="#8B85FF" />
     </View>
     <Text style={[styles.legalLinkTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
     <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
@@ -187,8 +187,8 @@ const LegalLinkItem = ({ icon, title, onPress, isDark }: any) => (
 
 const ContactLinkItem = ({ icon, title, value, onPress, isDark }: any) => (
   <TouchableOpacity style={styles.contactLinkItem} onPress={onPress}>
-    <View style={[styles.contactLinkIcon, { backgroundColor: '#4F46E515' }]}>
-      <Ionicons name={icon} size={22} color="#4F46E5" />
+    <View style={[styles.contactLinkIcon, { backgroundColor: '#8B85FF15' }]}>
+      <Ionicons name={icon} size={22} color="#8B85FF" />
     </View>
     <View style={styles.contactLinkContent}>
       <Text style={[styles.contactLinkTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>

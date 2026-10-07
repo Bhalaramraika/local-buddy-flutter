@@ -112,13 +112,50 @@ export const useAuthStore = create<AuthState>()(
       })),
       
       logout: () => {
-        // Clear storage
+        // Clear persisted auth keys
         storage.remove('auth_token');
         storage.remove('refresh_token');
         storage.remove('user_data');
         storage.remove('fcm_token');
-        
+
+        // Reset auth state synchronously so layouts redirect immediately
         set({ ...initialState, isLoading: false });
+
+        // Full teardown in the background: stop Firestore listeners, sign
+        // out of Firebase Auth, and wipe other user-scoped stores so no
+        // stale data leaks into the next session/account.
+        void (async () => {
+          try {
+            const { stopRealtimeSync } = require('@/services/realtime');
+            stopRealtimeSync();
+          } catch (e) {
+            console.warn('[AuthStore] stopRealtimeSync on logout failed:', e);
+          }
+
+          try {
+            const { auth } = require('@/services/firebase');
+            await auth?.signOut();
+          } catch (e) {
+            console.warn('[AuthStore] Firebase signOut failed:', e);
+          }
+
+          const resetStore = (loader: () => { getState: () => any }) => {
+            try {
+              const state = loader().getState();
+              const reset = state.clearAll ?? state.clearAllNotifications;
+              if (typeof reset === 'function') reset.call(state);
+            } catch (e) {
+              console.warn('[AuthStore] Store reset on logout failed:', e);
+            }
+          };
+
+          resetStore(() => require('@/store/taskStore').useTaskStore);
+          resetStore(() => require('@/store/chatStore').useChatStore);
+          resetStore(() => require('@/store/walletStore').useWalletStore);
+          resetStore(() => require('@/store/kycStore').useKYCStore);
+          resetStore(() => require('@/store/notificationStore').useNotificationStore);
+          resetStore(() => require('@/store/userStore').useUserStore);
+        })();
       },
 
       clearAll: () => set({ ...initialState, isLoading: false }),

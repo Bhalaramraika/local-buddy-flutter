@@ -7,6 +7,8 @@ import React, { createContext, useContext, useCallback, useState } from 'react';
 import { User, AuthTokens } from '@/types';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth';
+import { getApiErrorMessage } from '@/services/api';
+import { auth as firebaseAuth } from '@/services/firebase';
 import { hydrateSettingsFromServer } from '@/store/uiStore';
 
 interface AuthContextType {
@@ -58,45 +60,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize auth from stored tokens
+  // Initialize auth from the persisted Firebase session
   const initializeAuth = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const storedTokens = await authService.getStoredTokens();
-      if (storedTokens?.accessToken) {
-        // Validate token and fetch user
-        const isValid = await authService.validateToken(storedTokens.accessToken);
-        if (isValid) {
-          setTokens(storedTokens);
+      // Wait for Firebase Auth to finish restoring the persisted session
+      // from AsyncStorage before reading currentUser.
+      if (firebaseAuth) {
+        try {
+          await firebaseAuth.authStateReady();
+        } catch {
+          // best effort — fall through to the checks below
+        }
+      }
+
+      if (firebaseAuth?.currentUser) {
+        try {
           const userData = await authService.getCurrentUser();
           if (userData) {
+            setTokens({
+              accessToken: await firebaseAuth.currentUser.getIdToken(),
+              refreshToken: firebaseAuth.currentUser.refreshToken ?? '',
+              expiresIn: 3600,
+              tokenType: 'Bearer',
+            });
             setUser(userData);
             hydrateSettingsFromServer();
+            return;
           }
-        } else {
-          // Try refresh token
-          const refreshed = await authService.refreshAccessToken(storedTokens.refreshToken);
-          if (refreshed) {
-            setTokens(refreshed);
-            const userData = await authService.getCurrentUser();
-            if (userData) {
-              setUser(userData);
-            }
-          } else {
+          // Defensive: API responded but returned no user profile
+          clearAll();
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 401 || status === 403) {
+            // Session is actually dead — wipe everything
             await authService.clearTokens();
+            clearAll();
+          } else {
+            // Transient failure (offline / backend down): keep the Firebase
+            // session so the next cold start can retry, but don't leave a
+            // stale "authenticated" local state that Firestore rules reject.
+            clearAll();
           }
         }
+      } else {
+        // No Firebase session — clear any stale persisted auth state
+        await authService.clearTokens();
+        clearAll();
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      await authService.clearTokens();
+      clearAll();
     } finally {
       setIsInitialized(true);
       setLoading(false);
     }
-  }, [setLoading, setError, setTokens, setUser]);
+  }, [setLoading, setError, setTokens, setUser, clearAll]);
 
   // Login with email and OTP
   const login = useCallback(async (email: string, otp: string) => {
@@ -110,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Pull server-saved settings so preferences persist across devices/logins
       hydrateSettingsFromServer();
     } catch (error: any) {
-      setError(error.message || 'Login failed');
+      setError(getApiErrorMessage(error, 'Login failed. Please try again.'));
       throw error;
     } finally {
       setLoading(false);
@@ -127,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokens(response.tokens);
       setUser(response.user);
     } catch (error: any) {
-      setError(error.message || 'Registration failed');
+      setError(getApiErrorMessage(error, 'Registration failed. Please try again.'));
       throw error;
     } finally {
       setLoading(false);
@@ -139,14 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       await authService.logout();
-      clearAll();
     } catch (error) {
       console.error('Logout error:', error);
-      clearAll();
     } finally {
+      // Full local teardown: resets auth state + sibling stores, stops
+      // Firestore listeners and signs out of Firebase Auth.
+      useAuthStore.getState().logout();
       setLoading(false);
     }
-  }, [setLoading, clearAll]);
+  }, [setLoading]);
 
   // Refresh access token
   const refreshToken = useCallback(async () => {
@@ -175,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updatedUser = await authService.updateProfile(data);
       setUser(updatedUser);
     } catch (error: any) {
-      setError(error.message || 'Profile update failed');
+      setError(getApiErrorMessage(error, 'Profile update failed. Please try again.'));
       throw error;
     } finally {
       setLoading(false);

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, ScrollView, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useWalletStore } from '@/store/walletStore';
@@ -13,13 +13,23 @@ import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
 
 export default function WalletScreen() {
   const router = useRouter();
-  const { wallet, transactions, fetchWallet, fetchTransactions, withdraw, isLoading: walletLoading } = useWalletStore();
+  const { wallet, balance, transactions, fetchWallet, fetchTransactions, withdraw, isLoading: walletLoading } = useWalletStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
+  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'credit' | 'debit'>('all');
 
-  const isDark = theme === 'dark';
+  // System-aware: 'system' follows the OS scheme so text/background always contrast
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
+
+  // Unified values: REST (/wallet) OR Firestore realtime sync — whichever is
+  // freshest. The realtime listener also feeds `wallet`, so the tab never
+  // stays stuck on ₹0 when the REST call fails.
+  const availableBalance = wallet?.balance ?? balance.available;
+  const pendingBalance = wallet?.pendingBalance ?? balance.pending;
+  const totalEarnings = wallet?.totalEarnings ?? 0;
+  const totalSpent = wallet?.totalSpent ?? 0;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -90,18 +100,18 @@ export default function WalletScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
       {/* Balance Card */}
         <View style={[styles.balanceCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
         <Text style={[styles.balanceLabel, { color: isDark ? '#aaa' : '#666' }]}>Available Balance</Text>
-        <Text style={[styles.balanceAmount, { color: isDark ? '#fff' : '#000' }]}>{formatCurrency(wallet?.balance || 0)}</Text>
+        <Text style={[styles.balanceAmount, { color: isDark ? '#fff' : '#000' }]}>{formatCurrency(availableBalance)}</Text>
         <View style={styles.balanceActions}>
-          <TouchableOpacity style={[styles.balanceActionBtn, { backgroundColor: '#4F46E5' }]} onPress={() => router.push('/(screens)/wallet-topup')}>
+          <TouchableOpacity style={[styles.balanceActionBtn, { backgroundColor: '#8B85FF' }]} onPress={() => router.push('/(screens)/wallet-topup')}>
             <Ionicons name="add-circle-outline" size={20} color="#fff" />
-            <Text style={styles.balanceActionText}>Add Money</Text>
+            <Text style={[styles.balanceActionText, { color: '#fff' }]}>Add Money</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.balanceActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-withdraw')}>
             <Ionicons name="remove-circle-outline" size={20} color={isDark ? '#fff' : '#000'} />
@@ -113,15 +123,15 @@ export default function WalletScreen() {
       {/* Quick Stats */}
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>+{formatCurrency(wallet?.totalEarnings || 0)}</Text>
+          <Text style={[styles.statValue, { color: '#10B981' }]}>+{formatCurrency(totalEarnings)}</Text>
           <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Total Earnings</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#EF4444' }]}>-{formatCurrency(wallet?.totalSpent || 0)}</Text>
+          <Text style={[styles.statValue, { color: '#EF4444' }]}>-{formatCurrency(totalSpent)}</Text>
           <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Total Spent</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{formatCurrency(wallet?.pendingBalance || 0)}</Text>
+          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{formatCurrency(pendingBalance)}</Text>
           <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Pending</Text>
         </View>
       </View>
@@ -169,24 +179,24 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: 30 },
-  balanceCard: { margin: 16, padding: 24, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
+  balanceCard: { margin: 16, padding: 24, borderRadius: 22, shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.07, shadowRadius: 24, elevation: 4 },
   balanceLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
   balanceAmount: { fontSize: 36, fontFamily: 'Inter_700Bold', marginBottom: 20 },
   balanceActions: { flexDirection: 'row', gap: 12 },
   balanceActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 10 },
   balanceActionText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
+  statCard: { flex: 1, padding: 16, borderRadius: 24, alignItems: 'center' },
   statValue: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 4 },
   statLabel: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   filterContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   filterLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
   filterTabs: { flexDirection: 'row', gap: 8 },
      filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  filterTabActive: { backgroundColor: '#4F46E5' },
+  filterTabActive: { backgroundColor: '#8B85FF' },
   filterTabText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   listContent: { padding: 16, paddingBottom: 30 },
-  transactionCard: { flexDirection: 'row', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  transactionCard: { flexDirection: 'row', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 2 },
   transactionIconContainer: { marginRight: 12 },
   transactionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   transactionDetails: { flex: 1, justifyContent: 'center' },

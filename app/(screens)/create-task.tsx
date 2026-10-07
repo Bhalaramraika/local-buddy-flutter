@@ -31,6 +31,8 @@ export default function CreateTaskScreen() {
   const { currentLocation, requestLocationPermission } = useLocationStore();
   
   const isDark = theme === 'dark';
+  // Inputs must stay readable in dark mode — never hardcode '#000' on a dark surface
+  const inputTextColor = isDark ? '#fff' : '#000';
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -150,7 +152,7 @@ export default function CreateTaskScreen() {
         ]);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || '';
+      const msg = err?.message || 'Failed to create task. Please try again.';
       if (String(msg).toLowerCase().includes('kyc')) {
         Alert.alert(
           'Complete KYC required',
@@ -215,18 +217,18 @@ export default function CreateTaskScreen() {
                 style={[
                   styles.modalItem,
                   selectedCategory === cat && styles.modalItemSelected,
-                  { backgroundColor: selectedCategory === cat ? '#4F46E520' : 'transparent' }
+                  { backgroundColor: selectedCategory === cat ? '#8B85FF20' : 'transparent' }
                 ]}
                 onPress={() => handleCategorySelect(cat)}
               >
                 <Text style={[
                   styles.modalItemText,
-                  { color: selectedCategory === cat ? '#4F46E5' : isDark ? '#fff' : '#000' }
+                  { color: selectedCategory === cat ? '#8B85FF' : isDark ? '#fff' : '#000' }
                 ]}>
                   {cat}
                 </Text>
                 {selectedCategory === cat && (
-                  <Ionicons name="checkmark" size={20} color="#4F46E5" />
+                  <Ionicons name="checkmark" size={20} color="#8B85FF" />
                 )}
               </TouchableOpacity>
             ))}
@@ -258,18 +260,18 @@ export default function CreateTaskScreen() {
               style={[
                 styles.modalItem,
                 selectedSkills.includes(skill) && styles.modalItemSelected,
-                { backgroundColor: selectedSkills.includes(skill) ? '#4F46E520' : 'transparent' }
+                { backgroundColor: selectedSkills.includes(skill) ? '#8B85FF20' : 'transparent' }
               ]}
               onPress={() => handleSkillToggle(skill)}
             >
               <Text style={[
                 styles.modalItemText,
-                { color: selectedSkills.includes(skill) ? '#4F46E5' : isDark ? '#fff' : '#000' }
+                { color: selectedSkills.includes(skill) ? '#8B85FF' : isDark ? '#fff' : '#000' }
               ]}>
                 {skill}
               </Text>
               {selectedSkills.includes(skill) && (
-                <Ionicons name="checkmark" size={20} color="#4F46E5" />
+                <Ionicons name="checkmark" size={20} color="#8B85FF" />
               )}
             </TouchableOpacity>
           ))}
@@ -317,7 +319,7 @@ export default function CreateTaskScreen() {
           <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <Ionicons name="text-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: inputTextColor }]}
               placeholder="e.g., Need help moving furniture"
               value={formData.title}
               onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
@@ -333,7 +335,7 @@ export default function CreateTaskScreen() {
           <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Description *</Text>
           <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <TextInput
-              style={[styles.textInput, styles.textArea]}
+              style={[styles.textInput, styles.textArea, { color: inputTextColor }]}
               placeholder="Describe what you need help with..."
               value={formData.description}
               onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
@@ -375,7 +377,7 @@ export default function CreateTaskScreen() {
             <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { flex: 1 }]}>
               <Text style={[styles.currencyLabel, { color: isDark ? '#fff' : '#000' }]}>₹</Text>
               <TextInput
-                style={[styles.textInput, { paddingLeft: 0 }]}
+                style={[styles.textInput, { paddingLeft: 0, color: inputTextColor }]}
                 placeholder="Amount"
                 value={formData.budget}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, budget: text }))}
@@ -387,7 +389,7 @@ export default function CreateTaskScreen() {
               style={[
                 styles.budgetTypeButton,
                 formData.budgetType === 'fixed' && styles.budgetTypeButtonActive,
-                { backgroundColor: formData.budgetType === 'fixed' ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
+                { backgroundColor: formData.budgetType === 'fixed' ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
               ]}
               onPress={() => setFormData(prev => ({ ...prev, budgetType: 'fixed' }))}
             >
@@ -402,7 +404,7 @@ export default function CreateTaskScreen() {
               style={[
                 styles.budgetTypeButton,
                 formData.budgetType === 'hourly' && styles.budgetTypeButtonActive,
-                { backgroundColor: formData.budgetType === 'hourly' ? '#4F46E5' : (isDark ? '#2a2a2a' : '#f0f0f0') }
+                { backgroundColor: formData.budgetType === 'hourly' ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
               ]}
               onPress={() => setFormData(prev => ({ ...prev, budgetType: 'hourly' }))}
             >
@@ -423,7 +425,7 @@ export default function CreateTaskScreen() {
           <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
             <Ionicons name="location-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: inputTextColor }]}
               placeholder="Enter location or use current"
               value={formData.location}
               onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
@@ -440,7 +442,7 @@ export default function CreateTaskScreen() {
               }));
             }
           }}>
-            <Ionicons name="navigate-outline" size={16} color="#4F46E5" />
+            <Ionicons name="navigate-outline" size={16} color="#8B85FF" />
             <Text style={styles.useLocationText}>Use Current Location</Text>
           </TouchableOpacity>
           {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
@@ -513,7 +515,7 @@ export default function CreateTaskScreen() {
                 style={[
                   styles.checkbox,
                   formData.isUrgent && styles.checkboxChecked,
-                  { backgroundColor: formData.isUrgent ? '#4F46E5' : 'transparent' }
+                  { backgroundColor: formData.isUrgent ? '#8B85FF' : 'transparent' }
                 ]}
                 onPress={() => setFormData(prev => ({ ...prev, isUrgent: !prev.isUrgent }))}
               >
@@ -526,7 +528,7 @@ export default function CreateTaskScreen() {
                 style={[
                   styles.checkbox,
                   formData.isRemote && styles.checkboxChecked,
-                  { backgroundColor: formData.isRemote ? '#4F46E5' : 'transparent' }
+                  { backgroundColor: formData.isRemote ? '#8B85FF' : 'transparent' }
                 ]}
                 onPress={() => setFormData(prev => ({ ...prev, isRemote: !prev.isRemote }))}
               >
@@ -542,7 +544,7 @@ export default function CreateTaskScreen() {
           style={[
             styles.submitButton,
             isCreating && styles.submitButtonDisabled,
-            { backgroundColor: isCreating ? '#4F46E580' : '#4F46E5' }
+            { backgroundColor: isCreating ? '#8B85FF80' : '#8B85FF' }
           ]}
           onPress={handleSubmit}
           disabled={isCreating}
@@ -577,7 +579,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0' },
   inputIcon: { marginRight: 10 },
-  textInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', color: '#000' },
+  textInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
   selectWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0' },
   selectText: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', marginLeft: 10 },
@@ -587,13 +589,13 @@ const styles = StyleSheet.create({
   budgetTypeText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   currencyLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginRight: 8 },
   useLocationButton: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 8 },
-  useLocationText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#4F46E5' },
+  useLocationText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#8B85FF' },
   selectedSkills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#4F46E520', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  skillChipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#4F46E5' },
+  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8B85FF20', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  skillChipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#8B85FF' },
   optionRow: { flexDirection: 'row', gap: 16 },
   optionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#4F46E5', justifyContent: 'center', alignItems: 'center' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
   checkboxChecked: {},
   optionLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   errorText: { color: '#EF4444', fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 6 },
@@ -605,7 +607,7 @@ const styles = StyleSheet.create({
   modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   modalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  modalDoneText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#4F46E5' },
+  modalDoneText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#8B85FF' },
   modalList: { maxHeight: 400, flexGrow: 0 },
   modalItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   modalItemSelected: {},

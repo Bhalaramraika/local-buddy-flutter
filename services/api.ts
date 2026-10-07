@@ -10,6 +10,71 @@ import { auth } from './firebase';
 // API Base URL from environment
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.localbuddy.in/v1';
 
+// ============================================================
+// Central error-message helper
+// Backend error shape is `{ error: string, code?: string, details?: any }`
+// (see backend/src/middleware/errorHandler.ts) — NOT `{ message }`.
+// Axios' default e.message ("Request failed with status code 400") must
+// never be shown to the user when a real server message exists.
+// ============================================================
+export const getApiErrorMessage = (
+  error: any,
+  fallback = 'Something went wrong. Please try again.'
+): string => {
+  const data = error?.response?.data;
+  if (data) {
+    if (typeof data === 'string' && data.trim()) return data;
+    if (typeof data.error === 'string' && data.error.trim()) return data.error;
+    if (typeof data.message === 'string' && data.message.trim()) return data.message;
+    // Zod validation errors: { error: 'Validation failed', errors: [{field, message}] }
+    if (Array.isArray(data.errors) && data.errors.length) {
+      const first = data.errors[0];
+      if (typeof first === 'string') return first;
+      if (first?.message) return first.field ? `${first.field}: ${first.message}` : first.message;
+    }
+  }
+  const status = error?.response?.status;
+  if (status === 400) return fallback;
+  if (status === 401) return 'Session expired or invalid credentials. Please try again.';
+  if (status === 403) return 'You are not allowed to perform this action.';
+  if (status === 404) return 'Requested resource was not found.';
+  if (status === 429) return 'Too many attempts. Please wait a moment and try again.';
+  if (typeof status === 'number' && status >= 500) return 'Server error. Please try again in a moment.';
+  if (error?.code === 'ECONNABORTED') return 'Request timed out. Please check your internet connection.';
+  if (!error?.response && error?.request) return 'Network error. Please check your internet connection.';
+  if (typeof error?.message === 'string' && error.message && !/status code \d+/i.test(error.message)) {
+    return error.message;
+  }
+  return fallback;
+};
+
+// ============================================================
+// Global loading tracker — every API call briefly shows the app's
+// centered orange loader (components/ui/GlobalLoader.tsx). A counter
+// keeps concurrent requests truthful. Pass `skipGlobalLoader: true`
+// in the axios config to opt a request out.
+// Lazy-require uiStore to avoid the api.ts <-> uiStore.ts import cycle.
+// ============================================================
+let pendingRequests = 0;
+const setLoaderVisible = (visible: boolean) => {
+  try {
+    const { useUIStore } = require('@/store/uiStore');
+    useUIStore.getState().setGlobalLoading({ isLoading: visible });
+  } catch {
+    // UI store may not be ready during very early bootstrap — non-fatal.
+  }
+};
+const trackRequestStart = (config: any) => {
+  if (config?.skipGlobalLoader) return;
+  pendingRequests += 1;
+  if (pendingRequests === 1) setLoaderVisible(true);
+};
+const trackRequestEnd = (config: any) => {
+  if (config?.skipGlobalLoader) return;
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests === 0) setLoaderVisible(false);
+};
+
 // Mock API no longer exists. All calls go to the real backend.
 export const isMockApiEnabled = false;
 // (env var EXPO_PUBLIC_MOCK_API был retired)
@@ -54,18 +119,24 @@ api.interceptors.request.use(
     } catch (error) {
       console.warn('[API] Failed to attach auth token:', error);
     }
-    
+
+    trackRequestStart(config);
     return config;
   },
   (error: AxiosError) => {
+    trackRequestEnd(error?.config);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor - Handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    trackRequestEnd(response?.config);
+    return response;
+  },
   async (error: AxiosError) => {
+    trackRequestEnd(error?.config);
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
     
     // Handle 401 - Token expired
