@@ -1,6 +1,6 @@
 /**
  * Onboarding Route Group Layout
- * Stack navigator for onboarding flow
+ * Stack navigator for onboarding flow: welcome → setup wizard
  */
 
 import React from 'react';
@@ -15,10 +15,7 @@ export default function OnboardingLayout() {
       }}
     >
       <Stack.Screen name="welcome" options={{ title: 'Welcome' }} />
-      <Stack.Screen name="permissions" options={{ title: 'Permissions' }} />
-      <Stack.Screen name="kyc" options={{ title: 'KYC Verification' }} />
-      <Stack.Screen name="profile-setup" options={{ title: 'Complete Profile' }} />
-      <Stack.Screen name="onboarding-referral" options={{ title: 'Referral Code' }} />
+      <Stack.Screen name="setup" options={{ title: 'Set up your profile' }} />
     </Stack>
   );
 }

@@ -82,11 +82,12 @@ export default function WelcomeScreen() {
       <Animated.View style={[styles.ctaGroup, { opacity: ctaOpacity, transform: [{ translateY: ctaTranslateY }] }]}>
         <SoftButton
           label="Get started — it's free"
-          onPress={() => router.push('/(onboarding)/role-selection')}
+          onPress={() => router.push('/(onboarding)/setup')}
           tone="accent"
           size="lg"
           withGlow
           icon="arrow-forward"
+          style={{ backgroundColor: '#FF6B35' }}
         />
         <Pressable
           onPress={() => router.replace('/login')}

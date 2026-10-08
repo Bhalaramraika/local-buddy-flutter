@@ -123,12 +123,6 @@ export default function SettingsScreen() {
       title: 'Privacy & Security',
       items: [
         { 
-          icon: 'lock-closed-outline', 
-          label: 'Security Settings', 
-          onPress: () => router.push('/(screens)/security-settings'),
-          iconType: 'Ionicons'
-        },
-        { 
           icon: 'eye-outline', 
           label: 'Privacy Settings', 
           onPress: () => router.push('/(screens)/privacy-settings'),

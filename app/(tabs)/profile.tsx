@@ -36,6 +36,10 @@ export default function ProfileScreen() {
   // System-aware: 'system' follows the OS scheme so text/background always contrast
   const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
+  // KYC approval is synced in realtime from Firestore (kycApproved toggle)
+  // into user.kyc.status — there is no separate `isVerified` field on the doc.
+  const kycVerified = user?.kyc?.status === 'verified' || (user?.kyc as any)?.approved === true;
+
   const onRefresh = async () => {
     setRefreshing(true);
     // Refresh user data
@@ -84,7 +88,6 @@ export default function ProfileScreen() {
       items: [
         { id: 'settings', icon: 'settings-outline', label: 'Settings', route: '/(screens)/settings', color: '#6B7280' },
         { id: 'notifications', icon: 'notifications-outline', label: 'Notifications', route: '/(screens)/notifications', color: '#EF4444' },
-        { id: 'security', icon: 'lock-outline', label: 'Security', route: '/(screens)/security-settings', color: '#8B5CF6' },
         { id: 'appearance', icon: 'palette-outline', label: 'Appearance', route: '/(screens)/appearance-settings', color: '#EC4899' },
         { id: 'language', icon: 'translate-outline', label: 'Language', route: '/(screens)/language-settings', color: '#14B8A6' },
       ],
@@ -197,9 +200,9 @@ export default function ProfileScreen() {
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
               </Text>
             )}
-            {user?.isVerified && (
+            {kycVerified && (
               <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
+                <Ionicons name="checkmark-circle" size={16} color="#fff" />
               </View>
             )}
           </View>
@@ -232,14 +235,14 @@ export default function ProfileScreen() {
                 ]}>
                   ({user?.stats?.reviewCount || 0} reviews)
                 </Text>
-                {user?.isVerified && (
+                {kycVerified && (
                   <>
                     <View style={styles.verifiedDot} />
                     <Text style={[
                       styles.verifiedText,
                       { color: '#10B981' }
                     ]}>
-                      Verified
+                      KYC Verified
                     </Text>
                   </>
                 )}
@@ -284,20 +287,22 @@ export default function ProfileScreen() {
                 styles.statIcon,
                 { backgroundColor: `${stat.color}20` }
               ]}>
-                  <MaterialCommunityIcons name={stat.icon as any} size={24} color={stat.color} />
+                  <MaterialCommunityIcons name={stat.icon as any} size={17} color={stat.color} />
               </View>
-              <Text style={[
-                styles.statValue,
-                { color: isDark ? '#F1F5F9' : '#111827' }
-              ]}>
-                {stat.value}
-              </Text>
-              <Text style={[
-                styles.statLabel,
-                { color: isDark ? '#94A3B8' : '#6B7280' }
-              ]}>
-                {stat.label}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[
+                  styles.statValue,
+                  { color: isDark ? '#F1F5F9' : '#111827' }
+                ]} numberOfLines={1}>
+                  {stat.value}
+                </Text>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isDark ? '#94A3B8' : '#6B7280' }
+                ]} numberOfLines={1}>
+                  {stat.label}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -644,34 +649,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    gap: 8,
   },
   statCard: {
-    width: '48%',
+    width: '48.5%',
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 22,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
   statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: 'Inter_700Bold',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontFamily: 'Inter_400Regular',
-    marginTop: 2,
+    marginTop: 1,
   },
   walletCard: {
     marginHorizontal: 16,

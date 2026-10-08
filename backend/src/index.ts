@@ -36,6 +36,11 @@ import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
+// Render (and most PaaS) terminate TLS at a proxy and forward the real
+// protocol via X-Forwarded-Proto. Trust it so req.protocol === 'https'
+// — PayU surl/furl URLs are built from this (must be public HTTPS).
+app.set('trust proxy', 1);
+
 // Global middleware
 app.use(helmet());
 app.use(

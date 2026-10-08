@@ -185,6 +185,15 @@ router.post(
 
     await txnRef.set(transaction);
 
+    // PayU mandatory params include surl/furl (success/failure redirect URLs).
+    // Without them PayU rejects the transaction with
+    // "One or more mandatory parameters are missing" before checkout opens.
+    // Priority: API_PUBLIC_URL env → request-derived origin (https via proxy).
+    const apiBase =
+      process.env.API_PUBLIC_URL ||
+      `${req.protocol}://${req.get('host')}`;
+    const callbackUrl = `${apiBase}/api/v1/wallet/payu/callback`;
+
     // Generate PayU hash
     const payuParams = {
       key: config.payu.merchantKey,
@@ -194,6 +203,8 @@ router.post(
       firstname: req.user!.userDoc?.name || 'User',
       email: req.user!.userDoc?.email || 'user@localbuddy.app',
       phone: req.user!.phone || req.user!.userDoc?.phone || '9999999999',
+      surl: callbackUrl,
+      furl: callbackUrl,
       udf1: userId,
       udf2: 'wallet_add',
       service_provider: 'payu_paisa',

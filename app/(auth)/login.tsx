@@ -113,6 +113,7 @@ export default function LoginScreen() {
                 tone="brand"
                 withGlow
                 icon="mail-outline"
+                style={{ backgroundColor: '#FF6B35' }}
               />
             </Animated.View>
           </SoftCard>

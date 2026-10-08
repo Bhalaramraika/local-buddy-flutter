@@ -1,102 +1,106 @@
 /**
- * Notification Settings Screen - Notification preferences and settings
+ * Notification Settings — real, server-synced preferences.
+ *
+ * Reads  GET  /api/v1/notifications/preferences
+ * Writes PUT  /api/v1/notifications/preferences (merged on server, keys below)
+ * Master "Push" also registers/unregisters the FCM token.
  */
 
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
   StyleSheet,
-  Alert,
   Switch,
+  useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { apiGet, apiPut, getApiErrorMessage } from '@/services/api';
+
+interface Prefs {
+  push: boolean;       // FCM master switch (also un/registers device token)
+  tasks: boolean;      // task assigned/completed/updated
+  messages: boolean;   // chat messages
+  wallet: boolean;     // payments, top-ups, releases
+  marketing: boolean;  // offers & product news
+}
+
+const DEFAULT_PREFS: Prefs = {
+  push: true,
+  tasks: true,
+  messages: true,
+  wallet: true,
+  marketing: false,
+};
+
+const ROWS: Array<{
+  key: keyof Prefs;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+}> = [
+  { key: 'push', title: 'Push Notifications', description: 'Master switch for all push alerts on this device', icon: 'notifications-outline', color: '#8B85FF' },
+  { key: 'tasks', title: 'Task Updates', description: 'New tasks nearby, assignments, status changes', icon: 'clipboard-outline', color: '#F59E0B' },
+  { key: 'messages', title: 'Chat Messages', description: 'New messages from posters and buddies', icon: 'chatbubbles-outline', color: '#10B981' },
+  { key: 'wallet', title: 'Wallet & Payments', description: 'Top-ups, releases and wallet activity', icon: 'wallet-outline', color: '#06B6D4' },
+  { key: 'marketing', title: 'Offers & News', description: 'Occasional product updates and offers', icon: 'megaphone-outline', color: '#EC4899' },
+];
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
-  const [pushEnabled, setPushEnabled] = React.useState(true);
-  const [emailEnabled, setEmailEnabled] = React.useState(true);
-  const [smsEnabled, setSmsEnabled] = React.useState(false);
-  const [inAppEnabled, setInAppEnabled] = React.useState(true);
-  
-  // Task notifications
-  const [taskAssigned, setTaskAssigned] = React.useState(true);
-  const [taskCompleted, setTaskCompleted] = React.useState(true);
-  const [taskCancelled, setTaskCancelled] = React.useState(true);
-  const [taskReminders, setTaskReminders] = React.useState(true);
-  const [newTaskNearby, setNewTaskNearby] = React.useState(true);
-  const [taskApplications, setTaskApplications] = React.useState(true);
-  
-  // Message notifications
-  const [newMessages, setNewMessages] = React.useState(true);
-  const [messageReactions, setMessageReactions] = React.useState(false);
-  const [groupMessages, setGroupMessages] = React.useState(true);
-  
-  // Wallet notifications
-  const [paymentReceived, setPaymentReceived] = React.useState(true);
-  const [paymentSent, setPaymentSent] = React.useState(true);
-  const [withdrawalComplete, setWithdrawalComplete] = React.useState(true);
-  const [lowBalance, setLowBalance] = React.useState(true);
-  
-  // Social notifications
-  const [newFollower, setNewFollower] = React.useState(true);
-  const [newReview, setNewReview] = React.useState(true);
-  const [referralSignup, setReferralSignup] = React.useState(true);
-  const [achievementUnlocked, setAchievementUnlocked] = React.useState(true);
-  
-  // System notifications
-  const [appUpdates, setAppUpdates] = React.useState(true);
-  const [maintenance, setMaintenance] = React.useState(true);
-  const [securityAlerts, setSecurityAlerts] = React.useState(true);
-  const [marketingEmails, setMarketingEmails] = React.useState(false);
+  const { theme, showToast } = useUIStore();
+  const systemScheme = useColorScheme();
+  const { registerForPushNotifications, unregisterForPushNotifications } = useNotifications();
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
-  const handleResetDefaults = () => {
-    Alert.alert(
-      'Reset to Defaults',
-      'Are you sure you want to reset all notification settings to default values?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          onPress: () => {
-            setPushEnabled(true);
-            setEmailEnabled(true);
-            setSmsEnabled(false);
-            setInAppEnabled(true);
-            setTaskAssigned(true);
-            setTaskCompleted(true);
-            setTaskCancelled(true);
-            setTaskReminders(true);
-            setNewTaskNearby(true);
-            setTaskApplications(true);
-            setNewMessages(true);
-            setMessageReactions(false);
-            setGroupMessages(true);
-            setPaymentReceived(true);
-            setPaymentSent(true);
-            setWithdrawalComplete(true);
-            setLowBalance(true);
-            setNewFollower(true);
-            setNewReview(true);
-            setReferralSignup(true);
-            setAchievementUnlocked(true);
-            setAppUpdates(true);
-            setMaintenance(true);
-            setSecurityAlerts(true);
-            setMarketingEmails(false);
-            Alert.alert('Reset Complete', 'All notification settings have been reset to defaults.');
-          }
-        }
-      ]
-    );
-  };
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<keyof Prefs | null>(null);
+
+  // Load current preferences from the backend
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiGet<{ preferences?: Partial<Prefs> }>('/notifications/preferences');
+        if (!cancelled) setPrefs({ ...DEFAULT_PREFS, ...(res?.preferences || {}) });
+      } catch (e) {
+        // Non-fatal: defaults are shown; first toggle will create prefs.
+        console.warn('[NotifSettings] load failed:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggle = useCallback(async (key: keyof Prefs) => {
+    if (savingKey) return; // single-flight
+    const next = !prefs[key];
+    setPrefs((p) => ({ ...p, [key]: next }));
+    setSavingKey(key);
+    try {
+      // Push master switch also (un)registers the device token
+      if (key === 'push') {
+        if (next) await registerForPushNotifications();
+        else await unregisterForPushNotifications();
+      }
+      await apiPut('/notifications/preferences', { [key]: next });
+    } catch (err: any) {
+      // Revert on failure
+      setPrefs((p) => ({ ...p, [key]: !next }));
+      showToast(getApiErrorMessage(err, 'Could not update preference'), 'error');
+    } finally {
+      setSavingKey(null);
+    }
+  }, [prefs, savingKey, registerForPushNotifications, unregisterForPushNotifications, showToast]);
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
@@ -107,409 +111,64 @@ export default function NotificationSettingsScreen() {
             <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
-          <TouchableOpacity onPress={handleResetDefaults}>
-            <Text style={[styles.resetText, { color: '#8B85FF' }]}>Reset</Text>
-          </TouchableOpacity>
+          <View style={{ width: 44 }} />
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Delivery Methods */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Delivery Methods</Text>
-          
-          <SettingToggle
-            title="Push Notifications"
-            description="Receive notifications on your device"
-            value={pushEnabled}
-            onChange={setPushEnabled}
-            icon="notifications-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Email Notifications"
-            description="Receive notifications via email"
-            value={emailEnabled}
-            onChange={setEmailEnabled}
-            icon="mail-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="SMS Notifications"
-            description="Receive important alerts via SMS"
-            value={smsEnabled}
-            onChange={setSmsEnabled}
-            icon="chatbubble-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="In-App Notifications"
-            description="Show notifications while using the app"
-            value={inAppEnabled}
-            onChange={setInAppEnabled}
-            icon="cube-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-          />
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#FF6B35" />
+          <Text style={[styles.loadingText, { color: isDark ? '#888' : '#666' }]}>Loading preferences…</Text>
         </View>
-
-        {/* Task Notifications */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Task Notifications</Text>
-          
-          <SettingToggle
-            title="Task Assigned"
-            description="When a task is assigned to you"
-            value={taskAssigned}
-            onChange={setTaskAssigned}
-            icon="clipboard-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Task Completed"
-            description="When a task you posted is completed"
-            value={taskCompleted}
-            onChange={setTaskCompleted}
-            icon="check-circle-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Task Cancelled"
-            description="When a task is cancelled"
-            value={taskCancelled}
-            onChange={setTaskCancelled}
-            icon="close-circle-outline"
-            color="#EF4444"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Task Reminders"
-            description="Reminders for upcoming tasks"
-            value={taskReminders}
-            onChange={setTaskReminders}
-            icon="alarm-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="New Tasks Nearby"
-            description="New tasks posted in your area"
-            value={newTaskNearby}
-            onChange={setNewTaskNearby}
-            icon="location-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Task Applications"
-            description="When someone applies to your task"
-            value={taskApplications}
-            onChange={setTaskApplications}
-            icon="person-add-outline"
-            color="#EC4899"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Message Notifications */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Message Notifications</Text>
-          
-          <SettingToggle
-            title="New Messages"
-            description="When you receive a new message"
-            value={newMessages}
-            onChange={setNewMessages}
-            icon="chatbubble-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Message Reactions"
-            description="When someone reacts to your message"
-            value={messageReactions}
-            onChange={setMessageReactions}
-            icon="heart-outline"
-            color="#EF4444"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Group Messages"
-            description="Messages in group conversations"
-            value={groupMessages}
-            onChange={setGroupMessages}
-            icon="people-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Wallet Notifications */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Wallet Notifications</Text>
-          
-          <SettingToggle
-            title="Payment Received"
-            description="When you receive a payment"
-            value={paymentReceived}
-            onChange={setPaymentReceived}
-            icon="cash-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Payment Sent"
-            description="When a payment is sent from your wallet"
-            value={paymentSent}
-            onChange={setPaymentSent}
-            icon="card-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Withdrawal Complete"
-            description="When a withdrawal is completed"
-            value={withdrawalComplete}
-            onChange={setWithdrawalComplete}
-            icon="download-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Low Balance Alert"
-            description="When your wallet balance is low"
-            value={lowBalance}
-            onChange={setLowBalance}
-            icon="alert-circle-outline"
-            color="#EF4444"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Social Notifications */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Social Notifications</Text>
-          
-          <SettingToggle
-            title="New Follower"
-            description="When someone follows you"
-            value={newFollower}
-            onChange={setNewFollower}
-            icon="person-add-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="New Review"
-            description="When you receive a new review"
-            value={newReview}
-            onChange={setNewReview}
-            icon="star-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Referral Signup"
-            description="When someone signs up with your referral"
-            value={referralSignup}
-            onChange={setReferralSignup}
-            icon="gift-outline"
-            color="#EC4899"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Achievement Unlocked"
-            description="When you unlock a new achievement"
-            value={achievementUnlocked}
-            onChange={setAchievementUnlocked}
-            icon="trophy-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* System Notifications */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>System Notifications</Text>
-          
-          <SettingToggle
-            title="App Updates"
-            description="Notifications about app updates"
-            value={appUpdates}
-            onChange={setAppUpdates}
-            icon="cloud-download-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Maintenance"
-            description="Scheduled maintenance notifications"
-            value={maintenance}
-            onChange={setMaintenance}
-            icon="construct-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Security Alerts"
-            description="Important security notifications"
-            value={securityAlerts}
-            onChange={setSecurityAlerts}
-            icon="shield-outline"
-            color="#EF4444"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Marketing Emails"
-            description="Promotional emails and offers"
-            value={marketingEmails}
-            onChange={setMarketingEmails}
-            icon="megaphone-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Quiet Hours */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quiet Hours</Text>
-          
-          <SettingItem
-            title="Enable Quiet Hours"
-            description="Silence notifications during set hours"
-            icon="moon-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/settings')}
-            showArrow
-            trailing="10:00 PM - 8:00 AM"
-          />
-          
-          <SettingItem
-            title="Customize Schedule"
-            description="Set custom quiet hours schedule"
-            icon="time-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/settings')}
-            showArrow
-          />
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.sectionHint, { color: isDark ? '#888' : '#666' }]}>
+            Changes save instantly and sync across your devices.
+          </Text>
+          <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+            {ROWS.map((row, idx) => (
+              <View
+                key={row.key}
+                style={[
+                  styles.row,
+                  idx < ROWS.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#f0f0f0' },
+                ]}
+              >
+                <View style={[styles.iconWrap, { backgroundColor: `${row.color}15` }]}>
+                  <Ionicons name={row.icon as any} size={20} color={row.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: isDark ? '#fff' : '#000' }]}>{row.title}</Text>
+                  <Text style={[styles.rowDesc, { color: isDark ? '#888' : '#666' }]}>{row.description}</Text>
+                </View>
+                <Switch
+                  value={prefs[row.key]}
+                  onValueChange={() => toggle(row.key)}
+                  disabled={savingKey === row.key}
+                  trackColor={{ false: isDark ? '#444' : '#ddd', true: '#FF6B35' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
-
-const SettingItem = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  onPress, 
-  showArrow = false, 
-  trailing 
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-    onPress={onPress}
-  >
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
-    </View>
-    <View style={styles.settingTrailing}>
-      {trailing && <Text style={[styles.settingTrailingText, { color: isDark ? '#888' : '#666' }]}>{trailing}</Text>}
-      {showArrow && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#999'} />}
-    </View>
-  </TouchableOpacity>
-);
-
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange 
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
-    </View>
-    <Switch
-      value={value}
-      onValueChange={onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
-    />
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  resetText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
-  },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
-  },
-  settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingTrailing: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingTrailingText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { marginTop: 10, fontFamily: 'Inter_400Regular', fontSize: 14 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  sectionHint: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12 },
+  section: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: '#eee' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  rowDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
 });

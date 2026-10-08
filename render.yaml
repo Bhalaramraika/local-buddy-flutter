@@ -66,3 +66,8 @@ services:
       # App URL used for PayU redirect deep-links
       - key: APP_URL
         sync: false
+
+      # Public URL of THIS API (PayU surl/furl callbacks), e.g.
+      # https://localbuddy-api.onrender.com — falls back to the request origin.
+      - key: API_PUBLIC_URL
+        sync: false

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, Animated } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,6 +51,60 @@ interface FloatingTabBarProps {
   };
 }
 
+function TabButton({
+  def, focused, badge, isDark, inactiveColor, onPress,
+}: {
+  def: TabDef;
+  focused: boolean;
+  badge: number;
+  isDark: boolean;
+  inactiveColor: string;
+  onPress: () => void;
+}) {
+  // Pop animation when a tab becomes active
+  const scale = React.useRef(new Animated.Value(1)).current;
+  React.useEffect(() => {
+    if (!focused) return;
+    scale.setValue(0.88);
+    Animated.spring(scale, { toValue: 1, damping: 11, stiffness: 260, useNativeDriver: true }).start();
+  }, [focused, scale]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={`${def.label} tab`}
+      style={styles.tabItem}
+    >
+      <Animated.View
+        style={[
+          styles.tabPill,
+          { transform: [{ scale }] },
+        ]}
+      >
+        <View>
+          <Ionicons
+            name={focused ? def.icon : def.iconOutline}
+            size={21}
+            color={focused ? '#FFFFFF' : inactiveColor}
+          />
+          <TabBadge count={badge} dark={isDark} />
+        </View>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.tabLabel,
+            { color: focused ? '#FFFFFF' : inactiveColor },
+          ]}
+        >
+          {def.label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const { resolvedTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -62,6 +116,27 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const shellColor = isDark ? Colors.dark.surface.secondary : Colors.surface.elevated;
   const borderColor = isDark ? Colors.dark.surface.tertiary : Colors.border.light;
   const inactiveColor = isDark ? Colors.dark.text.secondary : Colors.text.muted;
+
+  // ---- Sliding active-pill animation ----
+  const [shellWidth, setShellWidth] = React.useState(0);
+  const slide = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.spring(slide, {
+      toValue: state.index,
+      damping: 18,
+      stiffness: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [state.index, slide]);
+
+  const TABS_COUNT = TAB_DEFS.length;
+  const SHELL_HPAD = 6;
+  const innerWidth = Math.max(0, shellWidth - SHELL_HPAD * 2);
+  const tabWidth = innerWidth / TABS_COUNT;
+  const translateX = slide.interpolate({
+    inputRange: [0, TABS_COUNT - 1],
+    outputRange: [0, tabWidth * (TABS_COUNT - 1)],
+  });
 
   const badgeFor = (route: string): number => {
     if (route === 'chat') return chatUnread;
@@ -77,7 +152,24 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
       ]}
       pointerEvents="box-none"
     >
-      <View style={[styles.shell, { backgroundColor: shellColor, borderColor }]}>
+      <View
+        style={[styles.shell, { backgroundColor: shellColor, borderColor }]}
+        onLayout={(e) => setShellWidth(e.nativeEvent.layout.width)}
+      >
+        {/* Sliding active background pill */}
+        {tabWidth > 0 && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.activePill,
+              {
+                width: tabWidth - 6,
+                left: SHELL_HPAD + 3,
+                transform: [{ translateX }],
+              },
+            ]}
+          />
+        )}
         {state.routes.map((route, index) => {
           const def = TAB_DEFS.find((t) => t.route === route.name);
           if (!def) return null;
@@ -96,39 +188,15 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
           };
 
           return (
-            <Pressable
+            <TabButton
               key={route.key}
+              def={def}
+              focused={focused}
+              badge={badge}
+              isDark={isDark}
+              inactiveColor={inactiveColor}
               onPress={onPress}
-              accessibilityRole="button"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={`${def.label} tab`}
-              style={styles.tabItem}
-            >
-              <View
-                style={[
-                  styles.tabPill,
-                  focused && { backgroundColor: Colors.brand.primary },
-                ]}
-              >
-                <View>
-                  <Ionicons
-                    name={focused ? def.icon : def.iconOutline}
-                    size={21}
-                    color={focused ? '#FFFFFF' : inactiveColor}
-                  />
-                  <TabBadge count={badge} dark={isDark} />
-                </View>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.tabLabel,
-                    { color: focused ? '#FFFFFF' : inactiveColor },
-                  ]}
-                >
-                  {def.label}
-                </Text>
-              </View>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -186,6 +254,13 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: BorderRadius.pill,
     paddingHorizontal: 6,
+  },
+  activePill: {
+    position: 'absolute',
+    top: 8,
+    height: 44,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.brand.primary,
   },
   tabLabel: {
     fontFamily: Typography.fontFamily.semiBold,

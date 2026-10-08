@@ -22,7 +22,22 @@
 Prisma, Supabase, cron worker (`backend/src/jobs`), Socket.IO
 (`websocket/`), `routes/{admin,upload,transactions}.ts`,
 `services/{supabase,location,notifications}.ts`, `types/user.ts`,
-`config/index.ts`, `jsconfig.json`, typing indicators, Razorpay references.
+`config/index.ts`, `jsconfig.json`, typing indicators, Razorpay references,
+old onboarding screens (`(onboarding)/{permissions,kyc,profile-setup,
+onboarding-referral}.tsx`), `(screens)/security-settings.tsx`.
+
+## Onboarding (single wizard)
+- `app/(onboarding)/setup.tsx` is the ONLY setup flow (welcome → setup → home).
+  Steps: role → name/photo/bio → DOB (inline mini-calendar) → language
+  (English/हिन्दी) → city/area → referral. Design: cream `#FFF7EC` bg, orange
+  `#FF6B35` CTAs, rounded cards.
+- Everything saves in ONE `PUT /users/me/profile` (AuthContext.updateProfile)
+  with `profileCompleted: true`; photo goes through `uploadToCloudinary`.
+- Profile edits (`edit-profile.tsx`, `account-settings.tsx`) also write via
+  AuthContext (REST) — never the store-only `authStore.updateProfile`.
+- Languages: only `en`/`hi`; region fixed to India (INR).
+- Notification/location settings screens write through to the backend
+  (`/notifications/preferences`, `/users/me/profile` preferences).
 
 ## KYC (MVP — manual approval)
 - User submits docs: app → Cloudinary (upload) → `POST /api/v1/users/me/kyc` → Firestore.

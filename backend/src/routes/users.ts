@@ -21,7 +21,10 @@ const router = Router();
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   email: z.string().email().optional(),
-  avatar: z.string().url().optional(),
+  // Nullable: `null` explicitly removes the avatar (FieldValue.delete()).
+  avatar: z.string().url().nullable().optional(),
+  phone: z.string().max(20).optional(),
+  location: z.string().max(200).optional(),
   bio: z.string().max(500).optional(),
   skills: z.array(z.string().max(40)).max(20).optional(),
   dateOfBirth: z.string().optional(),
@@ -105,9 +108,15 @@ router.put(
   requireAuth,
   validateBody(updateProfileSchema),
   async (req: Request, res: Response) => {
-    const updates = req.body;
+    const updates = { ...req.body };
     const userRef = collections.users.doc(req.user!.uid);
-    
+
+    // Explicit avatar removal: `avatar: null` deletes the field
+    if (updates.avatar === null) {
+      delete updates.avatar;
+      updates['avatar'] = FieldValue.delete();
+    }
+
     await userRef.update({
       ...updates,
       updatedAt: timestamp(),
@@ -203,9 +212,22 @@ router.get('/me/kyc', requireAuth, async (req: Request, res: Response) => {
     .where('userId', '==', req.user!.uid)
     .get();
 
+  // `kycApproved` is the simple admin toggle (Firestore console). Compute the
+  // effective status so the app never shows "Start KYC" for an approved user
+  // whose kyc.status was never updated.
+  const approved = (user as any).kycApproved === true || (user.kyc as any)?.approved === true;
+  const effectiveStatus = approved
+    ? 'verified'
+    : (user.kyc?.status || 'not_started');
+
   res.json({
     success: true,
-    kyc: user.kyc,
+    kyc: {
+      ...(user.kyc || {}),
+      status: effectiveStatus,
+      approved: approved || user.kyc?.status === 'verified',
+    },
+    kycApproved: approved,
     documents: verifications.docs.map(d => d.data()),
   });
 });

@@ -124,7 +124,8 @@ router.post(
   '/',
   requireAuth,
   requireKYC,
-  requireRole('customer'),
+  // Both roles can post tasks in the marketplace (buddies can also request help)
+  requireRole('customer', 'buddy'),
   validateBody(createTaskSchema),
   async (req: Request, res: Response) => {
     const data = req.body;

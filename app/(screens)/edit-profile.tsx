@@ -17,13 +17,24 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUIStore } from '@/store/uiStore';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '@/constants/design';
+import { uploadToCloudinary } from '@/services/upload';
+import { getApiErrorMessage } from '@/services/api';
+
+// A freshly-picked gallery image is a local URI (file://, content://, ph://);
+// anything starting with http/https is an already-hosted (Cloudinary) URL.
+const isLocalUri = (uri?: string | null) => !!uri && !/^https?:\/\//i.test(uri);
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, updateProfile, isLoading: authLoading } = useAuthStore();
+  const { user, isLoading: authLoading } = useAuthStore();
+  // AuthContext.updateProfile persists to the backend (PUT /users/me/profile)
+  // and then syncs the auth store — the store-only version saved locally,
+  // which is why edits "reset" after reopening the app.
+  const { updateProfile } = useAuth();
   const { theme, showToast } = useUIStore();
   
   const isDark = theme === 'dark';
@@ -81,32 +92,41 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
+
     setIsSaving(true);
-    
-    const skillsArray = formData.skills
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-    
-    await updateProfile({
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim() || undefined,
-      bio: formData.bio.trim() || undefined,
-      skills: skillsArray,
-      location: formData.location.trim() || undefined,
-      avatar: avatar || undefined,
-    });
-    const success = true;
-    
-    setIsSaving(false);
-    
-    if (success) {
+    try {
+      const skillsArray = formData.skills
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      // Photo: upload to Cloudinary first so a hosted URL is what lands in
+      // Firestore — local file:// URIs die with the device install.
+      let avatarUrl: string | null | undefined = undefined; // undefined = don't touch
+      if (isLocalUri(avatar)) {
+        const uploaded = await uploadToCloudinary(avatar!, { folder: `avatars/${user?.id || 'user'}` });
+        avatarUrl = uploaded.secureUrl;
+      } else if (avatar === null && user?.avatar) {
+        avatarUrl = null; // user removed the photo
+      } else if (avatar && avatar !== user?.avatar) {
+        avatarUrl = avatar; // already-hosted URL (kept as-is)
+      }
+
+      await updateProfile({
+        name: formData.name.trim(),
+        phone: formData.phone.trim() || undefined,
+        bio: formData.bio.trim() || undefined,
+        skills: skillsArray,
+        location: formData.location.trim() || undefined,
+        ...(avatarUrl !== undefined ? { avatar: avatarUrl } : {}),
+      });
+
+      setIsSaving(false);
       showToast('Profile updated successfully!', 'success');
       router.back();
-    } else {
-      showToast('Failed to update profile', 'error');
+    } catch (err: any) {
+      setIsSaving(false);
+      showToast(getApiErrorMessage(err, 'Failed to update profile'), 'error');
     }
   };
 
@@ -208,17 +228,18 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Email *</Text>
+            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Email</Text>
+            {/* Email is the login identity (OTP) — read-only to avoid desync */}
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
+              style={[styles.textInput, { backgroundColor: isDark ? '#222' : '#f0f0f0', color: isDark ? '#aaa' : '#666' }]}
               value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              placeholder="Enter your email"
+              editable={false}
+              placeholder="Login email"
               placeholderTextColor={isDark ? '#888' : '#999'}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            <Text style={[styles.charCount, { color: isDark ? '#888' : '#666' }]}>Email is your login ID and cannot be changed here</Text>
           </View>
 
           <View style={styles.field}>

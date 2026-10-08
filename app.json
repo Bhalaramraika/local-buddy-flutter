@@ -7,6 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "localbuddy",
+    "androidStatusBar": {
+      "translucent": false,
+      "backgroundColor": "#FAF9F7",
+      "barStyle": "dark-content"
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

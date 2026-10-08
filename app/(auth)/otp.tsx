@@ -68,7 +68,7 @@ export default function OtpScreen() {
         });
       }
       const currentUser = useAuthStore.getState().user;
-      router.replace(currentUser?.profileCompleted || currentUser?.city ? '/home' : '/permissions');
+      router.replace(currentUser?.profileCompleted || currentUser?.city ? '/home' : '/(onboarding)/setup');
     } catch { /* AuthContext exposes the error */ }
   };
 
@@ -180,7 +180,7 @@ export default function OtpScreen() {
             size="lg"
             tone="brand"
             withGlow
-            style={styles.cta}
+            style={{ width: '100%' as any, maxWidth: 320, backgroundColor: '#FF6B35' }}
           />
 
           <View style={styles.helpers}>

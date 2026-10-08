@@ -16,30 +16,35 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiDelete, getApiErrorMessage } from '@/services/api';
 import { useUIStore } from '@/store/uiStore';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
-  const { user, updateProfile } = useAuthStore();
+  const { user } = useAuthStore();
+  // AuthContext.updateProfile writes through to the backend; the store-only
+  // variant would silently lose changes on restart.
+  const { updateProfile, logout } = useAuth();
+  const { showToast } = useUIStore();
   const { theme } = useUIStore();
   
   const isDark = theme === 'dark';
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [notifications, setNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await updateProfile({ email, phone, username });
-    setLoading(false);
-    Alert.alert('Success', 'Account settings saved successfully!');
+    try {
+      // Backend supports phone; email is the login identity (not editable here)
+      await updateProfile({ phone: phone.trim() || undefined });
+      setLoading(false);
+      showToast('Account settings saved', 'success');
+    } catch (err: any) {
+      setLoading(false);
+      showToast(getApiErrorMessage(err, 'Could not save. Please try again.'), 'error');
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -48,11 +53,35 @@ export default function AccountSettingsScreen() {
       'Are you sure you want to delete your account? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
-          onPress: () => Alert.alert('Account Deleted', 'Your account has been deleted.')
-        }
+          onPress: () => {
+            // Second confirmation — destructive action
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your profile, tasks, wallet history and data will be permanently deleted.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete permanently',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await apiDelete('/users/me/account');
+                    } catch (err) {
+                      showToast(getApiErrorMessage(err, 'Could not delete account.'), 'error');
+                      return;
+                    }
+                    // Wipe local session and go back to welcome
+                    try { await logout(); } catch { /* best-effort */ }
+                    router.replace('/');
+                  },
+                },
+              ]
+            );
+          },
+        },
       ]
     );
   };
@@ -79,28 +108,16 @@ export default function AccountSettingsScreen() {
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Profile Information</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? '#ddd' : '#333' }]}>Username</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5', color: isDark ? '#fff' : '#000' }]}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Enter username"
-              autoCapitalize="none"
-            />
-            <Text style={[styles.inputHint, { color: isDark ? '#888' : '#666' }]}>This will be your public handle</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: isDark ? '#ddd' : '#333' }]}>Email</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5', color: isDark ? '#fff' : '#000' }]}
+              style={[styles.input, { backgroundColor: isDark ? '#222' : '#eee', color: isDark ? '#888' : '#666' }]}
               value={email}
-              onChangeText={setEmail}
-              placeholder="Enter email"
+              editable={false}
+              placeholder="Login email"
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Text style={[styles.inputHint, { color: isDark ? '#888' : '#666' }]}>Used for login and notifications</Text>
+            <Text style={[styles.inputHint, { color: isDark ? '#888' : '#666' }]}>Login ID — cannot be changed</Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -124,82 +141,16 @@ export default function AccountSettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Notification Preferences */}
+        {/* Notification Preferences — managed on the dedicated page (real, server-synced) */}
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Notification Preferences</Text>
-          
-          <SettingToggle
-            title="Push Notifications"
-            description="Receive push notifications for tasks and messages"
-            value={pushNotifications}
-            onChange={setPushNotifications}
+          <SettingItem
+            title="Open Notification Settings"
+            description="Choose which updates you want to receive"
             icon="notifications-outline"
             color="#8B85FF"
             isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Email Notifications"
-            description="Receive email updates about your account and tasks"
-            value={emailNotifications}
-            onChange={setEmailNotifications}
-            icon="mail-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="SMS Notifications"
-            description="Receive SMS for important account updates"
-            value={smsNotifications}
-            onChange={setSmsNotifications}
-            icon="chatbubble-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Security */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Security</Text>
-          
-          <SettingItem
-            title="Change Password"
-            description="Update your account password"
-            icon="lock-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/security-settings')}
-            showArrow
-          />
-          
-          <SettingToggle
-            title="Two-Factor Authentication"
-            description="Add an extra layer of security to your account"
-            value={twoFactor}
-            onChange={setTwoFactor}
-            icon="shield-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-          />
-          
-          <SettingItem
-            title="Login History"
-            description="View recent login activity"
-            icon="time-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/security-settings')}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Active Sessions"
-            description="Manage your active login sessions"
-            icon="devices-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/security-settings')}
+            onPress={() => router.push('/(screens)/notification-settings')}
             showArrow
           />
         </View>

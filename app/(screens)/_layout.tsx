@@ -49,7 +49,6 @@ export default function ScreensLayout() {
       <Stack.Screen name="location-settings" options={{ title: 'Location' }} />
       <Stack.Screen name="appearance-settings" options={{ title: 'Appearance' }} />
       <Stack.Screen name="language-settings" options={{ title: 'Language' }} />
-      <Stack.Screen name="security-settings" options={{ title: 'Security' }} />
       <Stack.Screen name="blocked-users" options={{ title: 'Blocked Users' }} />
       <Stack.Screen name="data-usage" options={{ title: 'Data Usage' }} />
       <Stack.Screen name="about" options={{ title: 'About' }} />

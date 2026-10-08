@@ -53,6 +53,10 @@ export const config = {
 
   app: {
     url: process.env.APP_URL || 'http://localhost:3000',
+    // Public URL where THIS API is reachable (PayU redirects surl/furl here).
+    // Set API_PUBLIC_URL on Render, e.g. https://localbuddy-api.onrender.com
+    // (NOT the app URL — PayU must POST back to this server).
+    apiUrl: process.env.API_PUBLIC_URL || '',
   },
 } as const;
 

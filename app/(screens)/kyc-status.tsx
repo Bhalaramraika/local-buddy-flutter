@@ -2,7 +2,7 @@
  * KYC Status Screen - View KYC verification status
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -11,6 +11,8 @@ import {
   StyleSheet,
   Image,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
@@ -22,22 +24,34 @@ export default function KYCStatusScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { theme, showToast } = useUIStore();
-  
+
   const isDark = theme === 'dark';
-  const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'rejected' | 'not_started'>('not_started');
+  // Realtime (Firestore listener) already resolved the admin toggle
+  // `kycApproved: true` into user.kyc.status = 'verified' — trust it first so
+  // the app flips to "KYC Approved" instantly, before the REST fetch returns.
+  const storeApproved = user?.kyc?.status === 'verified' || (user?.kyc as any)?.approved === true;
+  const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'rejected' | 'not_started'>(
+    storeApproved ? 'verified' : 'not_started'
+  );
   const [kycData, setKycData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // ---- Approved hero animations (green tick pop + chips stagger) ----
+  const tickScale = useRef(new Animated.Value(0)).current;
+  const tickRing = useRef(new Animated.Value(0)).current;
+  const heroFade = useRef(new Animated.Value(0)).current;
 
   const loadKYCStatus = async () => {
     setLoading(true);
     try {
       const res = await apiGet<{ kyc: any }>('/users/me/kyc');
       const k = res?.kyc || (res as any)?.data?.kyc || (res as any);
-      setKycStatus((k?.status || 'not_started') as any);
+      const approvedNow = (res as any)?.kycApproved === true || k?.approved === true;
+      setKycStatus(approvedNow ? 'verified' : ((k?.status || 'not_started') as any));
       setKycData(k && typeof k === 'object' ? k : null);
     } catch (e) {
       console.warn('[KYC Status] load failed:', e);
-      setKycStatus('not_started' as any);
+      setKycStatus(storeApproved ? 'verified' : 'not_started');
       setKycData(null);
     } finally {
       setLoading(false);
@@ -48,6 +62,32 @@ export default function KYCStatusScreen() {
     // Defer data loading past first commit so no sync setState happens in the effect body
     void Promise.resolve().then(loadKYCStatus);
   }, []);
+
+  // Store override can arrive any time (realtime toggle while screen is open)
+  useEffect(() => {
+    if (storeApproved) setKycStatus('verified');
+  }, [storeApproved]);
+
+  const isApproved = kycStatus === 'verified';
+
+  useEffect(() => {
+    if (!isApproved) return;
+    tickScale.setValue(0);
+    tickRing.setValue(0);
+    heroFade.setValue(0);
+    Animated.sequence([
+      Animated.spring(tickScale, { toValue: 1, damping: 9, stiffness: 180, useNativeDriver: true }),
+      Animated.parallel([
+        Animated.timing(heroFade, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(tickRing, { toValue: 1, duration: 1400, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+            Animated.timing(tickRing, { toValue: 0, duration: 0, useNativeDriver: true }),
+          ])
+        ),
+      ]),
+    ]).start();
+  }, [isApproved]);
 
 
   const getStatusConfig = () => {
@@ -164,24 +204,83 @@ export default function KYCStatusScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Status Card */}
-        <View style={[styles.statusCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.statusIcon, { backgroundColor: statusConfig.bg }]}>
-              <Ionicons name={statusConfig.icon as any} size={28} color={statusConfig.color} />
+        {isApproved ? (
+          /* ================= KYC APPROVED HERO ================= */
+          <View style={[styles.approvedHero, { backgroundColor: isDark ? '#14261C' : '#ECFDF5' }]}>
+            <View style={styles.tickWrap}>
+              <Animated.View
+                style={[
+                  styles.tickRingOuter,
+                  {
+                    transform: [
+                      {
+                        scale: tickRing.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }),
+                      },
+                    ],
+                    opacity: tickRing.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.5, 0.2, 0] }),
+                  },
+                ]}
+              />
+              <Animated.View style={[styles.tickCircle, { transform: [{ scale: tickScale }] }]}>
+                <Ionicons name="checkmark" size={56} color="#fff" />
+              </Animated.View>
             </View>
-            <View style={styles.statusInfo}>
-              <Text style={[styles.statusTitle, { color: isDark ? '#fff' : '#000' }]}>{statusConfig.title}</Text>
-              <Text style={[styles.statusSubtitle, { color: isDark ? '#888' : '#666' }]}>{statusConfig.subtitle}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={[styles.statusAction, { backgroundColor: statusConfig.bg }]} onPress={handleAction}>
-            <Text style={[styles.statusActionText, { color: statusConfig.color }]}>{statusConfig.actionLabel}</Text>
-            <Ionicons name="chevron-forward-outline" size={20} color={statusConfig.color} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Benefits */}
+            <Animated.View style={{ opacity: heroFade, alignItems: 'center' }}>
+              <Text style={styles.approvedTitle}>KYC Approved</Text>
+              <Text style={[styles.approvedSub, { color: isDark ? '#9CE5B8' : '#047857' }]}>
+                Your identity is verified — welcome to the trusted circle.
+              </Text>
+
+              <View style={styles.unlockedChipsRow}>
+                {[
+                  { icon: 'add-circle-outline', label: 'Post tasks' },
+                  { icon: 'briefcase-outline', label: 'Apply to tasks' },
+                  { icon: 'wallet-outline', label: 'Wallet & top-up' },
+                  { icon: 'shield-checkmark-outline', label: 'Verified badge' },
+                ].map((f) => (
+                  <View key={f.label} style={[styles.unlockedChip, { backgroundColor: isDark ? '#1B3A2A' : '#fff' }]}>
+                    <Ionicons name={f.icon as any} size={14} color="#10B981" />
+                    <Text style={[styles.unlockedChipText, { color: isDark ? '#D1FAE5' : '#065F46' }]}>{f.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.allUnlockedPill}>
+                <Ionicons name="lock-open-outline" size={14} color="#fff" />
+                <Text style={styles.allUnlockedText}>All features unlocked</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.statusAction, { backgroundColor: '#10B98115', marginTop: 20 }]}
+                onPress={() => router.push('/(screens)/kyc-documents')}
+              >
+                <Text style={[styles.statusActionText, { color: '#10B981' }]}>View Documents</Text>
+                <Ionicons name="chevron-forward-outline" size={20} color="#10B981" />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        ) : (
+          /* ================= NORMAL STATUS CARD ================= */
+          <View style={[styles.statusCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+            <View style={styles.statusHeader}>
+              <View style={[styles.statusIcon, { backgroundColor: statusConfig.bg }]}>
+                <Ionicons name={statusConfig.icon as any} size={28} color={statusConfig.color} />
+              </View>
+              <View style={styles.statusInfo}>
+                <Text style={[styles.statusTitle, { color: isDark ? '#fff' : '#000' }]}>{statusConfig.title}</Text>
+                <Text style={[styles.statusSubtitle, { color: isDark ? '#888' : '#666' }]}>{statusConfig.subtitle}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={[styles.statusAction, { backgroundColor: statusConfig.bg }]} onPress={handleAction}>
+              <Text style={[styles.statusActionText, { color: statusConfig.color }]}>{statusConfig.actionLabel}</Text>
+              <Ionicons name="chevron-forward-outline" size={20} color={statusConfig.color} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Benefits (hidden once approved — no longer a sales pitch) */}
+        {!isApproved && (
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Why Verify?</Text>
           <View style={styles.benefitsGrid}>
@@ -201,6 +300,7 @@ export default function KYCStatusScreen() {
             ))}
           </View>
         </View>
+        )}
 
         {/* Requirements */}
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
@@ -292,4 +392,57 @@ const styles = StyleSheet.create({
   infoItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   infoIcon: { marginTop: 2 },
   infoText: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, flex: 1 },
+  // ---- KYC Approved hero ----
+  approvedHero: {
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#10B98130',
+  },
+  tickWrap: { width: 120, height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  tickRingOuter: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#10B981',
+  },
+  tickCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  approvedTitle: { fontSize: 26, fontFamily: 'Inter_700Bold', color: '#10B981', marginBottom: 6, textAlign: 'center' },
+  approvedSub: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 20, marginBottom: 16 },
+  unlockedChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 16 },
+  unlockedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#10B98130',
+  },
+  unlockedChipText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  allUnlockedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  allUnlockedText: { color: '#fff', fontSize: 13, fontFamily: 'Inter_700Bold' },
 });

@@ -1,45 +1,143 @@
 /**
- * Location Settings Screen - Location sharing and privacy settings
+ * Location Settings — real, functional controls.
+ *
+ * - Location access: reads the REAL OS permission state and requests it.
+ * - Foreground tracking: actually starts/stops the watcher.
+ * - Nearby visibility: persisted server-side (users/{uid}.preferences.location).
  */
 
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
   StyleSheet,
-  Alert,
   Switch,
+  Linking,
+  Platform,
+  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
+import { useLocation } from '@/contexts/LocationContext';
+import { useLocationStore } from '@/store/locationStore';
+import { apiPut, getApiErrorMessage } from '@/services/api';
 
 export default function LocationSettingsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
-  const [locationEnabled, setLocationEnabled] = React.useState(true);
-  const [shareLocation, setShareLocation] = React.useState(true);
-  const [showDistance, setShowDistance] = React.useState(true);
-  const [nearbyBuddies, setNearbyBuddies] = React.useState(true);
-  const [locationHistory, setLocationHistory] = React.useState(false);
-  const [preciseLocation, setPreciseLocation] = React.useState(true);
-  const [backgroundLocation, setBackgroundLocation] = React.useState(false);
-  const [geofenceAlerts, setGeofenceAlerts] = React.useState(true);
+  const { theme, showToast } = useUIStore();
+  const systemScheme = useColorScheme();
+  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear Location History',
-      'This will permanently delete your location history. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: () => Alert.alert('Cleared', 'Location history has been cleared.') }
-      ]
-    );
+  const { requestPermission, startTracking, stopTracking } = useLocation();
+  const permissionStatus = useLocationStore((s) => s.permissionStatus);
+  const isTracking = useLocationStore((s) => s.isTracking);
+  const currentLocation = useLocationStore((s) => s.currentLocation);
+
+  const user = useAuthStore((s) => s.user);
+  const initialNearby = useMemo(
+    () => (user as any)?.preferences?.location?.nearbyVisible !== false, // default on
+    [user]
+  );
+  const [nearbyVisible, setNearbyVisible] = useState(initialNearby);
+  const [savingNearby, setSavingNearby] = useState(false);
+  const [trackingBusy, setTrackingBusy] = useState(false);
+
+  useEffect(() => setNearbyVisible(initialNearby), [initialNearby]);
+
+  const permissionGranted = permissionStatus === 'granted';
+
+  const handlePermissionPress = async () => {
+    if (permissionGranted) {
+      // Cannot revoke programmatically — deep link to system settings
+      if (Platform.OS !== 'web') Linking.openSettings().catch(() => {});
+      return;
+    }
+    const granted = await requestPermission();
+    if (!granted) {
+      showToast('Permission denied — enable it in system settings', 'warning');
+      if (Platform.OS !== 'web') Linking.openSettings().catch(() => {});
+    }
   };
+
+  const handleTrackingToggle = async () => {
+    if (trackingBusy) return;
+    setTrackingBusy(true);
+    try {
+      if (isTracking) {
+        stopTracking();
+        showToast('Live tracking paused', 'info');
+      } else {
+        if (!permissionGranted) {
+          const granted = await requestPermission();
+          if (!granted) { showToast('Allow location access first', 'warning'); return; }
+        }
+        await startTracking('foreground');
+        showToast('Live tracking on', 'success');
+      }
+    } catch (e: any) {
+      showToast(getApiErrorMessage(e, 'Could not change tracking'), 'error');
+    } finally {
+      setTrackingBusy(false);
+    }
+  };
+
+  const handleNearbyToggle = async () => {
+    if (savingNearby) return;
+    const next = !nearbyVisible;
+    setNearbyVisible(next);
+    setSavingNearby(true);
+    try {
+      await apiPut('/users/me/profile', { preferences: { location: { nearbyVisible: next } } });
+    } catch (e: any) {
+      setNearbyVisible(!next);
+      showToast(getApiErrorMessage(e, 'Could not save preference'), 'error');
+    } finally {
+      setSavingNearby(false);
+    }
+  };
+
+  const rows = [
+    {
+      key: 'permission',
+      icon: 'shield-outline',
+      color: '#8B85FF',
+      title: 'Location Access',
+      description: permissionGranted
+        ? 'Allowed — tap to open system settings'
+        : 'Not allowed — tap to grant access',
+      value: permissionGranted,
+      onToggle: handlePermissionPress,
+      trackColor: '#8B85FF',
+    },
+    {
+      key: 'tracking',
+      icon: 'navigate-outline',
+      color: '#10B981',
+      title: 'Live Location (foreground)',
+      description: isTracking
+        ? `On${currentLocation?.address ? ` — ${currentLocation.address}` : ''}`
+        : 'Share location while the app is open',
+      value: isTracking,
+      onToggle: handleTrackingToggle,
+      disabled: trackingBusy,
+      trackColor: '#10B981',
+    },
+    {
+      key: 'nearby',
+      icon: 'people-outline',
+      color: '#F59E0B',
+      title: 'Show in Nearby Buddies',
+      description: 'Others near you can discover your profile',
+      value: nearbyVisible,
+      onToggle: handleNearbyToggle,
+      disabled: savingNearby,
+      trackColor: '#F59E0B',
+    },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
@@ -54,267 +152,61 @@ export default function LocationSettingsScreen() {
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Main Location Toggle */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.hint, { color: isDark ? '#888' : '#666' }]}>
+          These controls are live — changes apply immediately.
+        </Text>
         <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Location Access</Text>
-          
-          <SettingToggle
-            title="Location Services"
-            description="Allow LocalBuddy to access your location"
-            value={locationEnabled}
-            onChange={setLocationEnabled}
-            icon="location-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Precise Location"
-            description="Use GPS for exact location (uses more battery)"
-            value={preciseLocation}
-            onChange={setPreciseLocation}
-            icon="gps-outline"
-            color="#10B981"
-            isDark={isDark}
-            disabled={!locationEnabled}
-          />
-          
-          <SettingToggle
-            title="Background Location"
-            description="Update location even when app is closed"
-            value={backgroundLocation}
-            onChange={setBackgroundLocation}
-            icon="moon-outline"
-            color="#F59E0B"
-            isDark={isDark}
-            disabled={!locationEnabled}
-          />
+          {rows.map((row, idx) => (
+            <TouchableOpacity
+              key={row.key}
+              activeOpacity={0.8}
+              onPress={row.onToggle}
+              disabled={row.disabled}
+              style={[
+                styles.row,
+                idx < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#f0f0f0' },
+              ]}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: `${row.color}15` }]}>
+                <Ionicons name={row.icon as any} size={20} color={row.color} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: isDark ? '#fff' : '#000' }]}>{row.title}</Text>
+                <Text style={[styles.rowDesc, { color: isDark ? '#888' : '#666' }]} numberOfLines={2}>
+                  {row.description}
+                </Text>
+              </View>
+              <Switch
+                value={row.value}
+                onValueChange={row.onToggle}
+                disabled={row.disabled}
+                trackColor={{ false: isDark ? '#444' : '#ddd', true: row.trackColor }}
+                thumbColor="#fff"
+              />
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Location Sharing */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Location Sharing</Text>
-          
-          <SettingToggle
-            title="Share My Location"
-            description="Let buddies see your approximate location"
-            value={shareLocation}
-            onChange={setShareLocation}
-            icon="share-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            disabled={!locationEnabled}
-          />
-          
-          <SettingToggle
-            title="Show Distance"
-            description="Display distance to other buddies"
-            value={showDistance}
-            onChange={setShowDistance}
-            icon="ruler-outline"
-            color="#10B981"
-            isDark={isDark}
-            disabled={!locationEnabled || !shareLocation}
-          />
-          
-          <SettingToggle
-            title="Nearby Buddies"
-            description="Show buddies near your location"
-            value={nearbyBuddies}
-            onChange={setNearbyBuddies}
-            icon="people-outline"
-            color="#8B5CF6"
-            isDark={isDark}
-            disabled={!locationEnabled || !shareLocation}
-          />
-        </View>
-
-        {/* Geofences */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Geofences</Text>
-          
-          <SettingToggle
-            title="Geofence Alerts"
-            description="Get notified when entering/leaving saved areas"
-            value={geofenceAlerts}
-            onChange={setGeofenceAlerts}
-            icon="alert-circle-outline"
-            color="#EF4444"
-            isDark={isDark}
-            disabled={!locationEnabled}
-          />
-          
-          <SettingItem
-            title="Manage Geofences"
-            description="Add, edit, or remove geofence areas"
-            icon="map-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/geofences')}
-            showArrow
-            disabled={!locationEnabled}
-          />
-        </View>
-
-        {/* Location History */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Location History</Text>
-          
-          <SettingToggle
-            title="Save Location History"
-            description="Keep a record of your visited locations"
-            value={locationHistory}
-            onChange={setLocationHistory}
-            icon="time-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            disabled={!locationEnabled}
-          />
-          
-          <SettingItem
-            title="View Location History"
-            description="See your past locations on a map"
-            icon="map-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/location-settings')}
-            showArrow
-            disabled={!locationEnabled || !locationHistory}
-          />
-          
-          <SettingItem
-            title="Clear Location History"
-            description="Permanently delete all location history"
-            icon="trash-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={handleClearHistory}
-            showArrow
-            destructive
-            disabled={!locationEnabled || !locationHistory}
-          />
-        </View>
-
-        {/* Privacy */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Privacy</Text>
-          
-          <SettingItem
-            title="Location Privacy"
-            description="Control who can see your location"
-            icon="lock-closed-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/location-settings')}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Data Usage"
-            description="View how your location data is used"
-            icon="analytics-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/data-usage')}
-            showArrow
-          />
-        </View>
-
-        <View style={{ height: 40 }} />
+        <Text style={[styles.footerNote, { color: isDark ? '#666' : '#999' }]}>
+          Location is used to match you with nearby tasks and buddies. You can pause sharing anytime.
+        </Text>
       </ScrollView>
     </View>
   );
 }
-
-const SettingItem = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  onPress, 
-  showArrow = false, 
-  destructive = false,
-  disabled = false,
-  trailing 
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff', opacity: disabled ? 0.5 : 1 }]}
-    onPress={onPress}
-    disabled={disabled}
-  >
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: destructive ? '#EF4444' : (isDark ? '#fff' : '#000') }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
-    </View>
-    <View style={styles.settingTrailing}>
-      {trailing && <Text style={[styles.settingTrailingText, { color: isDark ? '#888' : '#666' }]}>{trailing}</Text>}
-      {showArrow && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#999'} />}
-    </View>
-  </TouchableOpacity>
-);
-
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange,
-  disabled = false
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff', opacity: disabled ? 0.5 : 1 }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
-    </View>
-    <Switch
-      value={value}
-      onValueChange={disabled ? undefined : onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
-      disabled={disabled}
-    />
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
-  },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
-  },
-  settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingTrailing: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingTrailingText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  hint: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12 },
+  section: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: '#eee' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  rowDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  footerNote: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center', marginTop: 20, lineHeight: 18 },
 });

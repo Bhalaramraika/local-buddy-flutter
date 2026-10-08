@@ -306,7 +306,10 @@ function FontLoader({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Theme-aware status bar
+// Theme-aware status bar.
+// IMPORTANT (Android): an opaque status bar, so app content never slides
+// up underneath the battery/clock area. `translucent: true` was the root
+// cause of screens overlapping the system status bar.
 function ThemedStatusBar() {
   const { theme } = useTheme();
   const colorScheme = useColorScheme();
@@ -315,8 +318,8 @@ function ThemedStatusBar() {
   return (
     <StatusBar
       barStyle={isDark ? 'light-content' : 'dark-content'}
-      backgroundColor="transparent"
-      translucent={Platform.OS === 'android'}
+      backgroundColor={isDark ? '#0D0D1A' : '#FAF9F7'}
+      translucent={false}
     />
   );
 }
