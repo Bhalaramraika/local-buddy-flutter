@@ -53,14 +53,15 @@ router.post(
       throw new BadRequestError('Cannot review yourself');
     }
 
-    // Verify task exists and is completed/paid
+    // Verify task exists and is completed (paid tasks stay `completed`;
+    // payment is tracked by `paidAt`, not by a status value)
     const taskDoc = await collections.tasks.doc(taskId).get();
     if (!taskDoc.exists) {
       throw new NotFoundError('Task not found');
     }
 
     const task = taskDoc.data() as any;
-    if (!['completed', 'paid'].includes(task.status)) {
+    if (task.status !== 'completed') {
       throw new BadRequestError('Can only review completed tasks');
     }
 

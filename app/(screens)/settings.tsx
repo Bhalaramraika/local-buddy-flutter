@@ -124,8 +124,6 @@ export default function SettingsScreen() {
             thumbColor="#FFFFFF"
             disabled={isDisabled}
           />
-        ) : !isDisabled ? (
-          <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
         ) : null}
       </Pressable>
     );
@@ -198,7 +196,6 @@ export default function SettingsScreen() {
                 <Ionicons name="trash-outline" size={19} color={Colors.semantic.error} />
               </View>
               <Text style={styles.dangerLabel}>Delete Account</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.semantic.error} />
             </Pressable>
             <View style={styles.itemDividerWrap} />
             <Pressable
@@ -209,7 +206,6 @@ export default function SettingsScreen() {
                 <Ionicons name="log-out-outline" size={19} color={Colors.semantic.error} />
               </View>
               <Text style={styles.dangerLabel}>Sign Out</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.semantic.error} />
             </Pressable>
           </View>
         </MotiView>

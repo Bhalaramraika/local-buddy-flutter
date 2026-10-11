@@ -25,8 +25,9 @@ import { apiPost, getApiErrorMessage } from '@/services/api';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { ScreenHeader } from '@/components/ui';
 
-// Backend task statuses: open | assigned | completed | paid | deleted
-const FILTERS = ['all', 'open', 'assigned', 'completed', 'paid', 'deleted'] as const;
+// Backend task statuses: open | assigned | completed | deleted
+// (payment is tracked by the task's paidAt timestamp, not a status)
+const FILTERS = ['all', 'open', 'assigned', 'completed', 'deleted'] as const;
 
 export default function MyTasksScreen() {
   const router = useRouter();
@@ -95,13 +96,13 @@ export default function MyTasksScreen() {
     );
   };
 
-  // Completed task → release the escrowed amount to the buddy
-  // (backend: POST /wallet/release/:taskId, also marks the task as paid).
+  // Completed (unpaid) task → release the escrowed amount to the buddy
+  // (backend: POST /wallet/release/:taskId, which stamps paidAt on the task).
   const handleReleasePayment = (task: any) => {
     const amount = (task.budget?.amount ?? 0) + (task.tip ?? 0);
     Alert.alert(
       'Release payment',
-      `Pay ₹${amount} to the buddy for "${task.title}"? A 10% platform fee applies.`,
+      `Pay ₹${amount} to the buddy for "${task.title}"? The buddy receives the full amount; the 10% platform fee is billed to the buddy as dues.`,
       [
         { text: 'Not now', style: 'cancel' },
         {
@@ -128,7 +129,6 @@ export default function MyTasksScreen() {
       case 'open': return Colors.semantic.info;
       case 'assigned': return Colors.semantic.warning;
       case 'completed': return Colors.semantic.success;
-      case 'paid': return Colors.brand.primary;
       case 'deleted': return Colors.semantic.error;
       default: return Colors.text.muted;
     }
@@ -137,10 +137,9 @@ export default function MyTasksScreen() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'open': return 'Open';
-      case 'assigned': return 'In Progress';
+      case 'assigned': return 'Assigned';
       case 'completed': return 'Completed';
-      case 'paid': return 'Paid';
-      case 'deleted': return 'Cancelled';
+      case 'deleted': return 'Deleted';
       default: return status;
     }
   };
@@ -163,7 +162,7 @@ export default function MyTasksScreen() {
               <View style={[styles.statusBadge, { backgroundColor: statusColor + '1A' }]}>
                 <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                 <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-                  {getStatusLabel(item.status)}
+                  {item.status === 'completed' && item.paidAt ? 'Paid' : getStatusLabel(item.status)}
                 </Text>
               </View>
             </View>
@@ -225,17 +224,30 @@ export default function MyTasksScreen() {
                       <Text style={styles.actionButtonText}>Delete</Text>
                     </Pressable>
                   ) : null}
-                  {item.status === 'completed' ? (
+                  {item.status === 'assigned' && !item.startedAt ? (
+                    <Text style={styles.footerHint}>Waiting for buddy to start</Text>
+                  ) : null}
+                  {item.status === 'assigned' && item.startedAt && (item.paymentMode ?? 'online') === 'online' && !item.paidAt ? (
                     <Pressable
                       style={[styles.actionButton, { backgroundColor: Colors.semantic.success }]}
                       onPress={(e) => { e.stopPropagation(); handleReleasePayment(item); }}
                     >
                       <Ionicons name="cash-outline" size={12} color="#FFFFFF" />
-                      <Text style={styles.actionButtonText}>Release payment</Text>
+                      <Text style={styles.actionButtonText}>
+                        {item.paymentRequestedAt ? 'Release (requested)' : 'Release payment'}
+                      </Text>
                     </Pressable>
                   ) : null}
-                  {item.status === 'assigned' ? (
-                    <Text style={styles.footerHint}>Buddy is working on it</Text>
+                  {item.status === 'assigned' && item.startedAt && (item.paymentMode ?? 'online') === 'online' && item.paidAt ? (
+                    <Text style={styles.footerHint}>Paid — share the completion code</Text>
+                  ) : null}
+                  {item.status === 'assigned' && item.startedAt && (item.paymentMode ?? 'online') === 'cash' ? (
+                    <Text style={styles.footerHint}>Cash — pay ₹{(item.budget?.amount ?? 0) + (item.tip ?? 0)} on completion</Text>
+                  ) : null}
+                  {item.status === 'completed' ? (
+                    <Text style={styles.footerHint}>
+                      {(item.paymentMode ?? 'online') === 'online' ? (item.paidAt ? 'Payment released' : 'Completed') : 'Completed — cash settled'}
+                    </Text>
                   ) : null}
                 </>
               )}

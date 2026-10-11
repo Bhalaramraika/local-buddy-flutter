@@ -398,13 +398,13 @@ export const useTaskStore = create<TaskState>()(
       },
 
       applyToTask: async (taskId, payload) => {
-        // Real backend flow: POST /tasks/:id/apply (KYC-gated server-side).
-        // Backend writes the buddy id into the task's `applicants` array and
-        // notifies the poster; realtime listeners re-sync the task doc.
+        // FIRST-COME-FIRST-SERVED: POST /tasks/:id/apply atomically assigns
+        // the task to this buddy (no poster confirmation). Response carries
+        // `assigned: true` + chatId; realtime listeners re-sync the doc.
         set({ isApplying: true, error: null });
         const uid = currentUserId();
         try {
-          await apiPost<any>(ENDPOINTS.tasks.apply(taskId), {
+          const res = await apiPost<any>(ENDPOINTS.tasks.apply(taskId), {
             message: payload?.message?.slice(0, 500),
             proposedAmount: payload?.proposedBudget,
           });
@@ -415,8 +415,13 @@ export const useTaskStore = create<TaskState>()(
               ...(task as any),
               applicants: [...new Set([...(task.applicants || []), uid])],
               applicationsCount: ((task as any).applicationsCount || (task.applicants?.length ?? 0)) + 1,
+              ...(res?.assigned
+                ? { status: 'assigned' as TaskStatus, buddyId: uid, assignedAt: new Date().toISOString() }
+                : {}),
             } as Task);
           }
+          // Pull the authoritative task (assigned state + startedAt/paidAt etc.)
+          get().fetchTaskById(taskId).catch(() => {});
           set({ isApplying: false, error: null });
           return true;
         } catch (error: any) {
@@ -424,7 +429,7 @@ export const useTaskStore = create<TaskState>()(
           console.warn('[TaskStore] applyToTask failed:', error?.response?.data ?? error);
           set({ isApplying: false, error: message });
           // Rethrow so the screen can show the real backend message
-          // (KYC required, already applied, own task, task closed, ...).
+          // (KYC required, dues unpaid, already applied, task taken, ...).
           throw new Error(message);
         }
       },

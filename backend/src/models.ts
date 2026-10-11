@@ -43,7 +43,12 @@ export const subCollections = {
 
 export type UserRole = 'customer' | 'buddy' | 'admin';
 export type KYCStatus = 'pending' | 'verified' | 'rejected' | 'expired' | 'not_started';
-export type TaskStatus = 'open' | 'assigned' | 'completed' | 'paid' | 'deleted';
+// Task lifecycle is exactly these 4 states:
+//   open      → visible to everyone (poster + all buddies); anyone can apply
+//   assigned  → visible only to poster + assigned buddy
+//   completed → visible only to poster (payment is tracked via `paidAt`, NOT a status)
+//   deleted   → visible only to poster
+export type TaskStatus = 'open' | 'assigned' | 'completed' | 'deleted';
 export type PaymentMode = 'online' | 'cash';
 export type TransactionType = 'add' | 'release' | 'commission_payment' | 'lock' | 'withdraw';
 export type TransactionStatus = 'pending' | 'success' | 'failed' | 'refunded';
@@ -128,8 +133,31 @@ export interface TaskDocument {
   requirements: string[];
   createdAt: string;
   updatedAt: string;
+  /** Set when a buddy is assigned (assignment also creates the OTP secrets doc). */
+  assignedAt?: string;
+  /** Set when the buddy verifies the 4-digit START OTP (work begins). */
+  startedAt?: string;
+  /** Set when the buddy asks the poster to release payment (online tasks). */
+  paymentRequestedAt?: string;
   completedAt?: string;
+  /** Set when the poster releases payment (online). Task stays `completed`;
+   *  payment is this timestamp, never a status value. */
   paidAt?: string;
+}
+
+/**
+ * Task OTP secrets live in `tasks/{taskId}/secrets/otp` — a subcollection the
+ * Firestore rules restrict to the POSTER only. The buddy must physically get
+ * the code from the poster and enter it in their own app to start / complete
+ * the task. Never store these on the task doc itself (buddy can read it while
+ * assigned, which would defeat the verification).
+ */
+export interface TaskOtpSecrets {
+  startCode: string;
+  completeCode: string;
+  startVerifiedAt?: string;
+  completeVerifiedAt?: string;
+  updatedAt: string;
 }
 
 export interface ChatDocument {
@@ -219,6 +247,14 @@ export interface UserLock {
 
 export const timestamp = () => new Date().toISOString();
 export const serverTimestamp = () => FieldValue.serverTimestamp();
+
+/** Platform commission on every task (10%). The buddy always receives 100%
+ *  of the task amount — the 10% platform charge accrues as a negative
+ *  balance (`commissionDue`) on the buddy's account. */
+export const PLATFORM_FEE_RATE = 0.10;
+/** Buddy cannot apply to (or be assigned) new tasks while commissionDue
+ *  exceeds this amount (₹), until they clear it via PayU. */
+export const COMMISSION_BLOCK_THRESHOLD = 200;
 
 /**
  * Run a Firestore transaction with retries

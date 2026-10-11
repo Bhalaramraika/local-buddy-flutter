@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, TextInput, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
@@ -18,6 +19,7 @@ import { formatCurrency, formatDistance, formatRelativeTime } from '@/utils/help
 
 export default function TasksScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { nearbyTasks: storedNearbyTasks, myTasks: storedMyTasks, assignedTasks: storedAssignedTasks, getFilteredTasks, setFilters } = useTaskStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
@@ -128,7 +130,7 @@ export default function TasksScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <MotiView
           from={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -147,7 +149,7 @@ export default function TasksScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.headerWrap}>
         <Text style={styles.pageTitle}>Tasks</Text>
@@ -287,10 +289,11 @@ const styles = StyleSheet.create({
   segBadgeTextIdle: { color: Colors.brand.accent },
 
   listContent: { padding: Spacing[5], paddingBottom: 120 },
+  // Square-round card with a soft orange curved border
   taskCard: {
     marginBottom: Spacing[4], padding: Spacing[5],
-    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
-    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
+    borderWidth: 1.5, borderColor: Colors.brand.accent, ...Shadows.card,
   },
   taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing[2] },
   taskCategory: { paddingHorizontal: Spacing[3], paddingVertical: 5, borderRadius: BorderRadius.pill, backgroundColor: Colors.brand.accentSoft },

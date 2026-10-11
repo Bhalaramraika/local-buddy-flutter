@@ -9,6 +9,7 @@ import { Text, View, StyleSheet, TextInput, Pressable, Keyboard } from 'react-na
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { SoftButton } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +21,7 @@ const OTP_LEN = 6;
 
 export default function OtpScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ email?: string; mode?: string; name?: string; phone?: string }>();
   const { login, updateProfile, isLoading, error } = useAuth();
   const email = normalizeEmail(String(params.email || ''));
@@ -90,7 +92,7 @@ export default function OtpScreen() {
   }, [otp]);
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Warm deco blob */}
       <View style={[styles.blob, styles.blobTop]} />
 

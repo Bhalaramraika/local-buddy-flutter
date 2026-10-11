@@ -16,6 +16,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { useChatStore } from '@/store/chatStore';
@@ -24,6 +25,7 @@ import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/
 
 export default function GroupChatScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { messages: messagesMap, sendMessage, fetchMessages, isLoading } = useChatStore();
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -111,7 +113,7 @@ export default function GroupChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* In-page header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerCircleBtn} hitSlop={8}>

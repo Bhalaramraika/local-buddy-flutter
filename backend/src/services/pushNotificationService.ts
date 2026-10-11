@@ -367,13 +367,30 @@ class PushNotificationService {
   }
 
   /**
-   * Send notification to a user by userId (fetches their FCM tokens)
+   * Send notification to a user by userId (fetches their FCM tokens).
+   * Also persists the notification to `users/{uid}/notifications` so the
+   * in-app notifications screen shows the full history (GET /notifications
+   * reads that subcollection) — not just messages received in foreground.
    */
   async sendToUser(userId: string, options: PushOptions): Promise<SendResult> {
     try {
       const userDoc = await this.db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
         return { success: false, successCount: 0, failureCount: 0, responses: [{ success: false, error: 'User not found' }] };
+      }
+
+      // Persist for the in-app notifications list (fire-and-log failures are
+      // non-fatal — the push send below is the real-time channel).
+      try {
+        await this.db.collection('users').doc(userId).collection('notifications').add({
+          title: options.notification?.title ?? 'Notification',
+          body: options.notification?.body ?? '',
+          data: options.notification?.data ?? {},
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (persistErr) {
+        console.warn('[PushNotificationService] Could not persist notification:', persistErr);
       }
 
       const userData = userDoc.data();
@@ -440,7 +457,7 @@ class PushNotificationService {
    */
   async sendTaskNotification(
     userId: string,
-    type: 'assigned' | 'completed' | 'cancelled' | 'new_applicant' | 'payment_released',
+    type: 'assigned' | 'completed' | 'cancelled' | 'new_applicant' | 'payment_released' | 'started' | 'payment_requested',
     taskData: { taskId: string; title: string; amount?: number; buddyName?: string }
   ): Promise<SendResult> {
     const notifications: Record<string, { title: string; body: string }> = {
@@ -457,12 +474,20 @@ class PushNotificationService {
         body: `"${taskData.title}" has been cancelled.`,
       },
       new_applicant: {
-        title: 'New Applicant 📝',
-        body: `${taskData.buddyName || 'A buddy'} applied for "${taskData.title}".`,
+        title: 'Buddy Assigned ⚡',
+        body: `${taskData.buddyName || 'A buddy'} took your task "${taskData.title}" and is on the way.`,
       },
       payment_released: {
         title: 'Payment Released 💰',
         body: `₹${taskData.amount?.toFixed(2) || '0'} released for "${taskData.title}".`,
+      },
+      started: {
+        title: 'Task Started ▶️',
+        body: `${taskData.buddyName || 'Your buddy'} started "${taskData.title}".`,
+      },
+      payment_requested: {
+        title: 'Payment Requested 💰',
+        body: `${taskData.buddyName || 'Your buddy'} requested ₹${taskData.amount?.toFixed(0) || '0'} for "${taskData.title}". Release it in the app.`,
       },
     };
 
@@ -528,8 +553,8 @@ class PushNotificationService {
         body: `₹${data.amount.toFixed(2)} withdrawal requested. Balance: ₹${data.balance.toFixed(2)}`,
       },
       commission: {
-        title: 'Commission Earned 💼',
-        body: `You earned ₹${data.amount.toFixed(2)} commission. Balance: ₹${data.balance.toFixed(2)}`,
+        title: 'Platform Dues Cleared ✅',
+        body: `₹${data.amount.toFixed(2)} dues paid. You can apply for tasks again.`,
       },
       low_balance: {
         title: 'Low Balance Warning ⚠️',

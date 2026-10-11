@@ -58,14 +58,14 @@ export const TASK_CATEGORIES = [
 
 export type TaskCategoryId = typeof TASK_CATEGORIES[number]['id'];
 
-// Task Status (from PRD.md)
+// Task Status — backend tasks live in exactly these 4 states:
+// open (public) → assigned (poster + buddy) → completed (poster only);
+// deleted (poster only). Payment is tracked by the task's paidAt timestamp.
 export const TASK_STATUS = {
   OPEN: 'open',
   ASSIGNED: 'assigned',
-  IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-  DISPUTED: 'disputed',
+  DELETED: 'deleted',
 } as const;
 
 export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
@@ -74,20 +74,16 @@ export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 export const TASK_STATUS_LABELS: Record<TaskStatus, { en: string; hi: string }> = {
   [TASK_STATUS.OPEN]: { en: 'Open', hi: 'खुला' },
   [TASK_STATUS.ASSIGNED]: { en: 'Assigned', hi: 'असाइन किया गया' },
-  [TASK_STATUS.IN_PROGRESS]: { en: 'In Progress', hi: 'प्रगति में' },
   [TASK_STATUS.COMPLETED]: { en: 'Completed', hi: 'पूर्ण' },
-  [TASK_STATUS.CANCELLED]: { en: 'Cancelled', hi: 'रद्द' },
-  [TASK_STATUS.DISPUTED]: { en: 'Disputed', hi: 'विवादित' },
+  [TASK_STATUS.DELETED]: { en: 'Deleted', hi: 'हटाया गया' },
 };
 
 // Task Status Colors
 export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   [TASK_STATUS.OPEN]: '#3B82F6',
-  [TASK_STATUS.ASSIGNED]: '#8B5CF6',
-  [TASK_STATUS.IN_PROGRESS]: '#F59E0B',
+  [TASK_STATUS.ASSIGNED]: '#F59E0B',
   [TASK_STATUS.COMPLETED]: '#10B981',
-  [TASK_STATUS.CANCELLED]: '#EF4444',
-  [TASK_STATUS.DISPUTED]: '#F97316',
+  [TASK_STATUS.DELETED]: '#EF4444',
 };
 
 // User Roles

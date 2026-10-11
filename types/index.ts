@@ -285,14 +285,16 @@ export interface OTPResponse {
 }
 
 // Task Types
-export type TaskStatus = 
-  | 'open' 
-  | 'assigned' 
-  | 'in_progress' 
-  | 'completed' 
-  | 'cancelled' 
-  | 'disputed' 
-  | 'expired';
+// Backend tasks live in exactly these 4 states (backend/models.ts):
+//   open      → visible to everyone (poster + all buddies), can be applied to
+//   assigned  → visible to poster + assigned buddy only
+//   completed → visible to the poster only (payment tracked via paidAt)
+//   deleted   → visible to the poster only
+export type TaskStatus =
+  | 'open'
+  | 'assigned'
+  | 'completed'
+  | 'deleted';
 
 export type TaskCategory = 
   | 'delivery' 
@@ -323,6 +325,8 @@ export interface Task {
   // Denormalized fields used by task detail/list screens
   budgetType?: 'fixed' | 'hourly' | 'negotiable';
   posterId?: string;
+  /** Assigned buddy's user id (Firestore field on the task doc). */
+  buddyId?: string;
   posterName?: string;
   posterPhone?: string;
   posterAvatar?: string;
@@ -376,7 +380,12 @@ export interface Task {
   };
   assignedAt?: string;
   startedAt?: string;
+  /** Set when the buddy asks the poster to release payment (online tasks). */
+  paymentRequestedAt?: string;
   completedAt?: string;
+  /** Set when the poster releases payment for a completed task (4-state
+   *  lifecycle has no `paid` status — payment is this timestamp). */
+  paidAt?: string;
   cancelledAt?: string;
   cancelledBy?: 'customer' | 'buddy' | 'system';
   cancellationReason?: string;
@@ -1050,7 +1059,7 @@ export type AsyncState<T> = {
 // Constants
 export const USER_ROLES: UserRole[] = ['customer', 'buddy', 'admin'];
 export const KYC_STATUSES: KYCStatus[] = ['pending', 'verified', 'rejected', 'expired', 'not_started'];
-export const TASK_STATUSES: TaskStatus[] = ['open', 'assigned', 'in_progress', 'completed', 'cancelled', 'disputed', 'expired'];
+export const TASK_STATUSES: TaskStatus[] = ['open', 'assigned', 'completed', 'deleted'];
 export const TASK_CATEGORIES: TaskCategory[] = ['delivery', 'pickup', 'shopping', 'errand', 'repair', 'cleaning', 'tutoring', 'tech_help', 'transport', 'other'];
 export const TASK_URGENCIES: TaskUrgency[] = ['low', 'normal', 'high', 'urgent'];
 export const MESSAGE_TYPES: MessageType[] = ['text', 'image', 'location', 'voice', 'file', 'system', 'payment', 'task_update'];

@@ -271,6 +271,11 @@ export const ENDPOINTS = {
     apply: (id: string) => `/tasks/${id}/apply`,
     applications: (id: string) => `/tasks/${id}/applications`,
     decideApplication: (id: string, buddyId: string) => `/tasks/${id}/applications/${buddyId}/decide`,
+    // OTP-gated task flow (buddy): start + complete need the 4-digit codes
+    // shown on the POSTER's app; payment request notifies the poster.
+    startWithOtp: (id: string) => `/tasks/${id}/start`,
+    completeWithOtp: (id: string) => `/tasks/${id}/complete`,
+    requestPayment: (id: string) => `/tasks/${id}/request-payment`,
     start: (id: string) => `/tasks/${id}/status`,
     complete: (id: string) => `/tasks/${id}/status`,
     cancel: (id: string) => `/tasks/${id}/status`,
@@ -300,6 +305,8 @@ export const ENDPOINTS = {
     topup: '/wallet/add-money',
     payuCallback: '/wallet/payu/callback',
     release: (taskId: string) => `/wallet/release/${taskId}`,
+    // Buddy clears pending platform dues (negative balance) via PayU.
+    commissionPay: '/wallet/commission/pay',
     // Withdrawals are removed from the MVP (kept for type-compatibility
     // with legacy callers; all are no-ops).
     withdraw: '/wallet/withdraw',

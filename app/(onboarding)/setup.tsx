@@ -26,6 +26,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/AuthContext';
@@ -192,6 +193,7 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
 // ============================================================
 export default function OnboardingSetup() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, updateProfile } = useAuth();
   const { requestPermission } = useLocation();
   const currentLocation = useLocationStore((s) => s.currentLocation);
@@ -304,7 +306,7 @@ export default function OnboardingSetup() {
   const stepDef = STEPS[step];
 
   return (
-    <KeyboardAvoidingView style={wizStyles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[wizStyles.screen, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={wizStyles.header}>
         <Pressable onPress={back} style={wizStyles.backBtn} accessibilityRole="button" accessibilityLabel="Back">

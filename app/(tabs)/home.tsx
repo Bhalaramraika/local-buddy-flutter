@@ -7,6 +7,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
@@ -27,13 +28,14 @@ const QUICK_ACTIONS = [
 
 const TASK_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
   open: { bg: Colors.semantic.infoSoft, text: Colors.semantic.info },
-  in_progress: { bg: Colors.semantic.warningSoft, text: Colors.semantic.warning },
+  assigned: { bg: Colors.semantic.warningSoft, text: Colors.semantic.warning },
   completed: { bg: Colors.semantic.successSoft, text: Colors.semantic.success },
-  cancelled: { bg: Colors.semantic.errorSoft, text: Colors.semantic.error },
+  deleted: { bg: Colors.semantic.errorSoft, text: Colors.semantic.error },
 };
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuthStore();
   const { nearbyTasks, isLoading: tasksLoading, fetchTasks } = useTaskStore();
   const { getAvailableBalance } = useWalletStore();
@@ -64,7 +66,7 @@ export default function HomeScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <MotiView
           from={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -86,7 +88,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />}
         showsVerticalScrollIndicator={false}
@@ -250,7 +252,7 @@ export default function HomeScreen() {
                 transition={{ type: 'timing', duration: 400, delay: 420 + i * 70 }}
               >
                 <Pressable
-                  onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { id: task.id } })}
+                  onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { taskId: task.id } })}
                   style={({ pressed }) => [styles.taskCard, pressed && { transform: [{ scale: 0.985 }] }]}
                 >
                   <View style={styles.taskIconChip}>
@@ -404,11 +406,11 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: 17, color: Colors.text.primary, marginBottom: Spacing[2] },
   emptySub: { fontFamily: Typography.fontFamily.body, fontSize: 13.5, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
 
-  // ---- Task cards ----
+  // ---- Task cards — square-round with soft orange curved border ----
   taskCard: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
-    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
-    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
+    borderWidth: 1.5, borderColor: Colors.brand.accent, padding: Spacing[4],
     marginBottom: Spacing[3], ...Shadows.card,
   },
   taskIconChip: {

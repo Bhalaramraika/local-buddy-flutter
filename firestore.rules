@@ -67,9 +67,20 @@ service cloud.firestore {
       }
     }
 
-    // Tasks: public read; only poster/buddy/admin writes (via backend for trust-critical steps)
+    // Tasks: 4-state lifecycle (open | assigned | completed | deleted) with
+    // state-based read visibility, enforced here because clients read
+    // Firestore directly via onSnapshot listeners:
+    //   open                → any signed-in user (public marketplace)
+    //   assigned            → poster + assigned buddy only
+    //   completed / deleted → poster only
+    // List queries must carry where-clauses that prove the same constraint
+    // (status==open | posterId==uid | posterId==uid+status | buddyId==uid+status==assigned).
     match /tasks/{taskId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (
+        resource.data.status == 'open' ||
+        resource.data.posterId == request.auth.uid ||
+        (resource.data.status == 'assigned' && resource.data.buddyId == request.auth.uid)
+      );
       // Task creation status/posterId/budget enforced by backend; client may create open tasks
       allow create: if signedIn() && request.resource.data.posterId == request.auth.uid;
       // Only status-agnostic fields editable by poster; status transitions happen via backend
@@ -84,6 +95,14 @@ service cloud.firestore {
         allow read: if signedIn() && (request.auth.uid == resource.data.posterId || request.auth.uid == buddyId);
         allow create: if signedIn() && request.auth.uid == buddyId;
         allow update, delete: if signedIn() && (request.auth.uid == resource.data.posterId);
+      }
+
+      // Start/complete OTP secrets: ONLY the poster may read them (the buddy
+      // receives the code physically and submits it via REST). Backend-only writes.
+      match /secrets/{doc} {
+        allow read: if signedIn() &&
+          request.auth.uid == get(/databases/$(database)/documents/tasks/$(taskId)).data.posterId;
+        allow write: if false;
       }
     }
 

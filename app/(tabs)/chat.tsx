@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, Image, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
@@ -17,6 +18,7 @@ import { formatRelativeTime } from '@/utils/helpers';
 
 export default function ChatScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { chats, clearUnreadCount } = useChatStore();
   const { user, isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -93,7 +95,7 @@ export default function ChatScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <MotiView
           from={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +114,7 @@ export default function ChatScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>

@@ -19,6 +19,9 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/services/firebase';
+import { apiGet, apiPost, ENDPOINTS, getApiErrorMessage } from '@/services/api';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
@@ -71,7 +74,8 @@ export default function TaskDetailScreen() {
 
       if (success) {
         setApplied(true);
-        showToast('Application submitted successfully!', 'success');
+        fetchTaskById(taskId!).catch(() => {});
+        showToast('Task assigned to you! Enter the start code when you reach the location.', 'success');
       }
     } catch (err: any) {
       const msg = err?.message || 'Could not submit your application. Please try again.';
@@ -159,10 +163,12 @@ export default function TaskDetailScreen() {
 
   const task = currentTask;
   const isPoster = task.posterId === user?.id;
-  // Applied state persists across visits: backend stores applicant ids in the
-  // task's `applicants` array (realtime + REST both map it).
+  // Auto-assignment: the first buddy to apply is instantly assigned — there
+  // is no pending-applicant state to show afterwards.
+  const isAssignedBuddy = !!user?.id && task.buddyId === user.id;
   const isApplied =
     applied ||
+    isAssignedBuddy ||
     (Array.isArray(task.applicants) && !!user?.id && task.applicants.includes(user.id)) ||
     task.applications?.some((a: any) => (a.applicantId || a.buddyId || a.id) === user?.id);
 
@@ -410,6 +416,25 @@ export default function TaskDetailScreen() {
             </View>
           ) : null}
 
+          {/* Task flow: OTP verification, payment, completion, rating */}
+          {(isPoster || (!!user?.id && task.buddyId === user.id)) && (task.status === 'assigned' || task.status === 'completed') ? (
+            <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 420 }} style={styles.section}>
+              <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id).catch(() => {})} />
+            </MotiView>
+          ) : null}
+
+          {/* Task flow: OTP codes (poster), progress CTAs (buddy), rating */}
+          {(isPoster || (user?.id && task.buddyId === user.id)) && (task.status === 'assigned' || task.status === 'completed') ? (
+            <MotiView
+              from={{ opacity: 0, translateY: 14 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 420, delay: 340 }}
+              style={styles.section}
+            >
+              <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id).catch(() => {})} />
+            </MotiView>
+          ) : null}
+
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             {isPoster ? (
@@ -438,23 +463,23 @@ export default function TaskDetailScreen() {
               </>
             ) : (
               <>
-                {!isApplied && task.status === 'open' ? (
+                {!isAssignedBuddy && task.status === 'open' && !isApplied ? (
                   <SoftButton
-                    label={isApplying ? 'Applying…' : 'Apply for this task'}
+                    label={isApplying ? 'Assigning to you…' : 'Apply — first come, first served'}
                     variant="accent"
                     size="lg"
-                    icon={isApplying ? 'hourglass-outline' : 'paper-plane'}
+                    icon={isApplying ? 'hourglass-outline' : 'flash'}
                     onPress={handleApply}
                     loading={isApplying}
                     withGlow
                     style={{ flex: 1.3 }}
                   />
-                ) : (
+                ) : !isAssignedBuddy && isApplied && task.status === 'open' ? (
                   <View style={styles.appliedBadge}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.semantic.success} />
-                    <Text style={styles.appliedBadgeText}>Applied — poster will reach out soon</Text>
+                    <Text style={styles.appliedBadgeText}>Applied</Text>
                   </View>
-                )}
+                ) : null}
               </>
             )}
           </View>
@@ -482,12 +507,309 @@ export default function TaskDetailScreen() {
   );
 }
 
+// ============================================================
+// Task Flow Section — OTP-gated start/complete + payment + rating
+// Flow: assigned → (buddy enters START code from poster app) → started →
+// (online: buddy asks → poster releases payment) → (buddy enters COMPLETE
+// code from poster app) → completed → both sides rate each other.
+// Codes live in tasks/:id/secrets/otp — readable ONLY by the poster
+// (firestore.rules); the buddy submits them via REST for verification.
+// ============================================================
+
+interface TaskSecrets {
+  startCode?: string;
+  completeCode?: string;
+  startVerifiedAt?: string;
+  completeVerifiedAt?: string;
+}
+
+function OtpCodeBox({ label, code, verified }: { label: string; code?: string; verified?: boolean }) {
+  return (
+    <View style={[styles.otpBox, verified && styles.otpBoxVerified]}>
+      <Text style={styles.otpBoxLabel}>{label}</Text>
+      <Text style={styles.otpBoxCode}>{verified ? '••••' : code || '····'}</Text>
+      <View style={[styles.otpBoxPill, { backgroundColor: verified ? Colors.semantic.successSoft : Colors.semantic.warningSoft }]}>
+        <Ionicons name={verified ? 'checkmark-circle' : 'time-outline'} size={11} color={verified ? Colors.semantic.success : Colors.semantic.warning} />
+        <Text style={[styles.otpBoxPillText, { color: verified ? Colors.semantic.success : Colors.semantic.warning }]}>
+          {verified ? 'Verified' : 'Pending'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function TaskFlowSection({
+  task,
+  isPoster,
+  userId,
+  onChanged,
+}: {
+  task: any;
+  isPoster: boolean;
+  userId?: string;
+  onChanged: () => void;
+}) {
+  const router = useRouter();
+  const { showToast } = useUIStore();
+  const [secrets, setSecrets] = useState<TaskSecrets | null>(null);
+  const [buddyProfile, setBuddyProfile] = useState<{ name?: string; avatar?: string } | null>(null);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const isAssignedBuddy = !!userId && task.buddyId === userId;
+  const isOnline = (task.paymentMode ?? 'online') === 'online';
+  const totalAmount = (task.budget?.amount ?? (typeof task.budget === 'number' ? task.budget : 0)) + (task.tip ?? 0);
+  // Platform fee (10%) accrues as dues on the buddy — buddy keeps 100%.
+  const platformFee = Math.round(totalAmount * 0.1);
+
+  // Poster: live-listen to the poster-only OTP secrets doc.
+  useEffect(() => {
+    if (!isPoster || task.status !== 'assigned' || !db) return;
+    const ref = doc(db, 'tasks', task.id, 'secrets', 'otp');
+    const unsub = onSnapshot(
+      ref,
+      (snap) => setSecrets(snap.exists() ? (snap.data() as TaskSecrets) : null),
+      (err) => console.warn('[TaskFlow] secrets listener error:', err?.code, err?.message)
+    );
+    return unsub;
+  }, [isPoster, task.id, task.status]);
+
+  // Poster: buddy profile (display + rating) and my-review check.
+  useEffect(() => {
+    let alive = true;
+    if (isPoster && task.buddyId && db) {
+      getDoc(doc(db, 'users', task.buddyId))
+        .then((s) => { if (alive && s.exists()) setBuddyProfile(s.data() as any); })
+        .catch(() => {});
+    }
+    if (isPoster && task.status === 'completed' && userId) {
+      apiGet<any>('/reviews', { params: { taskId: task.id, reviewerId: userId, limit: 1 }, skipGlobalLoader: true } as any)
+        .then((r: any) => { if (alive) setAlreadyReviewed(((r?.reviews ?? r?.data ?? []) as any[]).length > 0); })
+        .catch(() => {});
+    }
+    return () => { alive = false; };
+  }, [isPoster, task.buddyId, task.status, task.id, userId]);
+
+  const handleReleasePayment = () => {
+    Alert.alert(
+      'Release payment',
+      `Pay ₹${totalAmount} to the buddy? The buddy receives the full amount; the 10% platform fee (₹${platformFee}) is billed to the buddy as dues.`,
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Release',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await apiPost(ENDPOINTS.wallet.release(task.id));
+              showToast('Payment released to buddy', 'success');
+              onChanged();
+            } catch (err: any) {
+              Alert.alert('Payment failed', getApiErrorMessage(err, 'Could not release payment. Please try again.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRequestPayment = async () => {
+    setBusy(true);
+    try {
+      await apiPost(ENDPOINTS.tasks.requestPayment(task.id));
+      showToast('Payment request sent to the poster', 'success');
+      onChanged();
+    } catch (err: any) {
+      Alert.alert('Could not request payment', getApiErrorMessage(err, 'Please try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const buddyName = buddyProfile?.name || (task as any).buddyName || 'Buddy';
+  const posterName = task.posterName || 'the poster';
+
+  // ---------- Poster: OTP verification card (assigned) ----------
+  if (isPoster && task.status === 'assigned') {
+    return (
+      <View style={styles.flowCard}>
+        <View style={styles.flowHeader}>
+          <Ionicons name="key-outline" size={17} color={Colors.brand.accent} />
+          <Text style={styles.flowTitle}>Buddy verification codes</Text>
+        </View>
+        <Text style={styles.flowSub}>
+          Share the right code with {buddyName} in person — the task starts/completes only after the buddy enters it in their app.
+        </Text>
+        <View style={styles.otpRow}>
+          <OtpCodeBox label="Start code" code={secrets?.startCode} verified={!!task.startedAt} />
+          <OtpCodeBox label="Completion code" code={secrets?.completeCode} verified={false} />
+        </View>
+
+        {!task.startedAt ? (
+          <Text style={styles.waitingText}>Waiting for {buddyName} to enter the start code…</Text>
+        ) : null}
+
+        {isOnline && task.startedAt && !task.paidAt ? (
+          <>
+            {task.paymentRequestedAt ? (
+              <View style={styles.requestedPill}>
+                <Ionicons name="cash-outline" size={13} color={Colors.semantic.warning} />
+                <Text style={styles.requestedPillText}>{buddyName} requested payment</Text>
+              </View>
+            ) : null}
+            <SoftButton
+              label={`Release payment • ₹${totalAmount}`}
+              variant="success"
+              icon="cash-outline"
+              loading={busy}
+              onPress={handleReleasePayment}
+              withGlow
+              style={{ marginTop: Spacing[3] }}
+            />
+          </>
+        ) : null}
+        {isOnline && task.paidAt ? (
+          <View style={styles.stateRow}>
+            <Ionicons name="checkmark-circle" size={15} color={Colors.semantic.success} />
+            <Text style={styles.stateDoneText}>₹{totalAmount} released to {buddyName}</Text>
+          </View>
+        ) : null}
+        {!isOnline ? (
+          <View style={styles.cashNote}>
+            <Ionicons name="cash-outline" size={14} color={Colors.brand.primary} />
+            <Text style={styles.cashNoteText}>
+              Cash task — pay ₹{totalAmount} in cash when the work is done, then share the completion code.
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // ---------- Buddy: flow CTAs (assigned to me) ----------
+  if (isAssignedBuddy && task.status === 'assigned') {
+    return (
+      <View style={styles.flowCard}>
+        <View style={styles.flowHeader}>
+          <Ionicons name="footsteps-outline" size={17} color={Colors.brand.accent} />
+          <Text style={styles.flowTitle}>Task progress</Text>
+        </View>
+
+        {!task.startedAt ? (
+          <>
+            <Text style={styles.flowSub}>
+              Reached the location? Ask {posterName} for the 4-digit start code shown in their app.
+            </Text>
+            <SoftButton
+              label="Enter start code"
+              variant="accent"
+              icon="keypad-outline"
+              onPress={() => router.push({ pathname: '/(screens)/task-otp', params: { taskId: task.id, type: 'start', taskTitle: task.title } })}
+              withGlow
+            />
+          </>
+        ) : (
+          <>
+            <View style={styles.stateRow}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.semantic.success} />
+              <Text style={styles.stateDoneText}>Started {formatRelativeTime(task.startedAt)}</Text>
+            </View>
+
+            {isOnline && !task.paidAt ? (
+              task.paymentRequestedAt ? (
+                <View style={styles.stateRow}>
+                  <Ionicons name="time-outline" size={15} color={Colors.semantic.warning} />
+                  <Text style={styles.stateWaitText}>Payment requested — waiting for {posterName} to release ₹{totalAmount}</Text>
+                </View>
+              ) : (
+                <SoftButton
+                  label={`Ask for payment • ₹${totalAmount}`}
+                  variant="primary"
+                  icon="cash-outline"
+                  loading={busy}
+                  onPress={handleRequestPayment}
+                  style={{ marginTop: Spacing[3] }}
+                />
+              )
+            ) : null}
+            {isOnline && task.paidAt ? (
+              <View style={styles.stateRow}>
+                <Ionicons name="checkmark-circle" size={16} color={Colors.semantic.success} />
+                <Text style={styles.stateDoneText}>₹{totalAmount} received in your wallet</Text>
+              </View>
+            ) : null}
+            {!isOnline ? (
+              <View style={styles.cashNote}>
+                <Ionicons name="cash-outline" size={14} color={Colors.brand.primary} />
+                <Text style={styles.cashNoteText}>
+                  Cash task — collect ₹{totalAmount} in cash from {posterName}. A 10% platform fee (₹{platformFee}) will be added as dues on your account.
+                </Text>
+              </View>
+            ) : null}
+
+            <SoftButton
+              label="Enter completion code"
+              variant="success"
+              icon="checkmark-done-outline"
+              onPress={() => {
+                if (isOnline && !task.paidAt) {
+                  Alert.alert('Payment first', 'Ask the poster to release the payment before completing the task.', [
+                    { text: 'OK', style: 'cancel' },
+                    { text: 'Ask for payment', onPress: handleRequestPayment },
+                  ]);
+                  return;
+                }
+                router.push({ pathname: '/(screens)/task-otp', params: { taskId: task.id, type: 'complete', taskTitle: task.title } });
+              }}
+              withGlow
+              style={{ marginTop: Spacing[3] }}
+            />
+          </>
+        )}
+      </View>
+    );
+  }
+
+  // ---------- Poster: rate buddy after completion ----------
+  if (isPoster && task.status === 'completed') {
+    return (
+      <View style={styles.flowCard}>
+        <View style={styles.stateRow}>
+          <Ionicons name="checkmark-circle" size={16} color={Colors.semantic.success} />
+          <Text style={styles.stateDoneText}>
+            {isOnline ? `₹${totalAmount} paid to ${buddyName}` : 'Completed — settled in cash'}
+          </Text>
+        </View>
+        {task.buddyId && !alreadyReviewed ? (
+          <SoftButton
+            label={`Rate ${buddyName}`}
+            variant="accent"
+            icon="star-outline"
+            onPress={() => router.push({ pathname: '/(screens)/rate-user', params: { taskId: task.id, revieweeId: task.buddyId, revieweeName: buddyName, taskTitle: task.title } })}
+            withGlow
+            style={{ marginTop: Spacing[3] }}
+          />
+        ) : alreadyReviewed ? (
+          <View style={styles.stateRow}>
+            <Ionicons name="star" size={16} color="#F5A623" />
+            <Text style={styles.stateDoneText}>You rated {buddyName} for this task</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  return null;
+}
+
 function statusColor(status: string): { solid: string; soft: string } {
   switch (status) {
     case 'open': return { solid: Colors.semantic.info, soft: Colors.semantic.infoSoft };
-    case 'in_progress': return { solid: Colors.semantic.warning, soft: Colors.semantic.warningSoft };
+    case 'assigned': return { solid: Colors.semantic.warning, soft: Colors.semantic.warningSoft };
     case 'completed': return { solid: Colors.semantic.success, soft: Colors.semantic.successSoft };
-    case 'cancelled': case 'disputed': return { solid: Colors.semantic.error, soft: Colors.semantic.errorSoft };
+    case 'deleted': return { solid: Colors.semantic.error, soft: Colors.semantic.errorSoft };
     default: return { solid: Colors.text.muted, soft: Colors.surface.tertiary };
   }
 }
@@ -677,6 +999,42 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.semantic.successSoft, borderWidth: 1.5, borderColor: Colors.semantic.success + '40',
   },
   appliedBadgeText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.success },
+
+  // Task flow section (OTP codes, payment, rating)
+  flowCard: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
+    borderWidth: 1.5, borderColor: Colors.brand.accent + '33',
+    padding: Spacing[4], ...Shadows.card,
+  },
+  flowHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  flowTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  flowSub: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 18, marginBottom: Spacing[3] },
+  otpRow: { flexDirection: 'row', gap: Spacing[3] },
+  otpBox: {
+    flex: 1, alignItems: 'center', paddingVertical: Spacing[3], paddingHorizontal: Spacing[2],
+    backgroundColor: Colors.surface.tertiary, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  otpBoxVerified: { backgroundColor: Colors.semantic.successSoft, borderColor: Colors.semantic.success + '55' },
+  otpBoxLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  otpBoxCode: { fontSize: 24, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accentPressed, letterSpacing: 4, marginVertical: 6 },
+  otpBoxPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: BorderRadius.pill },
+  otpBoxPillText: { fontSize: 10, fontFamily: Typography.fontFamily.semiBold },
+  waitingText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.muted, marginTop: Spacing[3], textAlign: 'center' },
+  requestedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    backgroundColor: Colors.semantic.warningSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 5, marginTop: Spacing[3], marginBottom: 2,
+  },
+  requestedPillText: { fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.warning },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: Spacing[2] + 2 },
+  stateDoneText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.success, flex: 1 },
+  stateWaitText: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.semantic.warning, flex: 1 },
+  cashNote: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: Spacing[3],
+    backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.md, padding: Spacing[3],
+  },
+  cashNoteText: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, flex: 1, lineHeight: 17 },
 
   bottomActions: {
     flexDirection: 'row', justifyContent: 'center', gap: Spacing[8],

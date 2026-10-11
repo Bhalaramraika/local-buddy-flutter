@@ -15,7 +15,7 @@ import {
   PaginatedResponse
 } from '@/types';
 import { apiGet, apiPost, ENDPOINTS, getApiErrorMessage } from '@/services/api';
-import { initWalletTopup, refreshWalletAfterPayment, type PayUInitResponse } from '@/services/payment';
+import { initWalletTopup, initCommissionPayment, refreshWalletAfterPayment, type PayUInitResponse } from '@/services/payment';
 import { formatCurrency as formatINR } from '@/utils/helpers';
 
 // Wallet shape returned by GET /wallet (whole INR, not paise)
@@ -26,6 +26,14 @@ export interface WalletInfo {
   upiId?: string;
   totalEarnings?: number;
   totalSpent?: number;
+}
+
+/** Buddy's pending platform dues (negative balance). Cash tasks accrue 10%
+ *  of the task amount; above ₹200 the buddy cannot apply to new tasks until
+ *  dues are cleared via PayU (POST /wallet/commission/pay). Synced by the
+ *  realtime user-profile listener. */
+export interface CommissionState {
+  commissionDue: number;
 }
 
 interface WalletState {
@@ -58,6 +66,9 @@ interface WalletState {
   isLoadingWithdrawals: boolean;
   isProcessing: boolean; // For PayU top-up initiation
   error: string | null;
+
+  /** Pending platform dues (negative balance) — see CommissionState. */
+  commissionDue: number;
   
   // Actions
   setBalance: (balance: WalletBalance) => void;
@@ -103,6 +114,12 @@ interface WalletState {
    * WebView. The wallet is credited ONLY by the server-verified PayU callback.
    */
   startTopup: (amount: number) => Promise<PayUInitResponse | { success: false; error: string }>;
+  /**
+   * Start a PayU payment that clears the buddy's platform dues
+   * (`commissionDue`). Amount is fixed server-side. On success the dues are
+   * zeroed (NOT added to the wallet) and the buddy can apply for tasks again.
+   */
+  startCommissionPayment: () => Promise<PayUInitResponse | { success: false; error: string }>;
   /** Call after the PayU WebView flow finishes — pulls the real balance. */
   refreshAfterPayment: () => Promise<void>;
   /**
@@ -173,6 +190,7 @@ export const useWalletStore = create<WalletState>()(
       isLoadingWithdrawals: false,
       isProcessing: false,
       error: null,
+      commissionDue: 0,
       
       // Actions
       setBalance: (balance) => set({ balance, isLoading: false, error: null }),
@@ -442,8 +460,23 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      refreshAfterPayment: async () => {
+      startCommissionPayment: async () => {
+        set({ isProcessing: true, error: null });
         try {
+          const res = await initCommissionPayment();
+          if (!res?.success || !res.payuParams || !res.payuUrl) {
+            throw new Error((res as any)?.error || 'Failed to initiate dues payment');
+          }
+          set({ isProcessing: false });
+          return res;
+        } catch (error: any) {
+          const message = getApiErrorMessage(error, 'Unable to start dues payment. Please try again.');
+          set({ isProcessing: false, error: message });
+          return { success: false, error: message };
+        }
+      },
+
+      refreshAfterPayment: async () => {        try {
           const w = await refreshWalletAfterPayment();
           if (w) {
             set((state) => ({
@@ -545,6 +578,7 @@ export const useWalletStore = create<WalletState>()(
         isLoadingWithdrawals: false,
         isProcessing: false,
         error: null,
+        commissionDue: 0,
       }),
     }),
     {

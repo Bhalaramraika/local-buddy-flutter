@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { SoftButton } from '@/components/ui';
 
@@ -20,9 +21,11 @@ const FEATURES = [
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  // Edge-to-edge Android draws under the system status bar — keep content below it.
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Soft decorative background */}
       <View style={[styles.blob, styles.blob1]} />
       <View style={[styles.blob, styles.blob2]} />
@@ -76,7 +79,8 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      {/* CTA */}
+      {/* CTA — the ONLY action here is login (email → OTP verification).
+          Onboarding (setup) happens AFTER authentication. */}
       <MotiView
         from={{ opacity: 0, translateY: 24 }}
         animate={{ opacity: 1, translateY: 0 }}
@@ -84,20 +88,13 @@ export default function WelcomeScreen() {
         style={styles.ctaGroup}
       >
         <SoftButton
-          label="Get started — it's free"
-          onPress={() => router.push('/(onboarding)/setup')}
+          label="Let's go — it's free"
+          onPress={() => router.push('/login')}
           variant="accent"
           size="lg"
           withGlow
           icon="arrow-forward"
         />
-        <Pressable
-          onPress={() => router.replace('/login')}
-          style={({ pressed }) => [styles.secondaryLink, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <Text style={styles.secondaryLinkText}>I already have an account</Text>
-          <Ionicons name="chevron-forward" size={14} color={Colors.text.secondary} style={{ marginLeft: 4 }} />
-        </Pressable>
         <Text style={styles.terms}>
           By continuing you agree to our{' '}
           <Text style={styles.link}>Terms</Text> and{' '}
@@ -156,7 +153,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: Spacing[3], width: '100%', maxWidth: 350,
   },
   featureWrap: { flex: 1 },
+  // Fixed equal height so all three chips render the same size regardless
+  // of text length.
   feature: {
+    height: 126,
     backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
     padding: Spacing[3], alignItems: 'center',
     borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
@@ -169,14 +169,6 @@ const styles = StyleSheet.create({
   featureLabel: { color: Colors.text.primary, fontSize: 12, fontFamily: Typography.fontFamily.semiBold, textAlign: 'center' },
   featureDetail: { color: Colors.text.muted, fontSize: 10, fontFamily: Typography.fontFamily.body, textAlign: 'center', marginTop: 3, lineHeight: 13.5 },
   ctaGroup: { paddingHorizontal: Spacing[6], paddingBottom: Spacing[8] },
-  secondaryLink: {
-    alignSelf: 'center', flexDirection: 'row', alignItems: 'center',
-    paddingVertical: Spacing[3], marginTop: Spacing[4],
-  },
-  secondaryLinkText: {
-    color: Colors.text.secondary, fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.semiBold,
-  },
   terms: {
     textAlign: 'center', color: Colors.text.muted, fontSize: 11, fontFamily: Typography.fontFamily.body, lineHeight: 18, marginTop: Spacing[4],
   },

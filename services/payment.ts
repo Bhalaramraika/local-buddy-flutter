@@ -5,6 +5,9 @@
  * app renders the hosted checkout in a WebView → PayU redirects to backend
  * callback (hash verified server-side) → app intercepts the final redirect
  * URL and refreshes the wallet. NO client-side hashing, NO paise math.
+ *
+ * Same flow backs the buddy's platform-dues (negative balance) payment via
+ * POST /wallet/commission/pay — on success the dues are zeroed server-side.
  */
 
 import { apiPost, apiGet } from './api';
@@ -32,6 +35,15 @@ export const initWalletTopup = async (amountInr: number): Promise<PayUInitRespon
     amount: amountInr,
     paymentMode: 'payu',
   });
+};
+
+/**
+ * Start a platform-dues (negative balance) payment. The amount is fixed
+ * server-side to the buddy's current `commissionDue`; on PayU success the
+ * dues are cleared and the buddy can apply for tasks again.
+ */
+export const initCommissionPayment = async (): Promise<PayUInitResponse> => {
+  return apiPost<PayUInitResponse>('/wallet/commission/pay', {});
 };
 
 /** Build the auto-submitting HTML form for the PayU hosted checkout WebView. */

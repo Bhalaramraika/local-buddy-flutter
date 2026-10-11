@@ -32,6 +32,60 @@ old onboarding screens (`(onboarding)/{permissions,kyc,profile-setup,
 onboarding-referral}.tsx`), `(screens)/security-settings.tsx`,
 `(screens)/blocked-users.tsx` (entire block-user feature was removed).
 
+## Task lifecycle (4 states — enforced everywhere)
+- `tasks.status` is exactly one of **`open` | `assigned` | `completed` | `deleted`**
+  (backend `TaskStatus` in `backend/src/models.ts`; frontend mirrors it in
+  `types/index.ts` + `constants/app.ts`). There is NO `paid` status — payment
+  release (`POST /wallet/release/:taskId`) only stamps `paidAt` on a
+  task that stays `assigned`/`completed`. Show "Paid" in UI when `paidAt` is set.
+- Visibility (enforced in BOTH `firestore.rules` → `match /tasks` and the REST
+  layer — list `GET /tasks` merges visibility-scoped queries, detail
+  `GET /tasks/:id` returns 403 otherwise):
+  - `open` → every signed-in user (public marketplace)
+  - `assigned` → poster + assigned buddy only
+  - `completed` / `deleted` → poster only
+- **Auto-assignment (first come, first served)**: `POST /tasks/:id/apply`
+  atomically assigns the task to the FIRST buddy who applies — no poster
+  confirmation. The transaction assigns buddyId, sets `status: 'assigned'` +
+  `assignedAt`, creates the chat, writes the OTP secrets, and records the
+  application as `accepted`. A second concurrent applicant gets 409.
+  `…/assign` + `applications/:buddyId/decide` remain as manual fallbacks.
+- **OTP-gated work flow (Part B)**: assignment (apply auto-assign, `/assign` or
+  `applications/:buddyId/decide accept`) stamps `assignedAt` and writes
+  `tasks/:id/secrets/otp` = `{ startCode, completeCode }` (random 4-digit each,
+  **poster-read-only** per firestore.rules — never put codes on the task doc).
+  1. Buddy starts: `POST /tasks/:id/start {otp}` → sets `startedAt`
+  2. Online tasks: buddy asks `POST /tasks/:id/request-payment`
+     (sets `paymentRequestedAt`) → poster releases `POST /wallet/release/:taskId`
+     (sets `paidAt`) — MUST happen before completion
+  3. Buddy completes: `POST /tasks/:id/complete {otp}` → requires `startedAt`,
+     and for online tasks requires `paidAt`; sets `status: completed` +
+     `completedAt`. Cash tasks accrue the 10% platform fee to the buddy's
+     `commissionDue` here; response includes `reviewContext` for the rating screen.
+  4. Rating screens: `app/(screens)/rate-user.tsx` (poster from task-detail,
+     buddy right after completion) → `POST /reviews`.
+  `PUT /tasks/:id/status` can no longer mark `completed` (OTP-only; admin
+  escape hatch kept).
+- Realtime: the `assignedTasks` listener filters `buddyId == uid AND
+  status == 'assigned'` (needs the composite index in
+  `firestore.indexes.json`; query without the status filter is rejected by
+  the rules). Poster OTP card on `task-detail.tsx` live-listens to the
+  poster-only `secrets/otp` doc.
+
+## Money model (Part C)
+- Buddy ALWAYS receives 100% of `(budget + tip)`; the 10% platform fee
+  accrues as negative balance on the buddy: `commissionDue += 0.1 * total`.
+  Online tasks: fee accrues at release; cash tasks: at completion.
+- Buddy with `commissionDue > ₹200` cannot apply to tasks until dues are
+  cleared (`403` from `POST /tasks/:id/apply`). Clear via PayU:
+  `POST /wallet/commission/pay` (fixed amount = dues) → callback zeroes
+  `commissionDue` (txn `type: 'commission_payment'`, `udf2: 'commission_pay'`).
+- Constants: `PLATFORM_FEE_RATE = 0.10`, `COMMISSION_BLOCK_THRESHOLD = 200`
+  in `backend/src/models.ts`.
+- Frontend: dues card + PayU pay on `app/(tabs)/wallet.tsx`
+  (`walletStore.commissionDue`, synced by the realtime user listener);
+  pay flow reuses `wallet-topup.tsx?mode=dues`.
+
 ## Onboarding (single wizard)
 - `app/(onboarding)/setup.tsx` is the ONLY setup flow (welcome → setup → home).
   Steps: role → name/photo/bio → DOB (inline mini-calendar) → language

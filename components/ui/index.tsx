@@ -23,6 +23,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { MotiView } from 'moti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUIStore } from '@/store/uiStore';
 import { Colors, Spacing, BorderRadius, Typography, Shadows, Animation } from '@/constants/design';
 import { Ionicons } from '@expo/vector-icons';
@@ -488,12 +489,16 @@ interface ScreenHeaderProps {
 
 export function ScreenHeader({ title, subtitle, onBack, right, style }: ScreenHeaderProps) {
   const isDark = useIsDark();
+  // Edge-to-edge Android draws under the system status bar — every screen
+  // renders its own header (native header is disabled), so the safe-area
+  // top padding lives HERE in the shared header.
+  const insets = useSafeAreaInsets();
   return (
     <MotiView
       from={{ opacity: 0, translateY: -10 }}
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ type: 'timing', duration: 350 }}
-      style={[styles.header, style]}
+      style={[styles.header, { paddingTop: insets.top + Spacing[2] }, style]}
     >
       <View style={styles.headerRow}>
         {onBack ? (
@@ -704,17 +709,19 @@ export function SoftScreen({
 }) {
   const isDark = useIsDark();
   const bg = isDark ? Colors.dark.surface.primary : Colors.surface.primary;
+  // Keep content below the system status bar (edge-to-edge safe).
+  const insets = useSafeAreaInsets();
 
   if (!scrollable) {
     return (
-      <View style={[styles.screen, { backgroundColor: bg }, style]}>
+      <View style={[styles.screen, { backgroundColor: bg, paddingTop: insets.top }, style]}>
         {children}
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, { backgroundColor: bg }, style]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, { backgroundColor: bg, paddingTop: insets.top }, style]}>
       <ScrollView
         contentContainerStyle={[styles.screenContent, contentContainerStyle]}
         showsVerticalScrollIndicator={false}

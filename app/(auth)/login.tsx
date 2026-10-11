@@ -9,12 +9,14 @@ import { View, Text, StyleSheet, TextInput, Pressable, Keyboard } from 'react-na
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { SoftButton } from '@/components/ui';
 import { authService, normalizeEmail } from '@/services/auth';
 import { getApiErrorMessage } from '@/services/api';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Decorative warm blobs */}
       <View style={[styles.blob, styles.blobTop]} />
       <View style={[styles.blob, styles.blobBottom]} />

@@ -6,7 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { collections, TransactionDocument, runTransaction, timestamp } from '../models';
+import { collections, TransactionDocument, runTransaction, timestamp, PLATFORM_FEE_RATE } from '../models';
 import { requireAuth, requireKYC } from '../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
@@ -266,13 +266,23 @@ router.post(
       const userRef = collections.users.doc(transaction.userId);
       const userSnap = await t.get(userRef);
       const currentBalance = (userSnap.data() as any)?.wallet?.balance || 0;
-      newBalance = status === 'success' ? currentBalance + amount : currentBalance;
+      const isDuesPayment = transaction.type === 'commission_payment' || transaction.metadata?.purpose === 'commission_clearance';
 
       if (status === 'success') {
-        t.update(userRef, {
-          'wallet.balance': newBalance,
-          updatedAt: timestamp(),
-        });
+        if (isDuesPayment) {
+          // Platform dues cleared — zero out the negative balance. The PayU
+          // money settles with the platform, not the buddy's wallet.
+          t.update(userRef, {
+            commissionDue: 0,
+            updatedAt: timestamp(),
+          });
+        } else {
+          newBalance = currentBalance + amount;
+          t.update(userRef, {
+            'wallet.balance': newBalance,
+            updatedAt: timestamp(),
+          });
+        }
       }
 
       t.update(txnDoc.ref, {
@@ -283,12 +293,13 @@ router.post(
     });
 
     if (status === 'success') {
+      const isDuesPayment = transaction.type === 'commission_payment' || transaction.metadata?.purpose === 'commission_clearance';
       getPushNotificationService()
-        .sendWalletNotification(transaction.userId, 'add_money', {
-          amount,
-          balance: newBalance,
-          transactionId: txnDoc.id,
-        })
+        .sendWalletNotification(
+          transaction.userId,
+          isDuesPayment ? 'commission' : 'add_money',
+          { amount, balance: newBalance, transactionId: txnDoc.id }
+        )
         .catch((err) => console.error('[FCM] wallet notification failed:', err));
     }
 
@@ -351,8 +362,11 @@ router.get(
 
 /**
  * POST /api/v1/wallet/release/:taskId
- * Release escrow payment for a completed task (poster only).
- * Runs in a single Firestore transaction with an upfront balance check.
+ * Release payment for an ONLINE task (poster only). Runs AFTER the buddy has
+ * started (start OTP verified) and BEFORE the completion OTP is verified.
+ * Money model: poster is debited 100% of (budget + tip); the buddy is
+ * credited 100% of it; the 10% platform charge accrues as a negative balance
+ * (`commissionDue`) on the buddy — payable via PayU from the Wallet screen.
  */
 router.post(
   '/release/:taskId',
@@ -372,8 +386,16 @@ router.post(
       throw new ForbiddenError('Only the poster can release payment');
     }
 
-    if (task.status !== 'completed') {
-      throw new BadRequestError('Task must be completed before payment release');
+    if (task.paymentMode !== 'online') {
+      throw new BadRequestError('Cash tasks are settled offline — no wallet release needed');
+    }
+
+    if (task.status !== 'assigned' || !task.startedAt) {
+      throw new BadRequestError('Payment can be released only after the buddy starts the task');
+    }
+
+    if (task.paidAt) {
+      throw new BadRequestError('Payment already released for this task');
     }
 
     if (!task.buddyId) {
@@ -381,16 +403,26 @@ router.post(
     }
 
     const totalAmount = task.budget + (task.tip || 0);
-    const platformFee = Math.round(totalAmount * 0.1); // 10% platform fee
-    const buddyAmount = totalAmount - platformFee;
+    // Buddy always receives 100%; the platform earns 10% as a due on the buddy.
+    const platformFee = Math.round(totalAmount * PLATFORM_FEE_RATE);
+    const buddyAmount = totalAmount;
     let buddyNewBalance = 0;
 
     await runTransaction(async (t) => {
       const posterRef = collections.users.doc(req.user!.uid);
       const buddyRef = collections.users.doc(task.buddyId);
 
-      // Read docs INSIDE the transaction so the balance check is atomic
-      const [posterSnap, buddySnap] = await Promise.all([t.get(posterRef), t.get(buddyRef)]);
+      // Read docs INSIDE the transaction so the balance + idempotency
+      // checks are atomic.
+      const [posterSnap, buddySnap, freshTaskSnap] = await Promise.all([
+        t.get(posterRef),
+        t.get(buddyRef),
+        t.get(taskDoc.ref),
+      ]);
+      const freshTask = freshTaskSnap.data() as any;
+      if (!freshTask || freshTask.status !== 'assigned' || !freshTask.startedAt || freshTask.paidAt) {
+        throw new BadRequestError('Payment already released or task no longer in progress');
+      }
       const posterBalance = (posterSnap.data() as any)?.wallet?.balance || 0;
       const posterPending = (posterSnap.data() as any)?.wallet?.pendingBalance || 0;
 
@@ -404,7 +436,7 @@ router.post(
       const buddyPending = (buddySnap.data() as any)?.wallet?.pendingBalance || 0;
       buddyNewBalance = buddyBalance + buddyAmount;
 
-      // Deduct from poster wallet (clamp at 0 to avoid negatives)
+      // Deduct 100% from poster wallet (clamp at 0 to avoid negatives)
       t.update(posterRef, {
         'wallet.balance': Math.max(0, posterBalance - totalAmount),
         'wallet.pendingBalance': Math.max(0, posterPending - totalAmount),
@@ -412,7 +444,7 @@ router.post(
         updatedAt: timestamp(),
       });
 
-      // Credit buddy wallet (minus platform fee)
+      // Credit buddy wallet with 100%; accrue the 10% platform due.
       t.update(buddyRef, {
         'wallet.balance': buddyNewBalance,
         'wallet.pendingBalance': Math.max(0, buddyPending - buddyAmount),
@@ -421,7 +453,7 @@ router.post(
         updatedAt: timestamp(),
       });
 
-      // Ledger entries
+      // Ledger entries: poster debit, buddy 100% credit, buddy's 10% due.
       const customerTxnRef = collections.transactions.doc();
       t.set(customerTxnRef, {
         id: customerTxnRef.id,
@@ -454,8 +486,25 @@ router.post(
         updatedAt: timestamp(),
       });
 
+      const feeTxnRef = collections.transactions.doc();
+      t.set(feeTxnRef, {
+        id: feeTxnRef.id,
+        userId: task.buddyId,
+        taskId,
+        type: 'commission_payment',
+        amount: -platformFee,
+        gateway: 'wallet',
+        status: 'success',
+        txnid: generateTxnId(),
+        description: `Platform fee (10%) due for task: ${task.title}`,
+        metadata: { posterId: req.user!.uid, totalAmount },
+        createdAt: timestamp(),
+        updatedAt: timestamp(),
+      });
+
+      // Task stays assigned/in-progress; `paidAt` only marks the payout.
+      // Completion happens when the buddy verifies the completion OTP.
       t.update(taskDoc.ref, {
-        status: 'paid',
         paidAt: timestamp(),
         updatedAt: timestamp(),
       });
@@ -469,6 +518,80 @@ router.post(
       .catch((err) => console.error('[FCM] release notification failed:', err));
 
     res.json({ success: true, message: 'Payment released successfully' });
+  }
+);
+
+/**
+ * POST /api/v1/wallet/commission/pay
+ * Buddy clears pending platform dues (negative balance) via PayU.
+ * Same hosted-checkout flow as wallet top-up; on callback success the
+ * buddy's `commissionDue` is zeroed (not credited to the wallet).
+ */
+router.post(
+  '/commission/pay',
+  requireAuth,
+  requireKYC,
+  async (req: Request, res: Response) => {
+    const userId = req.user!.uid;
+    const userDoc = await collections.users.doc(userId).get();
+    if (!userDoc.exists) {
+      throw new NotFoundError('User not found');
+    }
+    const dues = (userDoc.data() as any)?.commissionDue ?? 0;
+    if (dues <= 0) {
+      throw new BadRequestError('No pending platform dues to pay');
+    }
+
+    const amount = Math.round(dues);
+    if (amount > 50000) {
+      throw new BadRequestError('Dues exceed the single-payment limit; contact support');
+    }
+
+    const txnid = generateTxnId();
+    const txnRef = collections.transactions.doc();
+    const transaction: TransactionDocument = {
+      id: txnRef.id,
+      userId,
+      type: 'commission_payment',
+      amount,
+      gateway: 'payu',
+      status: 'pending',
+      txnid,
+      description: `Platform dues payment ₹${amount}`,
+      metadata: { paymentMode: 'payu', purpose: 'commission_clearance' },
+      createdAt: timestamp(),
+      updatedAt: timestamp(),
+    };
+    await txnRef.set(transaction);
+
+    const apiBase =
+      process.env.API_PUBLIC_URL ||
+      `${req.protocol}://${req.get('host')}`;
+    const callbackUrl = `${apiBase}/api/v1/wallet/payu/callback`;
+
+    const payuParams = {
+      key: config.payu.merchantKey,
+      txnid,
+      amount: amount.toFixed(2),
+      productinfo: 'Platform Dues Payment',
+      firstname: req.user!.userDoc?.name || 'User',
+      email: req.user!.userDoc?.email || 'user@localbuddy.app',
+      phone: req.user!.phone || req.user!.userDoc?.phone || '9999999999',
+      surl: callbackUrl,
+      furl: callbackUrl,
+      udf1: userId,
+      udf2: 'commission_pay',
+      service_provider: 'payu_paisa',
+    };
+
+    const hash = generatePayUHash(payuParams, config.payu.merchantSalt);
+
+    res.json({
+      success: true,
+      payuParams: { ...payuParams, hash },
+      payuUrl: config.payu.baseUrl + '/_payment',
+      transactionId: txnRef.id,
+    });
   }
 );
 

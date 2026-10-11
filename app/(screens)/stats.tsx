@@ -67,8 +67,8 @@ export default function StatsScreen() {
           completed: server.tasksCompleted ?? myCompletedTasks.length,
           posted: server.tasksPosted ?? myPostedTasks.length,
           applied: myAppliedTasks.length,
-          inProgress: tasks.filter(t => t.status === 'in_progress').length,
-          cancelled: tasks.filter(t => t.status === 'cancelled').length,
+          inProgress: tasks.filter(t => t.status === 'assigned').length,
+          cancelled: tasks.filter(t => t.status === 'deleted').length,
           byCategory: [],
           byMonth: [],
         },
@@ -393,7 +393,7 @@ const TasksTab = ({ stats }: any) => (
 
     <View style={styles.statsGrid}>
       <StatCard title="In Progress" value={stats.inProgress} icon="time" color={Colors.semantic.warning} />
-      <StatCard title="Cancelled" value={stats.cancelled} icon="close-circle" color={Colors.semantic.error} />
+      <StatCard title="Deleted" value={stats.cancelled} icon="close-circle" color={Colors.semantic.error} />
       <StatCard title="Applied" value={stats.applied} icon="send" color={Colors.semantic.info} />
     </View>
   </View>

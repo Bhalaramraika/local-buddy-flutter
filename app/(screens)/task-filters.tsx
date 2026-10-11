@@ -27,10 +27,12 @@ const CATEGORY_OPTIONS: Array<{ value: TaskCategory; label: string; icon: keyof 
   { value: 'other', label: 'Other', icon: 'ellipsis-horizontal' },
 ];
 
+// Backend task lifecycle is exactly: open | assigned | completed | deleted
 const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string; color: string }> = [
   { value: 'open', label: 'Open', color: Colors.semantic.info },
-  { value: 'in_progress', label: 'In Progress', color: Colors.semantic.warning },
+  { value: 'assigned', label: 'Assigned', color: Colors.semantic.warning },
   { value: 'completed', label: 'Completed', color: Colors.semantic.success },
+  { value: 'deleted', label: 'Deleted', color: Colors.semantic.error },
 ];
 
 const URGENCY_OPTIONS: Array<{ value: TaskUrgency; label: string; color: string }> = [

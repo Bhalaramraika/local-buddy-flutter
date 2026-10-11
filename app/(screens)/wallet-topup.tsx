@@ -5,7 +5,7 @@
  * Payment flow logic unchanged.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -37,9 +37,10 @@ const MAX_AMOUNT = 50000;
 
 export default function WalletTopupScreen() {
   const router = useRouter();
-  const { amount: paramAmount } = useLocalSearchParams<{ amount?: string }>();
+  const { amount: paramAmount, mode } = useLocalSearchParams<{ amount?: string; mode?: string }>();
+  const isDuesMode = mode === 'dues';
 
-  const { wallet, balance, startTopup, refreshAfterPayment, isProcessing } = useWalletStore();
+  const { wallet, balance, startTopup, startCommissionPayment, refreshAfterPayment, isProcessing, commissionDue } = useWalletStore();
   const currentBalance = wallet?.balance ?? balance.available;
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
@@ -49,17 +50,22 @@ export default function WalletTopupScreen() {
   const [checkout, setCheckout] = useState<{ html: string } | null>(null);
   const [result, setResult] = useState<'success' | 'failed' | null>(null);
 
+  // Dues mode: amount is fixed to the buddy's pending dues (server-verified).
+  useEffect(() => {
+    if (isDuesMode) setAmount(String(Math.max(0, Math.round(commissionDue || 0))));
+  }, [isDuesMode, commissionDue]);
+
   const validate = (): boolean => {
     const num = parseFloat(amount);
     if (!Number.isFinite(num) || num <= 0) {
-      setError(`Enter a valid amount (₹${MIN_AMOUNT} – ₹${MAX_AMOUNT})`);
+      setError(isDuesMode ? 'You have no pending platform dues' : `Enter a valid amount (₹${MIN_AMOUNT} – ₹${MAX_AMOUNT})`);
       return false;
     }
     if (num < MIN_AMOUNT) {
       setError(`Minimum amount is ₹${MIN_AMOUNT}`);
       return false;
     }
-    if (num > MAX_AMOUNT) {
+    if (!isDuesMode && num > MAX_AMOUNT) {
       setError(`Maximum amount is ₹${MAX_AMOUNT}`);
       return false;
     }
@@ -70,11 +76,11 @@ export default function WalletTopupScreen() {
   const handleAddMoney = async () => {
     if (!validate()) return;
     if (!isAuthenticated) {
-      showToast('Please login to add money', 'error');
+      showToast('Please login to continue', 'error');
       router.push('/login');
       return;
     }
-    const res = await startTopup(parseFloat(amount));
+    const res = isDuesMode ? await startCommissionPayment() : await startTopup(parseFloat(amount));
     if ('payuParams' in res) {
       setError(null);
       setCheckout({ html: buildPayUHtml(res.payuParams, res.payuUrl) });
@@ -139,8 +145,10 @@ export default function WalletTopupScreen() {
           <Text style={styles.resultAmount}>{formatCurrency(parseFloat(amount) || 0)}</Text>
           <Text style={styles.resultText}>
             {ok
-              ? 'Amount added to your wallet.'
-              : 'The payment was declined or cancelled. Your wallet was not charged.'}
+              ? isDuesMode
+                ? 'Platform dues cleared. You can apply for tasks again.'
+                : 'Amount added to your wallet.'
+              : 'The payment was declined or cancelled. Nothing was charged.'}
           </Text>
           <SoftButton label="Back to wallet" variant="primary" onPress={() => router.back()} style={{ marginTop: Spacing[5] }} />
           {!ok ? (
@@ -154,21 +162,28 @@ export default function WalletTopupScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <ScreenHeader title="Add money" subtitle="Secure top-up via PayU" onBack={() => router.back()} />
+        <ScreenHeader
+          title={isDuesMode ? 'Pay platform dues' : 'Add money'}
+          subtitle={isDuesMode ? 'Clear your negative balance via PayU' : 'Secure top-up via PayU'}
+          onBack={() => router.back()}
+        />
         {/* Cocoa balance card */}
         <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420 }}>
           <View style={styles.balanceCard}>
             <View style={styles.balanceLabelRow}>
               <View style={styles.balanceIconChip}>
-                <Ionicons name="wallet" size={14} color="#FFFFFF" />
+                <Ionicons name={isDuesMode ? 'alert-circle' : 'wallet'} size={14} color="#FFFFFF" />
               </View>
-              <Text style={styles.balanceLabel}>Current Balance</Text>
+              <Text style={styles.balanceLabel}>{isDuesMode ? 'Pending dues' : 'Current Balance'}</Text>
             </View>
-            <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
+            <Text style={styles.balanceAmount}>
+              {isDuesMode ? `−${formatCurrency(commissionDue || 0)}` : formatCurrency(currentBalance)}
+            </Text>
           </View>
         </MotiView>
 
-        {/* Amount Input */}
+        {/* Amount Input — hidden in dues mode (amount is fixed to the dues) */}
+        {!isDuesMode ? (
         <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 90 }} style={styles.section}>
           <Text style={styles.sectionTitle}>Enter amount</Text>
           <View style={[styles.amountInputContainer, error ? styles.amountInputError : null]}>
@@ -203,6 +218,7 @@ export default function WalletTopupScreen() {
             })}
           </View>
         </MotiView>
+        ) : null}
 
         {error ? (
           <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ type: 'timing', duration: 240 }} style={styles.errorRow}>
@@ -225,7 +241,7 @@ export default function WalletTopupScreen() {
 
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 260 }}>
           <SoftButton
-            label="Pay with PayU"
+            label={isDuesMode ? 'Clear dues with PayU' : 'Pay with PayU'}
             onPress={handleAddMoney}
             loading={isProcessing}
             disabled={!amount || parseFloat(amount) <= 0}

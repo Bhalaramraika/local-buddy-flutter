@@ -70,6 +70,9 @@ function mapTask(id: string, d: DocumentData): Task {
     chatId: d.chatId,
     createdAt: d.createdAt ?? '',
     updatedAt: d.updatedAt ?? '',
+    assignedAt: d.assignedAt,
+    startedAt: d.startedAt,
+    paymentRequestedAt: d.paymentRequestedAt,
     completedAt: d.completedAt,
     paidAt: d.paidAt,
   } as unknown as Task;
@@ -228,6 +231,9 @@ export function startRealtimeSync(userId: string): void {
                 total: bal + pending,
                 currency,
               },
+              // Platform dues (negative balance) — drives the dues card and
+              // the >₹200 apply-block messaging.
+              commissionDue: typeof d.commissionDue === 'number' ? d.commissionDue : 0,
             });
           }
         } catch {
@@ -273,12 +279,17 @@ export function startRealtimeSync(userId: string): void {
   );
 
   // --- Tasks assigned to me ---
+  // Firestore rules (see firestore.rules → /tasks) allow a buddy to read a
+  // task only while it is `assigned` to them, so the query MUST carry the
+  // status filter — otherwise the whole listener is rejected by the rules.
+  // (Requires the composite index buddyId+status from firestore.indexes.json.)
   listeners.set(
     'assignedTasks',
     onSnapshot(
       query(
         collection(firestore, 'tasks'),
         where('buddyId', '==', userId),
+        where('status', '==', 'assigned'),
         fbLimit(50)
       ),
       (snap) => {

@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
@@ -25,6 +26,7 @@ import { formatCurrency } from '@/utils/helpers';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     user,
     isAuthenticated,
@@ -121,7 +123,7 @@ export default function ProfileScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <MotiView
           from={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -146,7 +148,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -231,56 +233,6 @@ export default function ProfileScreen() {
         </View>
       </MotiView>
 
-      {/* Wallet strip */}
-      <MotiView
-        from={{ opacity: 0, translateY: 18 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 420, delay: 220 }}
-      >
-        <Pressable style={styles.walletCard} onPress={() => router.push('/(tabs)/wallet')}>
-          <View style={styles.walletCardHeader}>
-            <View style={styles.walletIconWrapper}>
-              <Ionicons name="wallet" size={22} color="#FFFFFF" />
-            </View>
-            <View style={styles.walletInfo}>
-              <Text style={styles.walletLabel}>Wallet Balance</Text>
-              <Text style={styles.walletAmount}>{formatCurrency(user?.walletBalance || 0)}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.9)" />
-          </View>
-          <View style={styles.walletActions}>
-            <Pressable
-              style={[styles.walletActionBtn, styles.walletActionGreen]}
-              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-topup'); }}
-            >
-              <Ionicons name="add-circle" size={15} color="#FFFFFF" />
-              <Text style={styles.walletActionText}>Add</Text>
-            </Pressable>
-            <Pressable
-              style={styles.walletActionBtn}
-              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-withdraw'); }}
-            >
-              <Ionicons name="arrow-down-circle" size={15} color="#FFFFFF" />
-              <Text style={styles.walletActionText}>Withdraw</Text>
-            </Pressable>
-            <Pressable
-              style={styles.walletActionBtn}
-              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-history'); }}
-            >
-              <Ionicons name="time-outline" size={15} color="#FFFFFF" />
-              <Text style={styles.walletActionText}>History</Text>
-            </Pressable>
-            <Pressable
-              style={styles.walletActionBtn}
-              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-details'); }}
-            >
-              <Ionicons name="pie-chart-outline" size={15} color="#FFFFFF" />
-              <Text style={styles.walletActionText}>Details</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </MotiView>
-
       {/* Menu Sections */}
       {menuItems.map((section, sectionIndex) => (
         <MotiView
@@ -306,7 +258,6 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons name={item.icon as any} size={20} color={Colors.brand.accent} />
                 </View>
                 <Text style={styles.menuItemLabel}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
               </Pressable>
             ))}
           </View>
@@ -415,32 +366,6 @@ const styles = StyleSheet.create({
   statIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
   statValue: { fontSize: 14.5, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
   statLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 1 },
-
-  // ---- Wallet strip ----
-  walletCard: {
-    marginHorizontal: Spacing[5], marginBottom: Spacing[5],
-    borderRadius: BorderRadius.xl, padding: Spacing[5],
-    backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange,
-  },
-  walletCardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
-  walletIconWrapper: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.22)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  walletInfo: { flex: 1 },
-  walletLabel: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: 0.8 },
-  walletAmount: { fontSize: 25, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF', marginTop: 2 },
-  walletActions: {
-    flexDirection: 'row', gap: Spacing[2], marginTop: Spacing[4], paddingTop: Spacing[4],
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.25)',
-  },
-  walletActionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: BorderRadius.pill,
-    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2],
-  },
-  walletActionGreen: { backgroundColor: Colors.semantic.success },
-  walletActionText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
 
   // ---- Menu ----
   menuSection: {

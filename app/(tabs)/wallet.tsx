@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
@@ -17,7 +18,8 @@ import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
 
 export default function WalletScreen() {
   const router = useRouter();
-  const { wallet, balance, transactions, fetchWallet, fetchTransactions, isLoading: walletLoading } = useWalletStore();
+  const insets = useSafeAreaInsets();
+  const { wallet, balance, transactions, fetchWallet, fetchTransactions, isLoading: walletLoading, commissionDue } = useWalletStore();
   const { user, isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'credit' | 'debit'>('all');
@@ -29,6 +31,8 @@ export default function WalletScreen() {
   const pendingBalance = wallet?.pendingBalance ?? balance.pending;
   const totalEarnings = wallet?.totalEarnings ?? 0;
   const totalSpent = wallet?.totalSpent ?? 0;
+  const dues = commissionDue ?? 0;
+  const duesBlocked = dues > 200;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -90,7 +94,7 @@ export default function WalletScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <MotiView
           from={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -110,7 +114,7 @@ export default function WalletScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
@@ -162,6 +166,29 @@ export default function WalletScreen() {
           </View>
         </View>
       </MotiView>
+
+      {/* Platform dues card (buddy's negative balance) */}
+      {dues > 0 ? (
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 140 }}>
+          <View style={styles.duesCard}>
+            <View style={styles.duesIconWrap}>
+              <Ionicons name="alert-circle" size={20} color={Colors.semantic.error} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.duesTitle}>Platform dues: −{formatCurrency(dues)}</Text>
+              <Text style={styles.duesSub}>
+                {duesBlocked
+                  ? 'You cannot apply for new tasks until you clear these dues.'
+                  : '10% platform fee from your tasks. Clear anytime via PayU.'}
+              </Text>
+              <Pressable style={styles.duesPayBtn} onPress={() => router.push({ pathname: '/(screens)/wallet-topup', params: { mode: 'dues' } })}>
+                <Ionicons name="card" size={14} color="#FFFFFF" />
+                <Text style={styles.duesPayBtnText}>Pay dues • {formatCurrency(dues)}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </MotiView>
+      ) : null}
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
@@ -277,6 +304,25 @@ const styles = StyleSheet.create({
   balanceActionGreen: { backgroundColor: Colors.semantic.success },
   balanceActionGhost: { backgroundColor: 'rgba(255,255,255,0.22)' },
   balanceActionText: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  duesCard: {
+    flexDirection: 'row', gap: Spacing[3], alignItems: 'flex-start',
+    marginHorizontal: Spacing[5], marginBottom: Spacing[5],
+    padding: Spacing[4], borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.semantic.errorSoft, borderWidth: 1, borderColor: Colors.semantic.error + '44',
+  },
+  duesIconWrap: {
+    width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  duesTitle: { fontSize: 15, fontFamily: Typography.fontFamily.bold, color: Colors.semantic.error },
+  duesSub: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 3, lineHeight: 17 },
+  duesPayBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    marginTop: Spacing[3], backgroundColor: Colors.semantic.error,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2] + 1, borderRadius: BorderRadius.pill,
+  },
+  duesPayBtnText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
 
   statsRow: { flexDirection: 'row', paddingHorizontal: Spacing[5], gap: Spacing[3], marginBottom: Spacing[5] },
   statWrap: { flex: 1 },
