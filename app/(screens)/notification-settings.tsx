@@ -1,9 +1,7 @@
 /**
- * Notification Settings — real, server-synced preferences.
- *
- * Reads  GET  /api/v1/notifications/preferences
- * Writes PUT  /api/v1/notifications/preferences (merged on server, keys below)
- * Master "Push" also registers/unregisters the FCM token.
+ * Notification Settings — Soft Modern
+ * Real, server-synced preferences (same API contract).
+ * White rounded rows with orange icon chips + pill switches.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -11,14 +9,15 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   Switch,
-  useColorScheme,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { ScreenHeader } from '@/components/ui';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useUIStore } from '@/store/uiStore';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { apiGet, apiPut, getApiErrorMessage } from '@/services/api';
@@ -43,22 +42,19 @@ const ROWS: Array<{
   key: keyof Prefs;
   title: string;
   description: string;
-  icon: string;
-  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }> = [
-  { key: 'push', title: 'Push Notifications', description: 'Master switch for all push alerts on this device', icon: 'notifications-outline', color: '#8B85FF' },
-  { key: 'tasks', title: 'Task Updates', description: 'New tasks nearby, assignments, status changes', icon: 'clipboard-outline', color: '#F59E0B' },
-  { key: 'messages', title: 'Chat Messages', description: 'New messages from posters and buddies', icon: 'chatbubbles-outline', color: '#10B981' },
-  { key: 'wallet', title: 'Wallet & Payments', description: 'Top-ups, releases and wallet activity', icon: 'wallet-outline', color: '#06B6D4' },
-  { key: 'marketing', title: 'Offers & News', description: 'Occasional product updates and offers', icon: 'megaphone-outline', color: '#EC4899' },
+  { key: 'push', title: 'Push Notifications', description: 'Master switch for all push alerts on this device', icon: 'notifications' },
+  { key: 'tasks', title: 'Task Updates', description: 'New tasks nearby, assignments, status changes', icon: 'clipboard' },
+  { key: 'messages', title: 'Chat Messages', description: 'New messages from posters and buddies', icon: 'chatbubbles' },
+  { key: 'wallet', title: 'Wallet & Payments', description: 'Top-ups, releases and wallet activity', icon: 'wallet' },
+  { key: 'marketing', title: 'Offers & News', description: 'Occasional product updates and offers', icon: 'megaphone' },
 ];
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
-  const { theme, showToast } = useUIStore();
-  const systemScheme = useColorScheme();
+  const { showToast } = useUIStore();
   const { registerForPushNotifications, unregisterForPushNotifications } = useNotifications();
-  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
@@ -103,54 +99,64 @@ export default function NotificationSettingsScreen() {
   }, [prefs, savingKey, registerForPushNotifications, unregisterForPushNotifications, showToast]);
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
+    <View style={styles.container}>
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={[styles.loadingText, { color: isDark ? '#888' : '#666' }]}>Loading preferences…</Text>
+          <ActivityIndicator size="large" color={Colors.brand.accent} />
+          <Text style={styles.loadingText}>Loading preferences…</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.sectionHint, { color: isDark ? '#888' : '#666' }]}>
-            Changes save instantly and sync across your devices.
-          </Text>
-          <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+          <ScreenHeader title="Notifications" subtitle="What buzzes your phone — saves instantly" onBack={() => router.back()} />
+          <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 360 }}>
+            <Text style={styles.pageIntro}>
+              Choose what buzzes your phone. Changes save instantly and sync across your devices.
+            </Text>
+          </MotiView>
+
+          <View style={styles.section}>
             {ROWS.map((row, idx) => (
-              <View
+              <MotiView
                 key={row.key}
-                style={[
-                  styles.row,
-                  idx < ROWS.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#f0f0f0' },
-                ]}
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 360, delay: 80 + idx * 60 }}
               >
-                <View style={[styles.iconWrap, { backgroundColor: `${row.color}15` }]}>
-                  <Ionicons name={row.icon as any} size={20} color={row.color} />
+                <View style={[styles.row, idx < ROWS.length - 1 && styles.rowDivider]}>
+                  <View style={[styles.iconWrap, prefs[row.key] && styles.iconWrapActive]}>
+                    <Ionicons
+                      name={row.icon}
+                      size={19}
+                      color={prefs[row.key] ? '#FFFFFF' : Colors.brand.accent}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>{row.title}</Text>
+                    <Text style={styles.rowDesc}>{row.description}</Text>
+                  </View>
+                  <Switch
+                    value={prefs[row.key]}
+                    onValueChange={() => toggle(row.key)}
+                    disabled={savingKey === row.key}
+                    trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+                    thumbColor="#FFFFFF"
+                  />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.rowTitle, { color: isDark ? '#fff' : '#000' }]}>{row.title}</Text>
-                  <Text style={[styles.rowDesc, { color: isDark ? '#888' : '#666' }]}>{row.description}</Text>
-                </View>
-                <Switch
-                  value={prefs[row.key]}
-                  onValueChange={() => toggle(row.key)}
-                  disabled={savingKey === row.key}
-                  trackColor={{ false: isDark ? '#444' : '#ddd', true: '#FF6B35' }}
-                  thumbColor="#fff"
-                />
-              </View>
+              </MotiView>
             ))}
           </View>
+
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ type: 'timing', duration: 400, delay: 420 }}
+            style={styles.noteCard}
+          >
+            <Ionicons name="shield-checkmark" size={18} color={Colors.semantic.success} />
+            <Text style={styles.noteText}>
+              We only send what you switch on. No notification spam — ever.
+            </Text>
+          </MotiView>
         </ScrollView>
       )}
     </View>
@@ -158,17 +164,33 @@ export default function NotificationSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 10, fontFamily: 'Inter_400Regular', fontSize: 14 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  sectionHint: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12 },
-  section: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: '#eee' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  rowDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  loadingText: { marginTop: Spacing[3], fontFamily: Typography.fontFamily.body, fontSize: 14, color: Colors.text.secondary },
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+  pageIntro: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 20, marginBottom: Spacing[4] },
+  section: {
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4],
+    ...Shadows.card,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingVertical: Spacing[4] },
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  iconWrap: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconWrapActive: { backgroundColor: Colors.brand.accent },
+  rowTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  rowDesc: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2, lineHeight: 16 },
+  noteCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    marginTop: Spacing[5], padding: Spacing[4],
+    backgroundColor: Colors.semantic.successSoft, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.semantic.success + '30',
+  },
+  noteText: { flex: 1, fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 18 },
 });

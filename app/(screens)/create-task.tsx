@@ -16,23 +16,20 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import { useLocationStore } from '@/store/locationStore';
 import { apiGet } from '@/services/api';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader, SoftButton } from '@/components/ui';
 
 export default function CreateTaskScreen() {
   const router = useRouter();
   const { createTask, isCreating, clearError } = useTaskStore();
   const { user, isAuthenticated } = useAuthStore();
-  const { theme } = useUIStore();
   const { currentLocation, requestLocationPermission } = useLocationStore();
-  
-  const isDark = theme === 'dark';
-  // Inputs must stay readable in dark mode — never hardcode '#000' on a dark surface
-  const inputTextColor = isDark ? '#fff' : '#000';
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -195,43 +192,41 @@ export default function CreateTaskScreen() {
       onRequestClose={() => setShowCategoryPicker(false)}
     >
       <TouchableOpacity
-        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+        style={styles.modalOverlay}
         activeOpacity={1}
         onPress={() => setShowCategoryPicker(false)}
       >
         <TouchableOpacity
           activeOpacity={1}
-          style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+          style={styles.modalContent}
           onPress={() => {}}
         >
+          <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Select Category</Text>
-            <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-              <Ionicons name="close-outline" size={24} color={isDark ? '#fff' : '#000'} />
+            <Text style={styles.modalTitle}>Select category</Text>
+            <TouchableOpacity onPress={() => setShowCategoryPicker(false)} style={styles.modalCloseBtn} hitSlop={8}>
+              <Ionicons name="close" size={16} color={Colors.semantic.error} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
-            {categoriesList.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.modalItem,
-                  selectedCategory === cat && styles.modalItemSelected,
-                  { backgroundColor: selectedCategory === cat ? '#8B85FF20' : 'transparent' }
-                ]}
-                onPress={() => handleCategorySelect(cat)}
-              >
-                <Text style={[
-                  styles.modalItemText,
-                  { color: selectedCategory === cat ? '#8B85FF' : isDark ? '#fff' : '#000' }
-                ]}>
-                  {cat}
-                </Text>
-                {selectedCategory === cat && (
-                  <Ionicons name="checkmark" size={20} color="#8B85FF" />
-                )}
-              </TouchableOpacity>
-            ))}
+            {categoriesList.map(cat => {
+              const active = selectedCategory === cat;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.modalItem, active && styles.modalItemSelected]}
+                  onPress={() => handleCategorySelect(cat)}
+                >
+                  <View style={[styles.modalItemIcon, active && styles.modalItemIconActive]}>
+                    <Ionicons name="pricetag" size={15} color={active ? '#FFFFFF' : Colors.brand.accent} />
+                  </View>
+                  <Text style={[styles.modalItemText, active && styles.modalItemTextActive]}>
+                    {cat}
+                  </Text>
+                  {active ? <Ionicons name="checkmark-circle" size={19} color={Colors.brand.accent} /> : null}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -245,36 +240,34 @@ export default function CreateTaskScreen() {
       animationType="slide"
       onRequestClose={() => setShowSkillPicker(false)}
     >
-      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <View style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { maxHeight: '80%' }]}>
+      <View style={styles.modalOverlay}>
+      <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+        <View style={styles.modalHandle} />
         <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Select Skills (Multiple)</Text>
-          <TouchableOpacity onPress={handleSkillDone}>
+          <Text style={styles.modalTitle}>Select skills (multiple)</Text>
+          <TouchableOpacity onPress={handleSkillDone} style={styles.modalDoneBtn} hitSlop={8}>
             <Text style={styles.modalDoneText}>Done</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView style={styles.modalList}>
-          {availableSkills.map(skill => (
-            <TouchableOpacity
-              key={skill}
-              style={[
-                styles.modalItem,
-                selectedSkills.includes(skill) && styles.modalItemSelected,
-                { backgroundColor: selectedSkills.includes(skill) ? '#8B85FF20' : 'transparent' }
-              ]}
-              onPress={() => handleSkillToggle(skill)}
-            >
-              <Text style={[
-                styles.modalItemText,
-                { color: selectedSkills.includes(skill) ? '#8B85FF' : isDark ? '#fff' : '#000' }
-              ]}>
-                {skill}
-              </Text>
-              {selectedSkills.includes(skill) && (
-                <Ionicons name="checkmark" size={20} color="#8B85FF" />
-              )}
-            </TouchableOpacity>
-          ))}
+        <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
+          {availableSkills.map(skill => {
+            const active = selectedSkills.includes(skill);
+            return (
+              <TouchableOpacity
+                key={skill}
+                style={[styles.modalItem, active && styles.modalItemSelected]}
+                onPress={() => handleSkillToggle(skill)}
+              >
+                <View style={[styles.modalItemIcon, active && styles.modalItemIconActive]}>
+                  <Ionicons name="construct" size={15} color={active ? '#FFFFFF' : Colors.brand.accent} />
+                </View>
+                <Text style={[styles.modalItemText, active && styles.modalItemTextActive]}>
+                  {skill}
+                </Text>
+                {active ? <Ionicons name="checkmark-circle" size={19} color={Colors.brand.accent} /> : null}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
     </View>
@@ -283,284 +276,284 @@ export default function CreateTaskScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={styles.authPrompt}>
-          <MaterialCommunityIcons name="clipboard-text-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Create Task</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Sign in to post a new task</Text>
-        </View>
+      <View style={styles.container}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 450 }}
+          style={styles.authPrompt}
+        >
+          <View style={styles.authIconWrap}>
+            <Ionicons name="clipboard" size={40} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.authTitle}>Create Task</Text>
+          <Text style={styles.authSubtitle}>Sign in to post a new task</Text>
+          <SoftButton label="Sign in" variant="accent" fullWidth={false} icon="arrow-forward" onPress={() => router.push('/login')} style={{ paddingHorizontal: Spacing[8], marginTop: Spacing[5] }} withGlow />
+        </MotiView>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Create Task</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      <View style={{ paddingHorizontal: Spacing[5], paddingTop: Spacing[5] }}>
+        <ScreenHeader title="Post a task" subtitle="Describe the help you need" onBack={() => router.back()} style={{ marginBottom: Spacing[3] }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Task Title *</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-            <Ionicons name="text-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 60 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Task title *</Text>
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputIconChip}>
+              <Ionicons name="text" size={15} color={Colors.brand.accent} />
+            </View>
             <TextInput
-              style={[styles.textInput, { color: inputTextColor }]}
+              style={styles.textInput}
               placeholder="e.g., Need help moving furniture"
               value={formData.title}
               onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
               maxLength={100}
-              placeholderTextColor={isDark ? '#888' : '#999'}
+              placeholderTextColor={Colors.text.muted}
             />
           </View>
-          {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-        </View>
+          {errors.title ? <Text style={styles.errorText}>{errors.title}</Text> : null}
+        </MotiView>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Description *</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 120 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Description *</Text>
+          <View style={[styles.inputWrapper, styles.textAreaWrap]}>
             <TextInput
-              style={[styles.textInput, styles.textArea, { color: inputTextColor }]}
+              style={[styles.textInput, styles.textArea]}
               placeholder="Describe what you need help with..."
               value={formData.description}
               onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
               maxLength={2000}
               multiline
               numberOfLines={5}
-              placeholderTextColor={isDark ? '#888' : '#999'}
+              placeholderTextColor={Colors.text.muted}
             />
           </View>
-          {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
-          <Text style={[styles.charCount, { color: isDark ? '#888' : '#666' }]}>
+          {errors.description ? <Text style={styles.errorText}>{errors.description}</Text> : null}
+          <Text style={styles.charCount}>
             {formData.description.length}/2000
           </Text>
-        </View>
+        </MotiView>
 
         {/* Category */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Category *</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 180 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Category *</Text>
           <TouchableOpacity
-            style={[styles.selectWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+            style={styles.selectWrapper}
             onPress={() => setShowCategoryPicker(true)}
           >
-            <Ionicons name="grid-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
-            <Text style={[
-              styles.selectText,
-              { color: formData.category ? (isDark ? '#fff' : '#000') : (isDark ? '#888' : '#999') }
-            ]}>
+            <View style={styles.inputIconChip}>
+              <Ionicons name="grid" size={15} color={Colors.brand.accent} />
+            </View>
+            <Text style={[styles.selectText, !formData.category && { color: Colors.text.muted }]}>
               {formData.category || 'Select a category'}
             </Text>
-            <Ionicons name="chevron-down-outline" size={20} color={isDark ? '#888' : '#666'} />
+            <Ionicons name="chevron-down" size={17} color={Colors.text.muted} />
           </TouchableOpacity>
-          {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
-        </View>
+          {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
+        </MotiView>
 
         {/* Budget */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Budget *</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 240 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Budget *</Text>
           <View style={styles.budgetRow}>
-            <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { flex: 1 }]}>
-              <Text style={[styles.currencyLabel, { color: isDark ? '#fff' : '#000' }]}>₹</Text>
+            <View style={[styles.inputWrapper, { flex: 1, marginBottom: 0 }]}>
+              <View style={styles.currencyChip}>
+                <Text style={styles.currencyLabel}>₹</Text>
+              </View>
               <TextInput
-                style={[styles.textInput, { paddingLeft: 0, color: inputTextColor }]}
+                style={styles.textInput}
                 placeholder="Amount"
                 value={formData.budget}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, budget: text }))}
                 keyboardType="numeric"
-                placeholderTextColor={isDark ? '#888' : '#999'}
+                placeholderTextColor={Colors.text.muted}
               />
             </View>
-            <TouchableOpacity
-              style={[
-                styles.budgetTypeButton,
-                formData.budgetType === 'fixed' && styles.budgetTypeButtonActive,
-                { backgroundColor: formData.budgetType === 'fixed' ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
-              ]}
-              onPress={() => setFormData(prev => ({ ...prev, budgetType: 'fixed' }))}
-            >
-              <Text style={[
-                styles.budgetTypeText,
-                { color: formData.budgetType === 'fixed' ? '#fff' : (isDark ? '#fff' : '#000') }
-              ]}>
-                Fixed
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.budgetTypeButton,
-                formData.budgetType === 'hourly' && styles.budgetTypeButtonActive,
-                { backgroundColor: formData.budgetType === 'hourly' ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
-              ]}
-              onPress={() => setFormData(prev => ({ ...prev, budgetType: 'hourly' }))}
-            >
-              <Text style={[
-                styles.budgetTypeText,
-                { color: formData.budgetType === 'hourly' ? '#fff' : (isDark ? '#fff' : '#000') }
-              ]}>
-                /hour
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.budgetTypeSeg}>
+              {(['fixed', 'hourly'] as const).map((t) => {
+                const active = formData.budgetType === t;
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.budgetTypeButton, active && styles.budgetTypeButtonActive]}
+                    onPress={() => setFormData(prev => ({ ...prev, budgetType: t }))}
+                  >
+                    <Text style={[styles.budgetTypeText, active && { color: '#FFFFFF' }]}>
+                      {t === 'fixed' ? 'Fixed' : '/hour'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-          {errors.budget && <Text style={styles.errorText}>{errors.budget}</Text>}
-        </View>
+          {errors.budget ? <Text style={styles.errorText}>{errors.budget}</Text> : null}
+        </MotiView>
 
         {/* Location */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Location *</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-            <Ionicons name="location-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 300 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Location *</Text>
+          <View style={styles.inputWrapper}>
+            <View style={styles.inputIconChip}>
+              <Ionicons name="location" size={15} color={Colors.brand.accent} />
+            </View>
             <TextInput
-              style={[styles.textInput, { color: inputTextColor }]}
+              style={styles.textInput}
               placeholder="Enter location or use current"
               value={formData.location}
               onChangeText={(text) => setFormData(prev => ({ ...prev, location: text }))}
-              placeholderTextColor={isDark ? '#888' : '#999'}
+              placeholderTextColor={Colors.text.muted}
             />
           </View>
-          <TouchableOpacity style={styles.useLocationButton} onPress={() => {
-            if (currentLocation) {
-              setFormData(prev => ({
-                ...prev,
-                location: currentLocation.address || '',
-                latitude: currentLocation.latitude,
-                longitude: currentLocation.longitude,
-              }));
-            }
-          }}>
-            <Ionicons name="navigate-outline" size={16} color="#8B85FF" />
-            <Text style={styles.useLocationText}>Use Current Location</Text>
-          </TouchableOpacity>
-          {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
-        </View>
-
-        {/* Deadline */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Deadline *</Text>
           <TouchableOpacity
-            style={[styles.selectWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+            style={styles.useLocationButton}
             onPress={() => {
-              // In a real app, show a date picker modal
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              setFormData(prev => ({ ...prev, deadline: tomorrow.toISOString() }));
+              if (currentLocation) {
+                setFormData(prev => ({
+                  ...prev,
+                  location: currentLocation.address || '',
+                  latitude: currentLocation.latitude,
+                  longitude: currentLocation.longitude,
+                }));
+              }
             }}
           >
-            <Ionicons name="calendar-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
-            <Text style={[
-              styles.selectText,
-              { color: formData.deadline ? (isDark ? '#fff' : '#000') : (isDark ? '#888' : '#999') }
-            ]}>
-              {formData.deadline ? new Date(formData.deadline).toLocaleDateString() : 'Select deadline'}
-            </Text>
-            <Ionicons name="chevron-down-outline" size={20} color={isDark ? '#888' : '#666'} />
+            <Ionicons name="navigate" size={14} color={Colors.brand.accentPressed} />
+            <Text style={styles.useLocationText}>Use current location</Text>
           </TouchableOpacity>
-          {errors.deadline && <Text style={styles.errorText}>{errors.deadline}</Text>}
-        </View>
+          {errors.location ? <Text style={styles.errorText}>{errors.location}</Text> : null}
+        </MotiView>
+
+        {/* Deadline */}
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 360 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Deadline *</Text>
+          <View style={styles.deadlineChips}>
+            {[
+              { label: 'Tomorrow', days: 1 },
+              { label: 'In 2 days', days: 2 },
+              { label: 'This week', days: 7 },
+            ].map((opt) => {
+              const target = new Date();
+              target.setDate(target.getDate() + opt.days);
+              const active = formData.deadline && new Date(formData.deadline).toDateString() === target.toDateString();
+              return (
+                <TouchableOpacity
+                  key={opt.label}
+                  style={[styles.deadlineChip, active && styles.deadlineChipActive]}
+                  onPress={() => setFormData(prev => ({ ...prev, deadline: target.toISOString() }))}
+                >
+                  <Ionicons name="calendar-outline" size={13} color={active ? '#FFFFFF' : Colors.brand.accent} />
+                  <Text style={[styles.deadlineChipText, active && { color: '#FFFFFF' }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.deadlineChip}
+              onPress={() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                setFormData(prev => ({ ...prev, deadline: tomorrow.toISOString() }));
+              }}
+            >
+              <Ionicons name="calendar" size={13} color={Colors.brand.accent} />
+              <Text style={styles.deadlineChipText}>Pick date</Text>
+            </TouchableOpacity>
+          </View>
+          {formData.deadline ? (
+            <Text style={styles.deadlineEcho}>
+              Due {new Date(formData.deadline).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </Text>
+          ) : null}
+          {errors.deadline ? <Text style={styles.errorText}>{errors.deadline}</Text> : null}
+        </MotiView>
 
         {/* Skills */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Required Skills</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 420 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Required skills</Text>
           <TouchableOpacity
-            style={[styles.selectWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+            style={styles.selectWrapper}
             onPress={() => setShowSkillPicker(true)}
           >
-            <Ionicons name="construct-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.inputIcon} />
-            <Text style={[
-              styles.selectText,
-              { color: formData.skills.length > 0 ? (isDark ? '#fff' : '#000') : (isDark ? '#888' : '#999') }
-            ]}>
-              {formData.skills.length > 0 
+            <View style={styles.inputIconChip}>
+              <Ionicons name="construct" size={15} color={Colors.brand.accent} />
+            </View>
+            <Text style={[styles.selectText, !formData.skills.length && { color: Colors.text.muted }]}>
+              {formData.skills.length > 0
                 ? `${formData.skills.length} skill${formData.skills.length > 1 ? 's' : ''} selected`
                 : 'Select skills (optional)'
               }
             </Text>
-            <Ionicons name="chevron-down-outline" size={20} color={isDark ? '#888' : '#666'} />
+            <Ionicons name="chevron-down" size={17} color={Colors.text.muted} />
           </TouchableOpacity>
-          {formData.skills.length > 0 && (
+          {formData.skills.length > 0 ? (
             <View style={styles.selectedSkills}>
               {formData.skills.map(skill => (
                 <View key={skill} style={styles.skillChip}>
                   <Text style={styles.skillChipText}>{skill}</Text>
-                  <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skill) }))}>
-                    <Ionicons name="close" size={14} color={isDark ? '#888' : '#666'} />
+                  <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skill) }))} hitSlop={6}>
+                    <Ionicons name="close" size={13} color={Colors.brand.accentPressed} />
                   </TouchableOpacity>
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          ) : null}
+        </MotiView>
 
         {/* Options */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: isDark ? '#fff' : '#000' }]}>Options</Text>
-          
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380, delay: 480 }} style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Options</Text>
           <View style={styles.optionRow}>
-            <View style={styles.optionItem}>
-              <TouchableOpacity
-                style={[
-                  styles.checkbox,
-                  formData.isUrgent && styles.checkboxChecked,
-                  { backgroundColor: formData.isUrgent ? '#8B85FF' : 'transparent' }
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, isUrgent: !prev.isUrgent }))}
-              >
-                {formData.isUrgent && <Ionicons name="checkmark" size={18} color="#fff" />}
-              </TouchableOpacity>
-              <Text style={[styles.optionLabel, { color: isDark ? '#fff' : '#000' }]}>Urgent Task</Text>
-            </View>
-            <View style={styles.optionItem}>
-              <TouchableOpacity
-                style={[
-                  styles.checkbox,
-                  formData.isRemote && styles.checkboxChecked,
-                  { backgroundColor: formData.isRemote ? '#8B85FF' : 'transparent' }
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, isRemote: !prev.isRemote }))}
-              >
-                {formData.isRemote && <Ionicons name="checkmark" size={18} color="#fff" />}
-              </TouchableOpacity>
-              <Text style={[styles.optionLabel, { color: isDark ? '#fff' : '#000' }]}>Remote Friendly</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.optionCard, formData.isUrgent && styles.optionCardActive]}
+              onPress={() => setFormData(prev => ({ ...prev, isUrgent: !prev.isUrgent }))}
+            >
+              <View style={[styles.optionIcon, formData.isUrgent && { backgroundColor: Colors.semantic.error, borderColor: Colors.semantic.error }]}>
+                {formData.isUrgent ? <Ionicons name="flash" size={16} color="#fff" /> : <Ionicons name="flash-outline" size={16} color={Colors.semantic.error} />}
+              </View>
+              <Text style={[styles.optionTitle, formData.isUrgent && { color: Colors.semantic.error }]}>Urgent task</Text>
+              <Text style={styles.optionDesc}>Boosts visibility to nearby buddies</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.optionCard, formData.isRemote && styles.optionCardActiveRemote]}
+              onPress={() => setFormData(prev => ({ ...prev, isRemote: !prev.isRemote }))}
+            >
+              <View style={[styles.optionIcon, formData.isRemote && { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary }]}>
+                {formData.isRemote ? <Ionicons name="desktop" size={16} color="#fff" /> : <Ionicons name="desktop-outline" size={16} color={Colors.brand.primary} />}
+              </View>
+              <Text style={styles.optionTitle}>Remote friendly</Text>
+              <Text style={styles.optionDesc}>Work can be done from anywhere</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </MotiView>
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            isCreating && styles.submitButtonDisabled,
-            { backgroundColor: isCreating ? '#8B85FF80' : '#8B85FF' }
-          ]}
-          onPress={handleSubmit}
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <>
-              <Ionicons name="refresh" size={20} color="#fff" />
-              <Text style={styles.submitButtonText}>Creating...</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="add-circle-outline" size={20} color="#fff" />
-              <Text style={styles.submitButtonText}>Post Task</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {/* Submit */}
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 540 }}>
+          <SoftButton
+            label={isCreating ? 'Posting…' : 'Post task'}
+            variant="accent"
+            size="lg"
+            icon="paper-plane"
+            onPress={handleSubmit}
+            loading={isCreating}
+            disabled={isCreating}
+            withGlow
+          />
+          <Text style={styles.submitNote}>Posted tasks notify nearby buddies instantly.</Text>
+        </MotiView>
       </ScrollView>
 
       {showCategoryPicker && renderCategoryPicker()}
@@ -570,49 +563,140 @@ export default function CreateTaskScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { padding: 16, paddingBottom: 100 },
-  section: { marginBottom: 20 },
-  sectionLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0' },
-  inputIcon: { marginRight: 10 },
-  textInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  textArea: { minHeight: 100, textAlignVertical: 'top' },
-  selectWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0' },
-  selectText: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', marginLeft: 10 },
-  budgetRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  budgetTypeButton: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0' },
-  budgetTypeButtonActive: {},
-  budgetTypeText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  currencyLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginRight: 8 },
-  useLocationButton: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 8 },
-  useLocationText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#8B85FF' },
-  selectedSkills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  skillChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8B85FF20', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  skillChipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#8B85FF' },
-  optionRow: { flexDirection: 'row', gap: 16 },
-  optionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
-  checkboxChecked: {},
-  optionLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  errorText: { color: '#EF4444', fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 6 },
-  charCount: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4, textAlign: 'right' },
-  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 12, marginTop: 8 },
-  submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%' },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  modalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  modalDoneText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#8B85FF' },
-  modalList: { maxHeight: 400, flexGrow: 0 },
-  modalItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalItemSelected: {},
-  modalItemText: { fontSize: 16, fontFamily: 'Inter_400Regular' },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 120 },
+
+  sectionCard: {
+    marginBottom: Spacing[4], padding: Spacing[5], borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionLabel: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: Spacing[3], marginLeft: 2 },
+
+  inputWrapper: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    paddingHorizontal: Spacing[3], borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surface.primary, borderWidth: 1.5, borderColor: Colors.border.light,
+    minHeight: 54,
+  },
+  textAreaWrap: { alignItems: 'flex-start' },
+  inputIconChip: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  currencyChip: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.semantic.successSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  currencyLabel: { fontSize: 16, fontFamily: Typography.fontFamily.bold, color: Colors.semantic.success },
+  textInput: { flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary, paddingVertical: Spacing[3] },
+  textArea: { minHeight: 110, textAlignVertical: 'top', paddingTop: Spacing[3] },
+
+  selectWrapper: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    paddingHorizontal: Spacing[3], minHeight: 54, borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surface.primary, borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  selectText: { flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary },
+
+  budgetRow: { flexDirection: 'row', gap: Spacing[2], alignItems: 'center' },
+  budgetTypeSeg: {
+    flexDirection: 'row', backgroundColor: Colors.surface.tertiary,
+    borderRadius: BorderRadius.pill, padding: 4,
+  },
+  budgetTypeButton: { paddingHorizontal: Spacing[4], paddingVertical: Spacing[2] + 2, borderRadius: BorderRadius.pill },
+  budgetTypeButtonActive: { backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange },
+  budgetTypeText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+
+  useLocationButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    marginTop: Spacing[3], paddingVertical: Spacing[2], paddingHorizontal: Spacing[3],
+    backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.pill,
+  },
+  useLocationText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed },
+
+  deadlineChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2] },
+  deadlineChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2] + 1, borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.surface.primary, borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  deadlineChipActive: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary, ...Shadows.button },
+  deadlineChipText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  deadlineEcho: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.brand.accentPressed, marginTop: Spacing[3], marginLeft: 2 },
+
+  selectedSkills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2], marginTop: Spacing[3] },
+  skillChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 6,
+  },
+  skillChipText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.brand.accentPressed },
+
+  optionRow: { flexDirection: 'row', gap: Spacing[3] },
+  optionCard: {
+    flex: 1, borderRadius: BorderRadius.md, borderWidth: 1.5, borderColor: Colors.border.light,
+    backgroundColor: Colors.surface.primary, padding: Spacing[4], alignItems: 'center', gap: 4,
+  },
+  optionCardActive: { borderColor: Colors.semantic.error, backgroundColor: Colors.semantic.errorSoft },
+  optionCardActiveRemote: { borderColor: Colors.brand.primary, backgroundColor: '#1E12090A' },
+  optionIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.creamSoft,
+    borderWidth: 1.5, borderColor: 'transparent',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+  },
+  optionTitle: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  optionDesc: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, textAlign: 'center', lineHeight: 14 },
+
+  errorText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.semantic.error, marginTop: Spacing[2], marginLeft: 2 },
+  charCount: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 4, textAlign: 'right' },
+  submitNote: { textAlign: 'center', fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: Spacing[3] },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(30,18,9,0.42)' },
+  modalContent: {
+    borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '70%', backgroundColor: Colors.surface.elevated,
+    paddingBottom: Spacing[6], ...Shadows.floating,
+  },
+  modalHandle: {
+    width: 42, height: 5, borderRadius: 3, backgroundColor: Colors.border.medium,
+    alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[2],
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing[5], paddingVertical: Spacing[3],
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  modalTitle: { fontSize: 17, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  modalCloseBtn: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.semantic.errorSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalDoneBtn: {
+    backgroundColor: Colors.brand.accent, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2], ...Shadows.buttonOrange,
+  },
+  modalDoneText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+  modalList: { flexGrow: 0 },
+  modalItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingHorizontal: Spacing[5], paddingVertical: Spacing[3] + 2,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  modalItemSelected: { backgroundColor: Colors.brand.accentSoft },
+  modalItemIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalItemIconActive: { backgroundColor: Colors.brand.accent },
+  modalItemText: { flex: 1, fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  modalItemTextActive: { color: Colors.brand.accentPressed },
+
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  authIconWrap: {
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  authTitle: { fontSize: 25, fontFamily: Typography.fontFamily.display, marginTop: Spacing[4], textAlign: 'center', color: Colors.text.primary },
+  authSubtitle: { fontSize: 14, fontFamily: Typography.fontFamily.body, marginTop: Spacing[2], textAlign: 'center', color: Colors.text.secondary },
 });

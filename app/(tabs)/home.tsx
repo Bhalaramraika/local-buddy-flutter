@@ -1,14 +1,16 @@
 /**
- * Home Screen — Soft Premium Dashboard
- * Clean greeting, capsule wallet card, quick actions, nearby tasks feed.
+ * Home Screen — Soft Modern Dashboard
+ * Playfair headline greeting, signature orange wallet card,
+ * rounded white quick-action cards, staggered Moti entrances.
  */
 
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography } from '@/constants/design';
-import { SoftCard, SoftBadge, SoftSkeleton, useAppColors } from '@/components/ui';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftCard, SoftBadge, SoftSkeleton, SoftAvatar, useAppColors } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useWalletStore } from '@/store/walletStore';
@@ -40,10 +42,8 @@ export default function HomeScreen() {
   const t = useAppColors();
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const isDark = t.isDark;
   const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
   const balance = getAvailableBalance();
-  const totalUnreadCount = getTotalUnreadCount();
 
   useEffect(() => {
     if (isAuthenticated) { void fetchTasks({ status: 'open' }); }
@@ -64,170 +64,212 @@ export default function HomeScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: t.background }]}>
-        <View style={styles.authPrompt}>
+      <View style={styles.container}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 450 }}
+          style={styles.authPrompt}
+        >
           <View style={styles.authIconWrap}>
-            <Ionicons name="people-outline" size={60} color={t.primary} />
+            <Ionicons name="people" size={44} color={Colors.brand.accent} />
           </View>
-          <Text style={[styles.authTitle, { color: t.text }]}>Welcome to LocalBuddy</Text>
-          <Text style={[styles.authSub, { color: t.textSecondary }]}>Sign in to find local tasks and buddies</Text>
+          <Text style={styles.authTitle}>Welcome to{'\n'}Local Buddy</Text>
+          <Text style={styles.authSub}>Sign in to find local tasks and buddies around you.</Text>
           <Pressable style={styles.authCta} onPress={() => router.push('/login')}>
             <Text style={styles.authCtaText}>Sign in / Create account</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </Pressable>
-        </View>
+        </MotiView>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View style={styles.container}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.primary]} tintColor={Colors.brand.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Greeting + notification */}
-        <View style={styles.header}>
+        <MotiView
+          from={{ opacity: 0, translateY: -12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400 }}
+          style={styles.header}
+        >
           <View style={styles.headerLeft}>
-            <Text style={[styles.greeting, { color: t.textSecondary }]}>{greeting}</Text>
-            <Text style={[styles.name, { color: t.text }]}>{user?.name || 'Buddy'} 👋</Text>
+            <Text style={styles.greeting}>{greeting},</Text>
+            <Text style={styles.name} numberOfLines={1}>{user?.name || 'Buddy'}</Text>
           </View>
           <Pressable
-            style={[styles.notificationBtn, { backgroundColor: t.surface, borderColor: t.border }]}
+            style={styles.notificationBtn}
             onPress={() => router.push('/(screens)/notifications')}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             accessibilityHint={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'No notifications'}
           >
-            <Ionicons name="notifications-outline" size={22} color={t.text} />
+            <Ionicons name="notifications-outline" size={22} color={Colors.brand.primary} />
             {unreadCount > 0 ? (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
               </View>
             ) : null}
           </Pressable>
-        </View>
+        </MotiView>
 
-        {/* Wallet Card */}
-        <SoftCard animated delay={0}>
-          <View style={styles.walletCardInner}>
+        {/* Signature orange wallet card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 18 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 440, delay: 80 }}
+        >
+          <Pressable onPress={() => router.push('/(tabs)/wallet')} style={styles.walletCard}>
             <View style={styles.walletTop}>
               <View style={styles.walletLabelRow}>
-                <Ionicons name="wallet-outline" size={16} color={t.textMuted} />
-                <Text style={[styles.walletLabel, { color: t.textMuted }]}>Wallet balance</Text>
+                <View style={styles.walletIconChip}>
+                  <Ionicons name="wallet" size={16} color="#FFFFFF" />
+                </View>
+                <Text style={styles.walletLabel}>Wallet balance</Text>
               </View>
-              <Pressable onPress={() => router.push('/(tabs)/wallet')}>
-                <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
-              </Pressable>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.9)" />
             </View>
-            <Text style={[styles.walletAmount, { color: t.text }]}>{formatCurrency(balance)}</Text>
+            <Text style={styles.walletAmount}>{formatCurrency(balance)}</Text>
             <View style={styles.walletActions}>
               <Pressable
-                style={[styles.actionPill, { backgroundColor: Colors.brand.primary }]}
+                style={styles.walletPillGreen}
                 onPress={() => router.push('/(screens)/wallet-topup')}
               >
-                <Ionicons name="add" size={14} color="#fff" />
-                <Text style={styles.actionPillText}>Add money</Text>
+                <Ionicons name="add-circle" size={15} color="#FFFFFF" />
+                <Text style={styles.walletPillText}>Add money</Text>
               </Pressable>
               <Pressable
-                style={[styles.actionPill, { backgroundColor: t.surfaceAlt, borderWidth: 1, borderColor: t.border }]}
+                style={styles.walletPillGhost}
                 onPress={() => router.push('/(screens)/wallet-history')}
               >
-                <Ionicons name="time-outline" size={14} color={t.textSecondary} />
-                <Text style={[styles.actionPillText, { color: t.textSecondary }]}>History</Text>
+                <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.walletPillText}>History</Text>
               </Pressable>
             </View>
-          </View>
-        </SoftCard>
+          </Pressable>
+        </MotiView>
 
         {/* Quick Actions */}
         <View style={styles.quickActionsRow}>
-          {QUICK_ACTIONS.map((a) => (
-            <Pressable key={a.label} style={styles.quickAction} onPress={() => router.push(a.route as any)}>
-              <SoftCard padding={3} style={styles.quickActionInner} onPress={() => router.push(a.route as any)}>
-                <View style={[styles.quickIconWrap, { backgroundColor: Colors.brand.primary + '12' }]}>
-                  <Ionicons name={a.icon} size={22} color={Colors.brand.primary} />
+          {QUICK_ACTIONS.map((a, i) => (
+            <MotiView
+              key={a.label}
+              from={{ opacity: 0, translateY: 18 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 420, delay: 140 + i * 70 }}
+              style={styles.quickAction}
+            >
+              <Pressable style={styles.quickActionInner} onPress={() => router.push(a.route as any)}>
+                <View style={styles.quickIconWrap}>
+                  <Ionicons name={a.icon} size={22} color={Colors.brand.accent} />
                 </View>
-                <Text style={[styles.quickLabel, { color: t.text }]} numberOfLines={1}>{a.label}</Text>
-              </SoftCard>
-            </Pressable>
+                <Text style={styles.quickLabel} numberOfLines={1}>{a.label}</Text>
+              </Pressable>
+            </MotiView>
           ))}
         </View>
 
         {/* Stats Row */}
-        <SoftCard animated delay={100} padding={4}>
-          <View style={styles.statsRow}>
+        <MotiView
+          from={{ opacity: 0, translateY: 18 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 440, delay: 300 }}
+        >
+          <View style={styles.statsCard}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: t.text }]}>{String(user?.stats?.tasksPosted || 0)}</Text>
-              <Text style={[styles.statLabel, { color: t.textMuted }]}>Posted</Text>
+              <Text style={styles.statValue}>{String(user?.stats?.tasksPosted || 0)}</Text>
+              <Text style={styles.statLabel}>Posted</Text>
             </View>
-            <View style={[styles.statDivider, { backgroundColor: t.border }]} />
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: Colors.semantic.success }]}>
                 {String(user?.stats?.tasksCompleted || 0)}
               </Text>
-              <Text style={[styles.statLabel, { color: t.textMuted }]}>Completed</Text>
+              <Text style={styles.statLabel}>Completed</Text>
             </View>
-            <View style={[styles.statDivider, { backgroundColor: t.border }]} />
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: Colors.brand.primary }]}>
-                {String(Math.round(user?.rating?.average || 0))}
-              </Text>
-              <Text style={[styles.statLabel, { color: t.textMuted }]}>Rating</Text>
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={15} color={Colors.brand.accent} />
+                <Text style={[styles.statValue, { color: Colors.brand.accent }]}>
+                  {(user?.rating?.average || 0).toFixed(1)}
+                </Text>
+              </View>
+              <Text style={styles.statLabel}>Rating</Text>
             </View>
           </View>
-        </SoftCard>
+        </MotiView>
 
         {/* Nearby Tasks */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: t.text }]}>Nearby tasks</Text>
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 400, delay: 380 }}
+          style={styles.sectionHeaderRow}
+        >
+          <Text style={styles.sectionTitle}>Nearby tasks</Text>
           <Pressable style={styles.sectionAction} onPress={() => router.push('/(screens)/create-task')}>
+            <Ionicons name="add" size={15} color="#FFFFFF" />
             <Text style={styles.sectionActionText}>Post task</Text>
-            <Ionicons name="add" size={14} color={Colors.text.inverse} />
           </Pressable>
-        </View>
+        </MotiView>
 
         {tasksLoading && tasksToShow.length === 0 ? (
           <View style={styles.taskSkeletonRow}>
-            <SoftSkeleton height={96} borderRadius={BorderRadius.lg} />
-            <SoftSkeleton height={96} borderRadius={BorderRadius.lg} width="90%" />
+            <SoftSkeleton height={92} borderRadius={BorderRadius.lg} />
+            <SoftSkeleton height={92} borderRadius={BorderRadius.lg} width="92%" />
           </View>
         ) : tasksToShow.length === 0 ? (
-          <View style={styles.Empty}>
-            <Ionicons name="clipboard-outline" size={48} color={t.textMuted} />
-            <Text style={[styles.emptyTitle, { color: t.text }]}>No nearby tasks yet</Text>
-            <Text style={[styles.emptySub, { color: t.textSecondary }]}>Post one or check back soon — things pick up fast around you.</Text>
-          </View>
+          <MotiView
+            from={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'timing', duration: 400, delay: 420 }}
+            style={styles.emptyWrap}
+          >
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="clipboard-outline" size={38} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyTitle}>No nearby tasks yet</Text>
+            <Text style={styles.emptySub}>Post one or check back soon — things pick up fast around you.</Text>
+          </MotiView>
         ) : (
           tasksToShow.map((task, i) => {
             const budgetText = task.budget?.amount ? `₹${task.budget.amount}` : 'Negotiable';
             const statusColor = TASK_STATUS_COLOR[task.status] || TASK_STATUS_COLOR.open;
             return (
-              <Pressable
+              <MotiView
                 key={task.id}
-                onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { id: task.id } })}
-                style={({ pressed }) => [styles.taskCardWrap, pressed && { opacity: 0.92 }]}
+                from={{ opacity: 0, translateY: 16 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 400, delay: 420 + i * 70 }}
               >
-                <AnimatedCardWrapper index={i}>
-                  <SoftCard padding={4}>
-                    <View style={styles.taskRow}>
-                      <View style={[styles.taskEmoji, { backgroundColor: Colors.brand.secondary + '12' }]}>
-                        <Ionicons name="briefcase-outline" size={18} color={Colors.brand.primary} />
-                      </View>
-                      <View style={styles.taskInfo}>
-                        <Text style={[styles.taskTitle, { color: t.text }]} numberOfLines={1}>{task.title}</Text>
-                        <Text style={[styles.taskSub, { color: t.textMuted }]} numberOfLines={1}>{task.category} · ₹{(task.budget as any)?.amount ?? task.budget} · {(task.budget as any)?.type || 'fixed'}</Text>
-                      </View>
-                      <View style={styles.taskRight}>
-                        <SoftBadge label={budgetText} variant="neutral" />
-                        <View style={[styles.statusDot, { backgroundColor: statusColor.bg }]}>
-                          <View style={[styles.statusDotInner, { backgroundColor: statusColor.text }]} />
-                        </View>
-                      </View>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { id: task.id } })}
+                  style={({ pressed }) => [styles.taskCard, pressed && { transform: [{ scale: 0.985 }] }]}
+                >
+                  <View style={styles.taskIconChip}>
+                    <Ionicons name="briefcase-outline" size={19} color={Colors.brand.accent} />
+                  </View>
+                  <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
+                    <Text style={styles.taskSub} numberOfLines={1}>
+                      {task.category} · ₹{(task.budget as any)?.amount ?? task.budget} · {(task.budget as any)?.type || 'fixed'}
+                    </Text>
+                  </View>
+                  <View style={styles.taskRight}>
+                    <SoftBadge label={budgetText} variant="accent" />
+                    <View style={[styles.statusDot, { backgroundColor: statusColor.bg }]}>
+                      <View style={[styles.statusDotInner, { backgroundColor: statusColor.text }]} />
                     </View>
-                  </SoftCard>
-                </AnimatedCardWrapper>
-              </Pressable>
+                  </View>
+                </Pressable>
+              </MotiView>
             );
           })
         )}
@@ -236,87 +278,146 @@ export default function HomeScreen() {
   );
 }
 
-function AnimatedCardWrapper({ index, children }: { index: number; children: React.ReactNode }) {
-  const anim = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    Animated.timing(anim, { toValue: 1, duration: 280, delay: index * 60, useNativeDriver: true }).start();
-  }, [index]);
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
-  return <Animated.View style={{ opacity: anim, transform: [{ translateY }] }}>{children}</Animated.View>;
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[24] },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: 120 },
+
+  // ---- Auth gate ----
   authPrompt: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing[8] },
   authIconWrap: {
-    width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.brand.primary + '15',
-    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[5], ...Shadows.card,
   },
-  authTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 22, marginBottom: Spacing[2] },
-  authSub: { fontFamily: Typography.fontFamily.regular, fontSize: 15, textAlign: 'center', marginBottom: Spacing[6] },
+  authTitle: {
+    fontFamily: Typography.fontFamily.display, fontSize: 34, lineHeight: 42,
+    color: Colors.text.primary, textAlign: 'center', marginBottom: Spacing[3],
+  },
+  authSub: {
+    fontFamily: Typography.fontFamily.body, fontSize: 15, lineHeight: 23,
+    color: Colors.text.secondary, textAlign: 'center', marginBottom: Spacing[7],
+  },
   authCta: {
-    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill,
-    paddingVertical: Spacing[3], paddingHorizontal: Spacing[8],
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    backgroundColor: Colors.brand.accent, borderRadius: BorderRadius.pill,
+    paddingVertical: Spacing[4], paddingHorizontal: Spacing[8], ...Shadows.buttonOrange,
   },
-  authCtaText: { color: Colors.text.inverse, fontFamily: Typography.fontFamily.semiBold, fontSize: 15 },
+  authCtaText: { color: '#FFFFFF', fontFamily: Typography.fontFamily.semiBold, fontSize: 15 },
 
+  // ---- Header ----
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[6] },
-  headerLeft: { flex: 1 },
-  greeting: { fontFamily: Typography.fontFamily.medium, fontSize: 13, color: Colors.text.secondary },
-  name: { fontFamily: Typography.fontFamily.bold, fontSize: 24, color: Colors.text.primary, marginTop: Spacing[1] },
+  headerLeft: { flex: 1, marginRight: Spacing[3] },
+  greeting: { fontFamily: Typography.fontFamily.bodyMedium, fontSize: 14, color: Colors.text.secondary },
+  name: {
+    fontFamily: Typography.fontFamily.display, fontSize: 30, lineHeight: 38,
+    color: Colors.text.primary, marginTop: 2,
+  },
   notificationBtn: {
-    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.surface.elevated, ...Shadows.card,
   },
   notificationBadge: {
     position: 'absolute', top: -3, right: -3, backgroundColor: Colors.semantic.error,
-    borderRadius: BorderRadius.pill, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.surface.secondary,
+    borderRadius: BorderRadius.pill, minWidth: 19, height: 19, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.surface.primary,
   },
-  notificationBadgeText: { color: Colors.text.inverse, fontSize: 9, fontFamily: Typography.fontFamily.bold, paddingHorizontal: 3 },
+  notificationBadgeText: { color: '#FFFFFF', fontSize: 9.5, fontFamily: Typography.fontFamily.bold, paddingHorizontal: 3 },
 
-  walletCardInner: { paddingVertical: Spacing[5], paddingHorizontal: Spacing[5] },
+  // ---- Orange wallet card ----
+  walletCard: {
+    backgroundColor: Colors.brand.accent,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing[5],
+    marginBottom: Spacing[5],
+    ...Shadows.buttonOrange,
+  },
   walletTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[3] },
   walletLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
-  walletLabel: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
-  walletAmount: { fontFamily: Typography.fontFamily.bold, fontSize: 30, color: Colors.text.primary, marginBottom: Spacing[5] },
+  walletIconChip: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  walletLabel: {
+    fontFamily: Typography.fontFamily.medium, fontSize: 12, color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase', letterSpacing: 1,
+  },
+  walletAmount: {
+    fontFamily: Typography.fontFamily.bold, fontSize: 36, color: '#FFFFFF',
+    marginBottom: Spacing[4], letterSpacing: 0.3,
+  },
   walletActions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[3] },
-  actionPill: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing[1],
-    borderRadius: BorderRadius.pill, paddingVertical: Spacing[2], paddingHorizontal: Spacing[4],
+  walletPillGreen: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.semantic.success, borderRadius: BorderRadius.pill,
+    paddingVertical: Spacing[2] + 2, paddingHorizontal: Spacing[4],
   },
-  actionPillText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 13, color: Colors.text.inverse },
+  walletPillGhost: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: BorderRadius.pill,
+    paddingVertical: Spacing[2] + 2, paddingHorizontal: Spacing[4],
+  },
+  walletPillText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 13, color: '#FFFFFF' },
 
-  quickActionsRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[6] },
+  // ---- Quick actions ----
+  quickActionsRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[5] },
   quickAction: { flex: 1 },
-  quickActionInner: { alignItems: 'center', paddingVertical: Spacing[4], paddingHorizontal: Spacing[2] },
-  quickIconWrap: {
-    width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  quickActionInner: {
+    alignItems: 'center', backgroundColor: Colors.surface.elevated,
+    borderRadius: BorderRadius.lg, paddingVertical: Spacing[4], paddingHorizontal: Spacing[2],
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
   },
-  quickLabel: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12, color: Colors.text.primary },
+  quickIconWrap: {
+    width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[2],
+  },
+  quickLabel: { fontFamily: Typography.fontFamily.semiBold, fontSize: 11.5, color: Colors.text.primary },
 
-  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // ---- Stats ----
+  statsCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[5],
+    marginBottom: Spacing[7], ...Shadows.card,
+  },
   statItem: { flex: 1, alignItems: 'center' },
   statValue: { fontFamily: Typography.fontFamily.bold, fontSize: 22, color: Colors.text.primary },
-  statLabel: { fontFamily: Typography.fontFamily.medium, fontSize: 11, color: Colors.text.muted, marginTop: Spacing[1] },
-  statDivider: { width: 1, height: 28, backgroundColor: Colors.border.light, marginHorizontal: Spacing[3] },
+  statLabel: { fontFamily: Typography.fontFamily.body, fontSize: 11, color: Colors.text.muted, marginTop: Spacing[1] },
+  statDivider: { width: 1, height: 32, backgroundColor: Colors.border.light, marginHorizontal: Spacing[3] },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
+  // ---- Section header ----
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[4] },
-  sectionTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 18, color: Colors.text.primary },
-  sectionAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing[1], backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill, paddingVertical: Spacing[2], paddingHorizontal: Spacing[3] },
-  sectionActionText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12, color: Colors.text.inverse },
+  sectionTitle: { fontFamily: Typography.fontFamily.display, fontSize: 21, color: Colors.text.primary },
+  sectionAction: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill,
+    paddingVertical: Spacing[2] + 1, paddingHorizontal: Spacing[4], ...Shadows.button,
+  },
+  sectionActionText: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12.5, color: '#FFFFFF' },
 
+  // ---- Empty / skeleton ----
   taskSkeletonRow: { gap: Spacing[3], marginTop: Spacing[2] },
-  Empty: { alignItems: 'center', paddingVertical: Spacing[10], paddingHorizontal: Spacing[4] },
-  emptyTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 16, color: Colors.text.primary, marginTop: Spacing[4], marginBottom: Spacing[2] },
-  emptySub: { fontFamily: Typography.fontFamily.regular, fontSize: 14, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+  emptyWrap: { alignItems: 'center', paddingVertical: Spacing[10], paddingHorizontal: Spacing[4] },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  emptyTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: 17, color: Colors.text.primary, marginBottom: Spacing[2] },
+  emptySub: { fontFamily: Typography.fontFamily.body, fontSize: 13.5, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
 
-  taskCardWrap: { marginBottom: Spacing[3] },
-  taskRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
-  taskEmoji: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  // ---- Task cards ----
+  taskCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[4],
+    marginBottom: Spacing[3], ...Shadows.card,
+  },
+  taskIconChip: {
+    width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
   taskInfo: { flex: 1 },
   taskTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: 15, color: Colors.text.primary, marginBottom: 2 },
-  taskSub: { fontFamily: Typography.fontFamily.regular, fontSize: 12, color: Colors.text.muted },
+  taskSub: { fontFamily: Typography.fontFamily.body, fontSize: 12, color: Colors.text.muted },
   taskRight: { alignItems: 'flex-end', gap: Spacing[2] },
   statusDot: { borderRadius: BorderRadius.pill, padding: 6 },
   statusDotInner: { width: 6, height: 6, borderRadius: 3 },

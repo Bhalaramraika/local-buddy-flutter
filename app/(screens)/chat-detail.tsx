@@ -16,12 +16,14 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatRelativeTime, formatTime } from '@/utils/helpers';
-import { Colors } from '@/constants/design';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function ChatDetailScreen() {
   const router = useRouter();
@@ -37,9 +39,9 @@ export default function ChatDetailScreen() {
   } = useChatStore();
   const messages = (conversationId && messagesMap[conversationId]) || [];
   const { user, isAuthenticated } = useAuthStore();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
+  const isDark = false;
   const [messageText, setMessageText] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const flatListRef = useRef<FlatList<any>>(null);
@@ -103,13 +105,6 @@ export default function ChatDetailScreen() {
     ]);
   };
 
-  const handleBlockUser = () => {
-    Alert.alert('Block User', 'Are you sure you want to block this user?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Block', style: 'destructive', onPress: () => {} },
-    ]);
-  };
-
   const renderMessage = ({ item }: { item: any }) => {
     const isOwn = item.senderId === user?.id;
     const showTime = !item.isContinuation;
@@ -128,14 +123,14 @@ export default function ChatDetailScreen() {
             </View>
           </View>
         )}
-        <View style={[styles.messageWrapper, isOwn && styles.messageWrapperOwn]}>
+          <View style={[styles.messageWrapper, isOwn && styles.messageWrapperOwn]}>
           {!isOwn && !item.isContinuation && (
-            <Text style={[styles.senderName, { color: isDark ? '#888' : '#666' }]}>{item.senderName}</Text>
+            <Text style={styles.senderName}>{item.senderName}</Text>
           )}
           <View style={[
             styles.messageBubble,
             isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther,
-            { backgroundColor: isOwn ? Colors.brand.primary : (isDark ? '#2a2a2a' : '#f0f0f0') }
+            isOwn ? Shadows.button : {},
           ]}>
             {item.type === 'image' && item.imageUrl && (
               <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
@@ -143,21 +138,21 @@ export default function ChatDetailScreen() {
             {item.type === 'text' && (
               <Text style={[
                 styles.messageText,
-                { color: isOwn ? '#fff' : (isDark ? '#fff' : '#000') }
+                { color: isOwn ? '#fff' : Colors.text.primary }
               ]}>
                 {item.content}
               </Text>
             )}
             {item.type === 'task' && (
-              <View style={styles.taskMessageCard}>
-                <Text style={[styles.taskMessageTitle, { color: isDark ? '#fff' : '#000' }]}>{item.taskTitle}</Text>
-                <Text style={[styles.taskMessageBudget, { color: isOwn ? '#fff' : Colors.brand.primary }]}>{item.taskBudget}</Text>
+              <View style={[styles.taskMessageCard, !isOwn && { backgroundColor: Colors.brand.accentSoft }]}>
+                <Text style={[styles.taskMessageTitle, { color: isOwn ? '#fff' : Colors.text.primary }]}>{item.taskTitle}</Text>
+                <Text style={[styles.taskMessageBudget, { color: isOwn ? '#FFD9CE' : Colors.brand.accentPressed }]}>{item.taskBudget}</Text>
               </View>
             )}
             {item.type === 'location' && (
-              <View style={styles.locationMessageCard}>
-                <MaterialCommunityIcons name="map-marker" size={20} color={isOwn ? '#fff' : Colors.brand.primary} />
-                <Text style={[styles.locationMessageText, { color: isOwn ? '#fff' : (isDark ? '#ddd' : '#333') }]}>
+              <View style={[styles.locationMessageCard, !isOwn && { backgroundColor: Colors.brand.accentSoft }]}>
+                <MaterialCommunityIcons name="map-marker" size={20} color={isOwn ? '#fff' : Colors.brand.accent} />
+                <Text style={[styles.locationMessageText, { color: isOwn ? '#fff' : Colors.text.primary }]}>
                   {item.locationName || 'Shared Location'}
                 </Text>
               </View>
@@ -165,17 +160,11 @@ export default function ChatDetailScreen() {
             {showTime && (
               <Text style={[
                 styles.messageTime,
-                { color: isOwn ? '#fff8' : (isDark ? '#888' : '#999') }
+                { color: isOwn ? '#FFFFFFA6' : Colors.text.muted }
               ]}>
                 {formatTime(item.createdAt)}
-                {isOwn && item.status && (
-                  <MaterialCommunityIcons 
-                    name={item.status === 'read' ? 'check-all' : 'check'} 
-                    size={12} 
-                    color={item.status === 'read' ? Colors.brand.primary : '#fff8'}
-                    style={{ marginLeft: 4 }}
-                  />
-                )}
+                {isOwn && item.status ? ' ' : ''}
+                {isOwn && item.status ? (item.status === 'read' ? '✓✓' : '✓') : ''}
               </Text>
             )}
           </View>
@@ -186,32 +175,26 @@ export default function ChatDetailScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Chat</Text>
-            <View style={{ width: 44 }} />
+      <View style={styles.container}>
+        <ScreenHeader title="Chat" onBack={() => router.back()} />
+        <View style={styles.authPrompt}>
+          <View style={styles.authIconWrap}>
+            <Ionicons name="chatbubbles" size={40} color={Colors.brand.accent} />
           </View>
-        </View>
-        <View style={[styles.authPrompt, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <MaterialCommunityIcons name="message-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Sign in to Chat</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Log in to start messaging</Text>
+          <Text style={styles.authTitle}>Sign in to chat</Text>
+          <Text style={styles.authSubtitle}>Log in to start messaging</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
+    <View style={styles.container}>
+      {/* Custom chat header — no native bar */}
+      <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerCircleBtn} hitSlop={8}>
+            <Ionicons name="arrow-back" size={19} color={Colors.text.primary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerUser} onPress={handleViewProfile}>
             <View style={styles.headerAvatar}>
@@ -220,21 +203,21 @@ export default function ChatDetailScreen() {
               ) : (
                 <Text style={styles.headerAvatarText}>{currentConversation?.otherUser?.name?.charAt(0).toUpperCase()}</Text>
               )}
-              {currentConversation?.otherUser?.isOnline && (
+              {currentConversation?.otherUser?.isOnline ? (
                 <View style={styles.onlineIndicator} />
-              )}
+              ) : null}
             </View>
             <View style={styles.headerUserInfo}>
-              <Text style={[styles.headerUserName, { color: isDark ? '#fff' : '#000' }]}>
+              <Text style={styles.headerUserName} numberOfLines={1}>
                 {currentConversation?.otherUser?.name || 'Loading...'}
               </Text>
-              <Text style={[styles.headerUserStatus, { color: isDark ? '#888' : '#666' }]}>
+              <Text style={styles.headerUserStatus}>
                 {currentConversation?.otherUser?.isOnline ? 'Online' : `Last seen ${formatRelativeTime(currentConversation?.otherUser?.lastSeen ?? new Date().toISOString())}`}
               </Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowOptions(true)}>
-            <Ionicons name="ellipsis-vertical-outline" size={28} color={isDark ? '#fff' : '#000'} />
+          <TouchableOpacity onPress={() => setShowOptions(true)} style={styles.headerCircleBtn} hitSlop={8} accessibilityLabel="Chat options">
+            <Ionicons name="ellipsis-vertical" size={17} color={Colors.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -250,10 +233,12 @@ export default function ChatDetailScreen() {
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
-          <View style={[styles.emptyMessages, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-            <Ionicons name="chatbubble-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyMessagesText, { color: isDark ? '#fff' : '#000' }]}>No messages yet</Text>
-            <Text style={[styles.emptyMessagesSubtext, { color: isDark ? '#888' : '#666' }]}>Start the conversation!</Text>
+          <View style={styles.emptyMessages}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="chatbubble-outline" size={30} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyMessagesText}>No messages yet</Text>
+            <Text style={styles.emptyMessagesSubtext}>Start the conversation!</Text>
           </View>
         }
       />
@@ -264,22 +249,22 @@ export default function ChatDetailScreen() {
         style={styles.inputContainerWrapper}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.inputContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
+        <View style={styles.inputContainer}>
           <View style={styles.inputActions}>
-            <TouchableOpacity onPress={handleImagePick}>
-              <Ionicons name="image-outline" size={24} color={isDark ? '#888' : '#666'} />
+            <TouchableOpacity onPress={handleImagePick} style={styles.attachBtn} hitSlop={6} accessibilityLabel="Send photo">
+              <Ionicons name="image" size={19} color={Colors.brand.accent} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleLocationShare}>
-              <MaterialCommunityIcons name="map-marker-outline" size={24} color={isDark ? '#888' : '#666'} />
+            <TouchableOpacity onPress={handleLocationShare} style={styles.attachBtn} hitSlop={6} accessibilityLabel="Share location">
+              <MaterialCommunityIcons name="map-marker" size={19} color={Colors.brand.accent} />
             </TouchableOpacity>
           </View>
-          <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
+          <View style={styles.inputWrapper}>
             <TextInput
-              style={[styles.textInput, { color: isDark ? '#fff' : '#000' }]}
+              style={styles.textInput}
               value={messageText}
               onChangeText={setMessageText}
               placeholder="Type a message..."
-              placeholderTextColor={isDark ? '#888' : '#999'}
+              placeholderTextColor={Colors.text.muted}
               multiline
               maxLength={1000}
               onFocus={() => setKeyboardVisible(true)}
@@ -290,15 +275,15 @@ export default function ChatDetailScreen() {
             style={[
               styles.sendButton,
               messageText.trim() ? styles.sendButtonActive : styles.sendButtonInactive,
-              { backgroundColor: messageText.trim() ? Colors.brand.primary : (isDark ? '#333' : '#ddd') }
             ]}
             onPress={handleSendMessage}
             disabled={!messageText.trim() || isSending}
+            accessibilityLabel="Send message"
           >
             {isSending ? (
-              <Ionicons name="refresh" size={22} color="#fff" />
+              <Ionicons name="hourglass" size={19} color="#fff" />
             ) : (
-              <Ionicons name="send-outline" size={22} color={messageText.trim() ? '#fff' : (isDark ? '#666' : '#999')} />
+              <Ionicons name="send" size={18} color={messageText.trim() ? '#fff' : Colors.text.muted} />
             )}
           </TouchableOpacity>
         </View>
@@ -307,28 +292,31 @@ export default function ChatDetailScreen() {
       {/* Options Modal */}
       {showOptions && (
         <View style={styles.modalOverlay} onTouchStart={() => setShowOptions(false)}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-            <TouchableOpacity style={styles.modalItem} onPress={handleCall}>
-              <Ionicons name="call-outline" size={24} color={isDark ? '#fff' : '#000'} style={styles.modalIcon} />
-              <Text style={[styles.modalItemText, { color: isDark ? '#fff' : '#000' }]}>Voice Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalItem} onPress={handleVideoCall}>
-              <Ionicons name="videocam-outline" size={24} color={isDark ? '#fff' : '#000'} style={styles.modalIcon} />
-              <Text style={[styles.modalItemText, { color: isDark ? '#fff' : '#000' }]}>Video Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalItem} onPress={handleViewProfile}>
-              <MaterialCommunityIcons name="account-outline" size={24} color={isDark ? '#fff' : '#000'} style={styles.modalIcon} />
-              <Text style={[styles.modalItemText, { color: isDark ? '#fff' : '#000' }]}>View Profile</Text>
-            </TouchableOpacity>
-            <View style={[styles.modalDivider, { backgroundColor: isDark ? '#444' : '#eee' }]} />
-            <TouchableOpacity style={styles.modalItem} onPress={handleClearChat}>
-              <Ionicons name="trash-outline" size={24} color="#EF4444" style={styles.modalIcon} />
-              <Text style={{ color: '#EF4444', fontSize: 16, fontFamily: 'Inter_500Medium' }}>Clear Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalItem} onPress={handleBlockUser}>
-              <MaterialCommunityIcons name="account-off-outline" size={24} color="#EF4444" style={styles.modalIcon} />
-              <Text style={{ color: '#EF4444', fontSize: 16, fontFamily: 'Inter_500Medium' }}>Block User</Text>
-            </TouchableOpacity>
+          <View style={styles.modalContent} onTouchStart={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+            {[
+              { icon: 'call' as const, label: 'Voice call', onPress: handleCall, tint: 'accent' },
+              { icon: 'videocam' as const, label: 'Video call', onPress: handleVideoCall, tint: 'accent' },
+              { icon: 'person' as const, label: 'View profile', onPress: handleViewProfile, tint: 'accent' },
+            ].map((opt) => (
+              <TouchableOpacity key={opt.label} style={styles.modalItem} onPress={() => { setShowOptions(false); opt.onPress(); }}>
+                <View style={[styles.modalItemIcon, { backgroundColor: Colors.brand.accentSoft }]}>
+                  <Ionicons name={opt.icon} size={17} color={Colors.brand.accent} />
+                </View>
+                <Text style={styles.modalItemText}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.modalDivider} />
+            {[
+              { icon: 'trash-outline' as const, label: 'Clear chat', onPress: handleClearChat },
+            ].map((opt) => (
+              <TouchableOpacity key={opt.label} style={styles.modalItem} onPress={() => { setShowOptions(false); opt.onPress(); }}>
+                <View style={[styles.modalItemIcon, { backgroundColor: Colors.semantic.errorSoft }]}>
+                  <Ionicons name={opt.icon} size={17} color={Colors.semantic.error} />
+                </View>
+                <Text style={[styles.modalItemText, { color: Colors.semantic.error }]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowOptions(false)}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -340,58 +328,113 @@ export default function ChatDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  header: {
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[3],
+    backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  headerContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
+  headerCircleBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.cardPressed,
+  },
   headerUser: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  headerAvatar: { width: 40, height: 40, borderRadius: 32, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  headerAvatar: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden',
+  },
   headerAvatarImage: { width: '100%', height: '100%' },
-  headerAvatarText: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
-  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 18, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
+  headerAvatarText: { fontSize: 16, fontFamily: Typography.fontFamily.bold, color: '#fff' },
+  onlineIndicator: {
+    position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6,
+    backgroundColor: Colors.semantic.success, borderWidth: 2, borderColor: Colors.surface.primary,
+  },
   headerUserInfo: { flex: 1 },
-  headerUserName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  headerUserStatus: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  messagesContent: { padding: 16, paddingBottom: 20 },
-  messageContainer: { flexDirection: 'row', marginBottom: 8 },
-  avatarWrapper: { width: 36, marginRight: 8, marginTop: 4 },
-  avatar: { width: 32, height: 32, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  headerUserName: { fontSize: 15.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  headerUserStatus: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+
+  messagesContent: { paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[5] },
+  messageContainer: { flexDirection: 'row', marginBottom: Spacing[2] },
+  avatarWrapper: { width: 34, marginRight: Spacing[2], marginTop: 4 },
+  avatar: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+  },
   avatarImage: { width: '100%', height: '100%' },
-  avatarText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
-  messageWrapper: { flex: 1, maxWidth: '75%' },
+  avatarText: { fontSize: 12, fontFamily: Typography.fontFamily.bold, color: '#fff' },
+  messageWrapper: { flex: 1, maxWidth: '78%' },
   messageWrapperOwn: { alignSelf: 'flex-end', alignItems: 'flex-end' },
-  senderName: { fontSize: 12, fontFamily: 'Inter_500Medium', marginBottom: 2, marginLeft: 4 },
-  messageBubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16 },
-  messageBubbleOwn: { borderBottomRightRadius: 4 },
-  messageBubbleOther: { borderBottomLeftRadius: 4 },
-  messageText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 22 },
-  messageTime: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4, textAlign: 'right' },
-  messageImage: { width: 200, height: 200, borderRadius: 32, marginBottom: 4 },
-  taskMessageCard: { backgroundColor: '#fff2', padding: 12, borderRadius: 18, marginTop: 4 },
-  taskMessageTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  taskMessageBudget: { fontSize: 13, fontFamily: 'Inter_500Medium', marginTop: 2 },
-  locationMessageCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff2', padding: 12, borderRadius: 18, marginTop: 4 },
-  locationMessageText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  emptyMessages: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  emptyMessagesText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
-  emptyMessagesSubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8 },
+  senderName: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary, marginBottom: 3, marginLeft: 6 },
+  messageBubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20 },
+  messageBubbleOwn: { borderBottomRightRadius: 6, backgroundColor: Colors.brand.primary },
+  messageBubbleOther: {
+    borderBottomLeftRadius: 6, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.cardPressed,
+  },
+  messageText: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, lineHeight: 21 },
+  messageTime: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, marginTop: 4, textAlign: 'right' },
+  messageImage: { width: 200, height: 200, borderRadius: 16, marginBottom: 4 },
+  taskMessageCard: { backgroundColor: 'rgba(255,255,255,0.14)', padding: 12, borderRadius: 14, marginTop: 4 },
+  taskMessageTitle: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold },
+  taskMessageBudget: { fontSize: 13, fontFamily: Typography.fontFamily.bold, marginTop: 2 },
+  locationMessageCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.14)', padding: 12, borderRadius: 14, marginTop: 4 },
+  locationMessageText: { fontSize: 13.5, fontFamily: Typography.fontFamily.body },
+
+  emptyMessages: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  emptyIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyMessagesText: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginTop: Spacing[4] },
+  emptyMessagesSubtext: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[1] },
+
   inputContainerWrapper: { flex: 1 },
-  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#eee', gap: 8 },
-  inputActions: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  inputWrapper: { flex: 1, borderRadius: 32, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 120 },
-  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular' },
-  sendButton: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  sendButtonActive: {},
-  sendButtonInactive: {},
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0008', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingVertical: 8 },
-  modalItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
-  modalIcon: { width: 28, marginRight: 16 },
-  modalItemText: { fontSize: 16, fontFamily: 'Inter_500Medium' },
-  modalDivider: { height: 1, marginHorizontal: 20 },
-  modalCancel: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  modalCancelText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
+  inputContainer: {
+    flexDirection: 'row', alignItems: 'flex-end',
+    paddingHorizontal: Spacing[3], paddingVertical: Spacing[3], gap: Spacing[2],
+    backgroundColor: Colors.surface.primary,
+    borderTopWidth: 1, borderTopColor: Colors.border.light,
+  },
+  inputActions: { flexDirection: 'row', gap: 6, marginBottom: 3 },
+  attachBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  inputWrapper: {
+    flex: 1, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing[4], paddingVertical: 6,
+    maxHeight: 120, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  textInput: { fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary, minHeight: 24 },
+  sendButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
+  sendButtonActive: { backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange },
+  sendButtonInactive: { backgroundColor: Colors.surface.tertiary },
+
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  authIconWrap: {
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  authTitle: { fontSize: 24, fontFamily: Typography.fontFamily.display, marginTop: Spacing[4], textAlign: 'center', color: Colors.text.primary },
+  authSubtitle: { fontSize: 14, fontFamily: Typography.fontFamily.body, marginTop: Spacing[2], textAlign: 'center', color: Colors.text.secondary },
+
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(30,18,9,0.42)', justifyContent: 'flex-end' },
+  modalContent: {
+    borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl,
+    paddingVertical: Spacing[3], paddingBottom: Spacing[6], backgroundColor: Colors.surface.elevated,
+    borderTopWidth: 1, borderColor: Colors.border.light, ...Shadows.floating,
+  },
+  modalHandle: { width: 42, height: 5, borderRadius: 3, backgroundColor: Colors.border.medium, alignSelf: 'center', marginBottom: Spacing[3] },
+  modalItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingHorizontal: Spacing[5], paddingVertical: Spacing[3] + 2 },
+  modalItemIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  modalItemText: { fontSize: 15, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  modalDivider: { height: 1, marginHorizontal: Spacing[5], marginVertical: 2, backgroundColor: Colors.border.light },
+  modalCancel: {
+    alignItems: 'center', marginHorizontal: Spacing[5], marginTop: Spacing[2],
+    paddingVertical: Spacing[3], borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.surface.tertiary,
+  },
+  modalCancelText: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
 });

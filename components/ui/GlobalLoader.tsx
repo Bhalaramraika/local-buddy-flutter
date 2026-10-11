@@ -11,7 +11,7 @@ import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'rea
 import { useUIStore } from '@/store/uiStore';
 import { Colors, Spacing, BorderRadius, Typography } from '@/constants/design';
 
-const ORANGE = Colors.brand.coral; // #FF6B35
+const ORANGE = Colors.brand.accent; // #F77051
 
 export function GlobalLoader() {
   const { isLoading, message } = useUIStore((s) => s.globalLoading);
@@ -66,24 +66,24 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 12, 30, 0.35)',
+    backgroundColor: 'rgba(30, 18, 9, 0.32)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
     elevation: 9999,
   },
   card: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.surface.elevated,
+    borderRadius: BorderRadius['2xl'] - 8,
     paddingVertical: Spacing[6],
     paddingHorizontal: Spacing[8],
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.border.light,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: '#1E1209',
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.18,
-    shadowRadius: 24,
+    shadowRadius: 28,
     elevation: 12,
   },
   ringWrap: {

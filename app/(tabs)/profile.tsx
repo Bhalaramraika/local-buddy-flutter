@@ -1,40 +1,37 @@
 /**
- * Profile Screen - User profile, stats, settings access
+ * Profile Screen — Soft Modern
+ * White hero card with cocoa avatar + Playfair name, orange wallet strip,
+ * rounded menu sections, soft-red logout. Staggered Moti entrances.
  */
 
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ScrollView, 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
   Image,
   RefreshControl,
   Alert,
-  useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import { formatCurrency } from '@/utils/helpers';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { 
-    user, 
-    isAuthenticated, 
+  const {
+    user,
+    isAuthenticated,
     isLoading: authLoading,
     logout,
-    updateProfile,
   } = useAuthStore();
-  const { theme, setTheme } = useUIStore();
-  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
-
-  // System-aware: 'system' follows the OS scheme so text/background always contrast
-  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
   // KYC approval is synced in realtime from Firestore (kycApproved toggle)
   // into user.kyc.status — there is no separate `isVerified` field on the doc.
@@ -69,745 +66,421 @@ export default function ProfileScreen() {
     {
       section: 'Account',
       items: [
-        { id: 'edit-profile', icon: 'person-outline', label: 'Edit Profile', route: '/(screens)/edit-profile', color: '#8B85FF' },
-        { id: 'kyc-status', icon: 'shield-checkmark-outline', label: 'KYC Status', route: '/(screens)/kyc-status', color: '#10B981' },
-        { id: 'kyc-documents', icon: 'card-outline', label: 'KYC Documents', route: '/(screens)/kyc-documents', color: '#06B6D4' },
-        { id: 'referral', icon: 'share-outline', label: 'Refer & Earn', route: '/(screens)/referral', color: '#F59E0B' },
-        { id: 'my-referrals', icon: 'account-group-outline', label: 'My Referrals', route: '/(screens)/my-referrals', color: '#8B5CF6' },
+        { id: 'edit-profile', icon: 'person-outline', label: 'Edit Profile', route: '/(screens)/edit-profile' },
+        { id: 'kyc-status', icon: 'shield-checkmark-outline', label: 'KYC Status', route: '/(screens)/kyc-status' },
+        { id: 'kyc-documents', icon: 'card-outline', label: 'KYC Documents', route: '/(screens)/kyc-documents' },
+        { id: 'referral', icon: 'share-outline', label: 'Refer & Earn', route: '/(screens)/referral' },
+        { id: 'my-referrals', icon: 'account-group-outline', label: 'My Referrals', route: '/(screens)/my-referrals' },
       ],
     },
     {
       section: 'Activity',
       items: [
-        { id: 'achievements', icon: 'trophy-outline', label: 'Achievements', route: '/(screens)/achievements', color: '#F59E0B' },
-        { id: 'stats', icon: 'chart-bar-outline', label: 'My Stats', route: '/(screens)/stats', color: '#8B85FF' },
+        { id: 'my-tasks', icon: 'clipboard-outline', label: 'My Tasks', route: '/(screens)/my-tasks' },
+        { id: 'achievements', icon: 'trophy-outline', label: 'Achievements', route: '/(screens)/achievements' },
+        { id: 'stats', icon: 'chart-bar-outline', label: 'My Stats', route: '/(screens)/stats' },
       ],
     },
     {
       section: 'Settings',
       items: [
-        { id: 'settings', icon: 'settings-outline', label: 'Settings', route: '/(screens)/settings', color: '#6B7280' },
-        { id: 'notifications', icon: 'notifications-outline', label: 'Notifications', route: '/(screens)/notifications', color: '#EF4444' },
-        { id: 'appearance', icon: 'palette-outline', label: 'Appearance', route: '/(screens)/appearance-settings', color: '#EC4899' },
-        { id: 'language', icon: 'translate-outline', label: 'Language', route: '/(screens)/language-settings', color: '#14B8A6' },
+        { id: 'settings', icon: 'settings-outline', label: 'Settings', route: '/(screens)/settings' },
+        { id: 'notifications', icon: 'notifications-outline', label: 'Notifications', route: '/(screens)/notifications' },
+        { id: 'appearance', icon: 'palette-outline', label: 'Appearance', route: '/(screens)/appearance-settings' },
+        { id: 'language', icon: 'translate-outline', label: 'Language', route: '/(screens)/language-settings' },
       ],
     },
     {
       section: 'Support',
       items: [
-        { id: 'help', icon: 'help-circle-outline', label: 'Help & Support', route: '/(screens)/help', color: '#8B85FF' },
-        { id: 'faq', icon: 'question-mark-circle-outline', label: 'FAQ', route: '/(screens)/faq', color: '#06B6D4' },
-        { id: 'contact', icon: 'headset-outline', label: 'Contact Support', route: '/(screens)/contact-support', color: '#10B981' },
-        { id: 'terms', icon: 'document-text-outline', label: 'Terms of Service', route: '/(screens)/terms', color: '#6B7280' },
-        { id: 'privacy', icon: 'shield-outline', label: 'Privacy Policy', route: '/(screens)/privacy', color: '#6B7280' },
-        { id: 'guidelines', icon: 'book-outline', label: 'Community Guidelines', route: '/(screens)/guidelines', color: '#6B7280' },
+        { id: 'help', icon: 'help-circle-outline', label: 'Help & Support', route: '/(screens)/help' },
+        { id: 'faq', icon: 'question-mark-circle-outline', label: 'FAQ', route: '/(screens)/faq' },
+        { id: 'contact', icon: 'headset-outline', label: 'Contact Support', route: '/(screens)/contact-support' },
+        { id: 'terms', icon: 'document-text-outline', label: 'Terms of Service', route: '/(screens)/terms' },
+        { id: 'privacy', icon: 'shield-outline', label: 'Privacy Policy', route: '/(screens)/privacy' },
+        { id: 'guidelines', icon: 'book-outline', label: 'Community Guidelines', route: '/(screens)/guidelines' },
       ],
     },
   ];
 
   const stats = [
-    { label: 'Tasks Posted', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-outline', color: '#8B85FF' },
-    { label: 'Tasks Completed', value: user?.stats?.completedTasks || 0, icon: 'check-circle-outline', color: '#10B981' },
-    { label: 'Total Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: '#F59E0B' },
-    { label: 'Rating', value: user?.stats?.rating?.toFixed(1) || '0.0', icon: 'star-outline', color: '#EF4444' },
+    { label: 'Tasks Posted', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-outline', color: Colors.brand.primary },
+    { label: 'Tasks Completed', value: user?.stats?.completedTasks || 0, icon: 'check-circle-outline', color: Colors.semantic.success },
+    { label: 'Total Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: Colors.brand.accent },
+    { label: 'Rating', value: user?.stats?.rating?.toFixed(1) || '0.0', icon: 'star-outline', color: Colors.semantic.warning },
   ];
 
   if (authLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
-        <View style={styles.loadingSpinner} />
-        <Text style={[styles.loadingText, { color: isDark ? '#94A3B8' : '#6B7280' }]}>Loading profile...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.brand.accent} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
-        <View style={styles.authPrompt}>
-          <View style={[
-            styles.authIcon,
-            { backgroundColor: isDark ? '#8B85FF20' : '#EEF2FF' }
-          ]}>
-            <Ionicons name="person-circle-outline" size={64} color="#8B85FF" />
+      <View style={styles.container}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 450 }}
+          style={styles.authPrompt}
+        >
+          <View style={styles.authIcon}>
+            <Ionicons name="person" size={44} color={Colors.brand.accent} />
           </View>
-          <Text style={[
-            styles.authTitle,
-            { color: isDark ? '#F1F5F9' : '#111827' }
-          ]}>
-            Welcome to LocalBuddy
-          </Text>
-          <Text style={[
-            styles.authSubtitle,
-            { color: isDark ? '#94A3B8' : '#6B7280' }
-          ]}>
+          <Text style={styles.authTitle}>Welcome to{'\n'}Local Buddy</Text>
+          <Text style={styles.authSubtitle}>
             Sign in to access your profile, tasks, and earnings
           </Text>
-          <TouchableOpacity 
-            style={styles.authButton}
-            onPress={() => router.push('/login')}
-          >
+          <Pressable style={styles.authButton} onPress={() => router.push('/login')}>
             <Text style={styles.authButtonText}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </Pressable>
+        </MotiView>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}
+      style={styles.container}
       refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
+        <RefreshControl
+          refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#8B85FF']}
-          progressBackgroundColor={isDark ? '#1E293B' : '#fff'}
+          colors={[Colors.brand.accent]}
+          tintColor={Colors.brand.accent}
         />
       }
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
-      {/* Profile Header */}
-      <View style={[
-        styles.profileHeader,
-        { backgroundColor: isDark ? '#1E293B' : '#fff' }
-      ]}>
-        {/* Cover */}
-        <View style={[
-          styles.coverImage,
-          { backgroundColor: isDark ? '#334155' : '#EEF2FF' }
-        ]}>
-          <View style={styles.coverGradient} />
+      {/* Profile Hero */}
+      <MotiView
+        from={{ opacity: 0, translateY: 18 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 440 }}
+        style={styles.profileCard}
+      >
+        <View style={styles.coverBand} />
+
+        <View style={styles.avatarContainer}>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarInitial}>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </Text>
+          )}
+          {kycVerified && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+            </View>
+          )}
         </View>
 
-        {/* Avatar & Info */}
-        <View style={styles.profileInfo}>
-          <View style={[
-            styles.avatarContainer,
-            { borderColor: isDark ? '#334155' : '#E5E7EB' }
-          ]}>
-            {user?.avatar ? (
-              <Image 
-                source={{ uri: user.avatar }} 
-                style={styles.avatarImage} 
-              />
-            ) : (
-              <Text style={[
-                styles.avatarInitial,
-                { color: '#fff' }
-              ]}>
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            )}
+        <View style={styles.profileDetails}>
+          <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+          <Text style={styles.profileEmail}>{user?.email || 'user@localbuddy.com'}</Text>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={14} color={Colors.brand.accent} />
+            <Text style={styles.ratingText}>
+              {user?.stats?.rating?.toFixed(1) || '4.5'}
+            </Text>
+            <Text style={styles.reviewsCount}>
+              ({user?.stats?.reviewCount || 0} reviews)
+            </Text>
             {kycVerified && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#fff" />
+              <View style={styles.kycPill}>
+                <Ionicons name="shield-checkmark" size={11} color={Colors.semantic.success} />
+                <Text style={styles.kycPillText}>KYC Verified</Text>
               </View>
             )}
           </View>
 
-          <View style={styles.profileDetails}>
-            <Text style={[
-              styles.profileName,
-              { color: isDark ? '#F1F5F9' : '#111827' }
-            ]}>
-              {user?.name || 'User'}
-            </Text>
-            <View style={styles.profileMeta}>
-              <Text style={[
-                styles.profileEmail,
-                { color: isDark ? '#94A3B8' : '#6B7280' }
-              ]}>
-                {user?.email || 'user@localbuddy.com'}
-              </Text>
-              <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color="#F59E0B" />
-                <Text style={[
-                  styles.ratingText,
-                  { color: isDark ? '#94A3B8' : '#6B7280' }
-                ]}>
-                  {user?.stats?.rating?.toFixed(1) || '4.5'}
-                </Text>
-                <Text style={[
-                  styles.reviewsCount,
-                  { color: isDark ? '#64748B' : '#9CA3AF' }
-                ]}>
-                  ({user?.stats?.reviewCount || 0} reviews)
-                </Text>
-                {kycVerified && (
-                  <>
-                    <View style={styles.verifiedDot} />
-                    <Text style={[
-                      styles.verifiedText,
-                      { color: '#10B981' }
-                    ]}>
-                      KYC Verified
-                    </Text>
-                  </>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Edit Profile Button */}
-          <TouchableOpacity 
-            style={[
-              styles.editProfileButton,
-              { backgroundColor: isDark ? '#334155' : '#F1F5F9' }
-            ]}
-            onPress={() => router.push('/(screens)/edit-profile')}
-          >
-            <Ionicons 
-              name="create-outline" 
-              size={18} 
-              color={isDark ? '#94A3B8' : '#6B7280'} 
-            />
-            <Text style={[
-              styles.editProfileText,
-              { color: isDark ? '#94A3B8' : '#6B7280' }
-            ]}>
-              Edit Profile
-            </Text>
-          </TouchableOpacity>
+          <Pressable style={styles.editProfileButton} onPress={() => router.push('/(screens)/edit-profile')}>
+            <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+            <Text style={styles.editProfileText}>Edit Profile</Text>
+          </Pressable>
         </View>
 
         {/* Stats Grid */}
         <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <TouchableOpacity
+          {stats.map((stat, i) => (
+            <MotiView
               key={stat.label}
-              style={[
-                styles.statCard,
-                { backgroundColor: isDark ? '#1E293B' : '#fff' }
-              ]}
-              onPress={() => router.push('/(screens)/stats')}
+              from={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'timing', duration: 380, delay: 120 + i * 60 }}
+              style={styles.statCardWrap}
             >
-              <View style={[
-                styles.statIcon,
-                { backgroundColor: `${stat.color}20` }
-              ]}>
+              <Pressable style={styles.statCard} onPress={() => router.push('/(screens)/stats')}>
+                <View style={[styles.statIcon, { backgroundColor: `${stat.color}18` }]}>
                   <MaterialCommunityIcons name={stat.icon as any} size={17} color={stat.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[
-                  styles.statValue,
-                  { color: isDark ? '#F1F5F9' : '#111827' }
-                ]} numberOfLines={1}>
-                  {stat.value}
-                </Text>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isDark ? '#94A3B8' : '#6B7280' }
-                ]} numberOfLines={1}>
-                  {stat.label}
-                </Text>
-              </View>
-            </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.statValue} numberOfLines={1}>{stat.value}</Text>
+                  <Text style={styles.statLabel} numberOfLines={1}>{stat.label}</Text>
+                </View>
+              </Pressable>
+            </MotiView>
           ))}
         </View>
-      </View>
+      </MotiView>
 
-      {/* Wallet Quick Access */}
-      <TouchableOpacity
-        style={[
-          styles.walletCard,
-          { backgroundColor: isDark ? '#1E293B' : '#fff' }
-        ]}
-        onPress={() => router.push('/(tabs)/wallet')}
+      {/* Wallet strip */}
+      <MotiView
+        from={{ opacity: 0, translateY: 18 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 420, delay: 220 }}
       >
-        <View style={styles.walletCardHeader}>
-          <View style={styles.walletIconWrapper}>
-            <Ionicons name="wallet-outline" size={24} color="#8B85FF" />
+        <Pressable style={styles.walletCard} onPress={() => router.push('/(tabs)/wallet')}>
+          <View style={styles.walletCardHeader}>
+            <View style={styles.walletIconWrapper}>
+              <Ionicons name="wallet" size={22} color="#FFFFFF" />
+            </View>
+            <View style={styles.walletInfo}>
+              <Text style={styles.walletLabel}>Wallet Balance</Text>
+              <Text style={styles.walletAmount}>{formatCurrency(user?.walletBalance || 0)}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.9)" />
           </View>
-          <View style={styles.walletInfo}>
-            <Text style={[
-              styles.walletLabel,
-              { color: isDark ? '#94A3B8' : '#6B7280' }
-            ]}>
-              Wallet Balance
-            </Text>
-            <Text style={[
-              styles.walletAmount,
-              { color: isDark ? '#F1F5F9' : '#111827' }
-            ]}>
-              {formatCurrency(user?.walletBalance || 0)}
-            </Text>
+          <View style={styles.walletActions}>
+            <Pressable
+              style={[styles.walletActionBtn, styles.walletActionGreen]}
+              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-topup'); }}
+            >
+              <Ionicons name="add-circle" size={15} color="#FFFFFF" />
+              <Text style={styles.walletActionText}>Add</Text>
+            </Pressable>
+            <Pressable
+              style={styles.walletActionBtn}
+              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-withdraw'); }}
+            >
+              <Ionicons name="arrow-down-circle" size={15} color="#FFFFFF" />
+              <Text style={styles.walletActionText}>Withdraw</Text>
+            </Pressable>
+            <Pressable
+              style={styles.walletActionBtn}
+              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-history'); }}
+            >
+              <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.walletActionText}>History</Text>
+            </Pressable>
+            <Pressable
+              style={styles.walletActionBtn}
+              onPress={(e) => { e.stopPropagation(); router.push('/(screens)/wallet-details'); }}
+            >
+              <Ionicons name="pie-chart-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.walletActionText}>Details</Text>
+            </Pressable>
           </View>
-          <Ionicons 
-            name="chevron-forward-outline" 
-            size={20} 
-            color={isDark ? '#64748B' : '#9CA3AF'} 
-          />
-        </View>
-        <View style={styles.walletActions}>
-          <TouchableOpacity 
-            style={styles.walletActionBtn}
-            onPress={(e) => {
-              e.stopPropagation();
-              router.push('/(screens)/wallet-topup');
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={20} color="#8B85FF" />
-            <Text style={styles.walletActionText}>Add Money</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.walletActionBtn}
-            onPress={(e) => {
-              e.stopPropagation();
-              router.push('/(screens)/wallet-withdraw');
-            }}
-          >
-            <Ionicons name="remove-circle-outline" size={20} color="#10B981" />
-            <Text style={styles.walletActionText}>Withdraw</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.walletActionBtn}
-            onPress={(e) => {
-              e.stopPropagation();
-              router.push('/(screens)/wallet-history');
-            }}
-          >
-            <Ionicons name="time-outline" size={20} color="#F59E0B" />
-            <Text style={styles.walletActionText}>History</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        </Pressable>
+      </MotiView>
 
       {/* Menu Sections */}
       {menuItems.map((section, sectionIndex) => (
-        <View 
+        <MotiView
           key={section.section}
-          style={[
-            styles.menuSection,
-            { backgroundColor: isDark ? '#1E293B' : '#fff' }
-          ]}
+          from={{ opacity: 0, translateY: 18 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420, delay: 300 + sectionIndex * 80 }}
+          style={styles.menuSection}
         >
-          <Text style={[
-            styles.sectionTitle,
-            { color: isDark ? '#94A3B8' : '#6B7280' }
-          ]}>
-            {section.section}
-          </Text>
+          <Text style={styles.sectionTitle}>{section.section}</Text>
           <View style={styles.menuItems}>
             {section.items.map((item, itemIndex) => (
-              <TouchableOpacity
+              <Pressable
                 key={item.id}
-                style={[
+                style={({ pressed }) => [
                   styles.menuItem,
                   itemIndex === section.items.length - 1 && styles.menuItemLast,
-                  { backgroundColor: isDark ? '#1E293B' : '#fff' }
+                  pressed && { backgroundColor: Colors.surface.creamSoft },
                 ]}
                 onPress={() => router.push(item.route)}
-                activeOpacity={0.8}
               >
-                <View style={[
-                  styles.menuItemIcon,
-                  { backgroundColor: `${item.color}20` }
-                ]}>
-                  <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color} />
+                <View style={styles.menuItemIcon}>
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={Colors.brand.accent} />
                 </View>
-                <Text style={[
-                  styles.menuItemLabel,
-                  { color: isDark ? '#F1F5F9' : '#111827' }
-                ]}>
-                  {item.label}
-                </Text>
-                <Ionicons 
-                  name="chevron-forward-outline" 
-                  size={20} 
-                  color={isDark ? '#64748B' : '#9CA3AF'} 
-                />
-              </TouchableOpacity>
+                <Text style={styles.menuItemLabel}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
+              </Pressable>
             ))}
           </View>
-        </View>
+        </MotiView>
       ))}
 
-      {/* Logout Button */}
-      <TouchableOpacity 
-        style={[
-          styles.logoutButton,
-          { backgroundColor: isDark ? '#1E293B' : '#fff' }
-        ]}
-        onPress={handleLogout}
+      {/* Logout — soft red (negative action) */}
+      <MotiView
+        from={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ type: 'timing', duration: 400, delay: 620 }}
       >
-        <View style={[
-          styles.logoutIcon,
-          { backgroundColor: '#FEF2F2' }
-        ]}>
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-        </View>
-        <Text style={[
-          styles.logoutText,
-          { color: '#EF4444' }
-        ]}>
-          Logout
-        </Text>
-      </TouchableOpacity>
+        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <View style={styles.logoutIcon}>
+            <Ionicons name="log-out-outline" size={20} color={Colors.semantic.error} />
+          </View>
+          <Text style={styles.logoutText}>Logout</Text>
+        </Pressable>
+      </MotiView>
 
       {/* App Version */}
       <View style={styles.versionContainer}>
-        <Text style={[
-          styles.versionText,
-          { color: isDark ? '#64748B' : '#9CA3AF' }
-        ]}>
-          LocalBuddy v1.0.0
-        </Text>
+        <Text style={styles.versionText}>Local Buddy v1.0.0</Text>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingSpinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 24,
-    borderWidth: 3,
-    borderColor: '#8B85FF',
-    borderTopColor: 'transparent',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-  },
-  authPrompt: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    gap: 20,
-  },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  content: { paddingBottom: 120 },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, backgroundColor: Colors.surface.primary },
+  loadingText: { fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+
+  // ---- Auth gate ----
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8], gap: Spacing[4] },
   authIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    justifyContent: 'center', alignItems: 'center', ...Shadows.card,
   },
   authTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter_700Bold',
-    textAlign: 'center',
+    fontSize: 30, lineHeight: 38, fontFamily: Typography.fontFamily.display,
+    textAlign: 'center', color: Colors.text.primary, marginTop: Spacing[2],
   },
-  authSubtitle: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+  authSubtitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, textAlign: 'center', lineHeight: 22, color: Colors.text.secondary },
   authButton: {
-    marginTop: 8,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    backgroundColor: '#8B85FF',
-    borderRadius: 24,
-    shadowColor: '#8B85FF',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 4,
+    marginTop: Spacing[3], flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    paddingHorizontal: Spacing[8], paddingVertical: Spacing[4],
+    backgroundColor: Colors.brand.accent, borderRadius: BorderRadius.pill, ...Shadows.buttonOrange,
   },
-  authButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#fff',
+  authButtonText: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  // ---- Hero card ----
+  profileCard: {
+    marginHorizontal: Spacing[5], marginTop: Spacing[6], marginBottom: Spacing[4],
+    borderRadius: BorderRadius.xl, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, overflow: 'hidden', ...Shadows.card,
   },
-  profileHeader: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#B0A8FF',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  coverImage: {
-    height: 120,
-    position: 'relative',
-  },
-  coverGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-  },
-  profileInfo: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
-  },
+  coverBand: { height: 92, backgroundColor: Colors.brand.accentSoft },
   avatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: -48,
-    shadowColor: '#B0A8FF',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.075,
-    shadowRadius: 24,
-    elevation: 4,
+    width: 96, height: 96, borderRadius: 48,
+    borderWidth: 4, borderColor: Colors.surface.elevated,
+    backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'center', marginTop: -48, ...Shadows.card,
   },
-  avatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-  },
-  avatarInitial: {
-    fontSize: 36,
-    fontFamily: 'Inter_700Bold',
-  },
+  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarInitial: { fontSize: 36, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
   verifiedBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 24,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
+    position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: 12,
+    backgroundColor: Colors.semantic.success, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2.5, borderColor: '#FFFFFF',
   },
-  profileDetails: {
-    alignItems: 'center',
-    marginTop: 12,
+  profileDetails: { alignItems: 'center', marginTop: Spacing[3], paddingHorizontal: Spacing[5] },
+  profileName: { fontSize: 24, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  profileEmail: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 3 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing[2] },
+  ratingText: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  reviewsCount: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  kycPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: Spacing[2],
+    backgroundColor: Colors.semantic.successSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[2], paddingVertical: 3,
   },
-  profileName: {
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-  },
-  profileMeta: {
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  profileEmail: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  reviewsCount: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-  },
-  verifiedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  verifiedText: {
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-  },
+  kycPillText: { fontSize: 11, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.success },
   editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: Spacing[4], marginBottom: Spacing[5],
+    paddingHorizontal: Spacing[6], paddingVertical: Spacing[2] + 4,
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill, ...Shadows.button,
   },
-  editProfileText: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-  },
+  editProfileText: { fontSize: 13.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  // ---- Stats ----
   statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 8,
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
+    paddingHorizontal: Spacing[4], paddingBottom: Spacing[4], gap: Spacing[2],
   },
+  statCardWrap: { width: '48.7%' },
   statCard: {
-    width: '48.5%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: Spacing[3], paddingHorizontal: Spacing[3],
+    borderRadius: BorderRadius.md, backgroundColor: Colors.surface.primary,
+    borderWidth: 1, borderColor: Colors.border.light,
   },
-  statIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 15,
-    fontFamily: 'Inter_700Bold',
-  },
-  statLabel: {
-    fontSize: 10.5,
-    fontFamily: 'Inter_400Regular',
-    marginTop: 1,
-  },
+  statIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  statValue: { fontSize: 14.5, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  statLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 1 },
+
+  // ---- Wallet strip ----
   walletCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: '#B0A8FF',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    marginHorizontal: Spacing[5], marginBottom: Spacing[5],
+    borderRadius: BorderRadius.xl, padding: Spacing[5],
+    backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange,
   },
-  walletCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  walletCardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
   walletIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  walletInfo: {
-    flex: 1,
-  },
-  walletLabel: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-  },
-  walletAmount: {
-    fontSize: 24,
-    fontFamily: 'Inter_700Bold',
-    marginTop: 2,
-  },
+  walletInfo: { flex: 1 },
+  walletLabel: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: 0.8 },
+  walletAmount: { fontSize: 25, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF', marginTop: 2 },
   walletActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    flexDirection: 'row', gap: Spacing[2], marginTop: Spacing[4], paddingTop: Spacing[4],
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.25)',
   },
   walletActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2],
   },
-  walletActionText: {
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-  },
+  walletActionGreen: { backgroundColor: Colors.semantic.success },
+  walletActionText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  // ---- Menu ----
   menuSection: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    marginHorizontal: Spacing[5], marginBottom: Spacing[4],
+    borderRadius: BorderRadius.lg, overflow: 'hidden',
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 4,
+    fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed,
+    textTransform: 'uppercase', letterSpacing: 1,
+    paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[1],
   },
-  menuItems: {
-    gap: 0,
-  },
+  menuItems: {},
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[3] + 2,
+    borderTopWidth: 1, borderTopColor: Colors.border.light,
   },
-  menuItemLast: {
-    borderTopWidth: 0,
-  },
+  menuItemLast: {},
   menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3],
   },
-  menuItemLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
-  },
+  menuItemLabel: { flex: 1, fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+
+  // ---- Logout ----
   logoutButton: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    marginHorizontal: Spacing[5], marginTop: Spacing[1], marginBottom: Spacing[4],
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[4],
+    borderRadius: BorderRadius.lg, backgroundColor: Colors.semantic.errorSoft,
+    borderWidth: 1, borderColor: Colors.semantic.error + '33',
   },
   logoutIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF',
+    justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3],
   },
-  logoutText: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  versionContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  versionText: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-  },
+  logoutText: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.error },
+
+  versionContainer: { paddingVertical: Spacing[4], alignItems: 'center' },
+  versionText: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
 });

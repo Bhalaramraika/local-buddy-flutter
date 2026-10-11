@@ -34,6 +34,8 @@ import { GlobalLoader } from '@/components/ui/GlobalLoader';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts as useExpoFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 
 // Prevent splash screen from hiding automatically - with fallback for missing native module
 try {
@@ -55,12 +57,32 @@ const queryClient = new QueryClient({
 });
 
 // Font loading hook with fallback for missing fonts
+// Soft Modern type system: Poppins (primary) + Playfair Display (headlines) + Inter (body)
 function useLoadFonts() {
   const [fontsLoaded] = useExpoFonts({
+    // Poppins — primary (text, buttons, navigation)
+    'Poppins-Regular': Poppins_400Regular,
+    'Poppins-Medium': Poppins_500Medium,
+    'Poppins-SemiBold': Poppins_600SemiBold,
+    'Poppins-Bold': Poppins_700Bold,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    // Playfair Display — large headlines
+    'Playfair-SemiBold': PlayfairDisplay_600SemiBold,
+    'Playfair-Bold': PlayfairDisplay_700Bold,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
+    // Inter — small body text readability
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
   
   // Return true if fontsLoaded is true, or if it's undefined (font loading failed/skipped)
@@ -318,7 +340,7 @@ function ThemedStatusBar() {
   return (
     <StatusBar
       barStyle={isDark ? 'light-content' : 'dark-content'}
-      backgroundColor={isDark ? '#0D0D1A' : '#FAF9F7'}
+      backgroundColor={isDark ? '#1E1209' : '#FAEBD7'}
       translucent={false}
     />
   );
@@ -371,11 +393,11 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAEBD7',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAEBD7',
     justifyContent: 'center',
     alignItems: 'center',
   },

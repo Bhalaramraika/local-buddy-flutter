@@ -1,34 +1,32 @@
 /**
- * Stats Screen - User statistics and analytics
+ * Stats Screen — Soft Modern
+ * Cocoa segmented tabs, white stat tiles with tinted icon chips,
+ * orange level progress bar, animated bar charts. Stats logic unchanged.
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import { useTaskStore } from '@/store/taskStore';
 import { apiGet } from '@/services/api';
-import { Colors } from '@/constants/design';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { ScreenHeader } from '@/components/ui';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
 export default function StatsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { theme } = useUIStore();
   const { tasks, completedTasks, postedTasks, appliedTasks } = useTaskStore();
-  
-  const isDark = theme === 'dark';
+
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year' | 'all'>('month');
@@ -115,102 +113,85 @@ export default function StatsScreen() {
     loadStats();
   }, [timeRange]);
 
-
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>My Stats</Text>
-            <View style={{ width: 44 }} />
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingBadge}>
+            <Ionicons name="analytics" size={30} color={Colors.brand.accent} />
           </View>
-        </View>
-        <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#8B85FF" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading statistics...</Text>
+          <Text style={styles.loadingText}>Loading statistics...</Text>
         </View>
       </View>
     );
   }
 
   const tabs = [
-    { key: 'overview', label: 'Overview', icon: 'grid-outline' },
-    { key: 'tasks', label: 'Tasks', icon: 'clipboard-outline' },
-    { key: 'earnings', label: 'Earnings', icon: 'cash-outline' },
-    { key: 'activity', label: 'Activity', icon: 'pulse-outline' },
+    { key: 'overview', label: 'Overview', icon: 'grid' as const },
+    { key: 'tasks', label: 'Tasks', icon: 'clipboard' as const },
+    { key: 'earnings', label: 'Earnings', icon: 'cash' as const },
+    { key: 'activity', label: 'Activity', icon: 'pulse' as const },
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>My Stats</Text>
-          <TouchableOpacity onPress={() => Alert.alert('Export Data', 'Export functionality coming soon!')}>
-            <Ionicons name="download-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* In-page header with export */}
+        <ScreenHeader
+          title="My stats"
+          subtitle="Your progress at a glance"
+          onBack={() => router.back()}
+          right={
+            <Pressable onPress={() => Alert.alert('Export Data', 'Export functionality coming soon!')} style={styles.exportBtn} hitSlop={8}>
+              <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+            </Pressable>
+          }
+        />
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {/* Time Range Selector */}
-        <View style={[styles.timeRangeContainer, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.timeRangeLabel, { color: isDark ? '#fff' : '#000' }]}>Time Range</Text>
-          <View style={styles.timeRangeTabs}>
-            {['week', 'month', 'year', 'all'].map((range) => (
-              <TouchableOpacity 
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 80 }} style={styles.rangeWrap}>
+          {(['week', 'month', 'year', 'all'] as const).map((range) => {
+            const active = timeRange === range;
+            return (
+              <Pressable
                 key={range}
-                style={[styles.timeRangeTab, timeRange === range && styles.timeRangeTabActive]}
-                onPress={() => setTimeRange(range as any)}
+                style={[styles.rangeTab, active && styles.rangeTabActive]}
+                onPress={() => setTimeRange(range)}
               >
-                <Text style={[styles.timeRangeTabText, timeRange === range ? { color: '#fff' } : { color: isDark ? '#ddd' : '#333' }]}>{range.charAt(0).toUpperCase() + range.slice(1)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                <Text style={[styles.rangeTabText, active && styles.rangeTabTextActive]}>{range.charAt(0).toUpperCase() + range.slice(1)}</Text>
+              </Pressable>
+            );
+          })}
+        </MotiView>
 
         {/* Tab Navigation */}
-        <View style={[styles.tabContainer, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-          <View style={styles.tabScroll}>
-            {tabs.map((tab) => (
-              <TouchableOpacity 
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 160 }} style={styles.tabContainer}>
+          {tabs.map((tab) => {
+            const active = selectedTab === tab.key;
+            return (
+              <Pressable
                 key={tab.key}
-                style={[styles.tab, selectedTab === tab.key && styles.tabActive]}
+                style={[styles.tab, active && styles.tabActive]}
                 onPress={() => setSelectedTab(tab.key as any)}
               >
-                <Ionicons name={tab.icon as any} size={20} color={selectedTab === tab.key ? '#fff' : isDark ? '#ddd' : '#666'} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabText, selectedTab === tab.key ? { color: '#fff' } : { color: isDark ? '#ddd' : '#333' }]}>{tab.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                <Ionicons name={tab.icon} size={15} color={active ? '#FFFFFF' : Colors.text.secondary} />
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
+        </MotiView>
 
         {/* Tab Content */}
-        <View style={{ marginTop: 16 }}>
-          {selectedTab === 'overview' && <OverviewTab stats={stats.overview} isDark={isDark} formatCurrency={formatCurrency} />}
-          {selectedTab === 'tasks' && <TasksTab stats={stats.tasks} isDark={isDark} />}
-          {selectedTab === 'earnings' && <EarningsTab stats={stats.earnings} isDark={isDark} formatCurrency={formatCurrency} />}
-          {selectedTab === 'activity' && <ActivityTab stats={stats.activity} isDark={isDark} />}
-        </View>
+        <MotiView key={selectedTab} from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 350 }} style={{ marginTop: Spacing[5] }}>
+          {selectedTab === 'overview' && <OverviewTab stats={stats.overview} formatCurrency={formatCurrency} />}
+          {selectedTab === 'tasks' && <TasksTab stats={stats.tasks} />}
+          {selectedTab === 'earnings' && <EarningsTab stats={stats.earnings} formatCurrency={formatCurrency} />}
+          {selectedTab === 'activity' && <ActivityTab stats={stats.activity} />}
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -218,384 +199,449 @@ export default function StatsScreen() {
   );
 }
 
-// Overview Tab
-const OverviewTab = ({ stats, isDark, formatCurrency }: any) => (
+// ============================================================
+// Shared pieces
+// ============================================================
+
+const SectionCard = ({ title, children, delay = 0 }: any) => (
+  <MotiView
+    from={{ opacity: 0, translateY: 14 }}
+    animate={{ opacity: 1, translateY: 0 }}
+    transition={{ type: 'timing', duration: 400, delay }}
+    style={styles.sectionCard}
+  >
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {children}
+  </MotiView>
+);
+
+const StatCard = ({ title, value, icon, color, subtitle }: any) => (
+  <View style={styles.statCard}>
+    <View style={[styles.statIcon, { backgroundColor: color + '1A' }]}>
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+    <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{value}</Text>
+    <Text style={styles.statTitle} numberOfLines={2}>{title}</Text>
+    {subtitle ? <Text style={[styles.statSubtitle, { color }]}>{subtitle}</Text> : null}
+  </View>
+);
+
+const BarChart = ({ groups, legend }: { groups: Array<{ label: string; bars: Array<{ value: number; max: number; color: string }> }>; legend: Array<{ label: string; color: string }> }) => (
   <View>
-    {/* Level & XP */}
-    <View style={[styles.levelCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+    <View style={styles.chartContainer}>
+      {groups.map((g, gi) => (
+        <View key={g.label} style={styles.chartBarGroup}>
+          <View style={styles.chartBars}>
+            {g.bars.map((b, bi) => (
+              <MotiView
+                key={bi}
+                from={{ height: 4 }}
+                animate={{ height: Math.max(4, Math.min(100, (b.value / (b.max || 1)) * 100)) }}
+                transition={{ type: 'timing', duration: 600, delay: 200 + gi * 60 }}
+                style={[styles.chartBar, { backgroundColor: b.color }]}
+              />
+            ))}
+          </View>
+          <Text style={styles.chartLabel}>{g.label}</Text>
+        </View>
+      ))}
+    </View>
+    <View style={styles.chartLegend}>
+      {legend.map((l) => (
+        <View key={l.label} style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: l.color }]} />
+          <Text style={styles.legendText}>{l.label}</Text>
+        </View>
+      ))}
+    </View>
+  </View>
+);
+
+const EmptyNote = ({ text }: { text: string }) => (
+  <View style={styles.emptyNote}>
+    <Ionicons name="bar-chart-outline" size={26} color={Colors.brand.accent} />
+    <Text style={styles.emptyNoteText}>{text}</Text>
+  </View>
+);
+
+// ============================================================
+// Overview Tab
+// ============================================================
+const OverviewTab = ({ stats, formatCurrency }: any) => (
+  <View>
+    {/* Level & XP — cocoa hero */}
+    <MotiView
+      from={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'timing', duration: 420 }}
+      style={styles.levelCard}
+    >
       <View style={styles.levelHeader}>
         <View style={styles.levelInfo}>
-          <Text style={[styles.levelLabel, { color: isDark ? '#888' : '#666' }]}>Current Level</Text>
-          <Text style={[styles.levelNumber, { color: isDark ? '#fff' : '#000' }]}>Level {stats.level}</Text>
+          <Text style={styles.levelLabel}>CURRENT LEVEL</Text>
+          <Text style={styles.levelNumber}>Level {stats.level}</Text>
         </View>
-        <View style={[styles.levelProgressContainer, { backgroundColor: '#8B85FF15' }]}>
-          <Text style={[styles.levelProgressText, { color: Colors.brand.primary }]}>{stats.xp} / {stats.nextLevelXp} XP</Text>
+        <View style={styles.levelBadge}>
+          <Ionicons name="trophy" size={16} color={Colors.brand.accent} />
+          <Text style={styles.levelBadgeText}>{stats.xp} / {stats.nextLevelXp} XP</Text>
         </View>
       </View>
       <View style={styles.levelProgressBar}>
-        <View style={[styles.levelProgressFill, { backgroundColor: Colors.brand.primary, width: `${(stats.xp / stats.nextLevelXp) * 100}%` }]} />
+        <MotiView
+          from={{ width: '0%' }}
+          animate={{ width: `${Math.min(100, (stats.xp / stats.nextLevelXp) * 100)}%` }}
+          transition={{ type: 'timing', duration: 800, delay: 300 }}
+          style={styles.levelProgressFill}
+        />
       </View>
-    </View>
+    </MotiView>
 
     {/* Key Stats Grid */}
     <View style={styles.statsGrid}>
-      <StatCard 
-        title="Tasks Completed" 
-        value={stats.totalTasksCompleted} 
-        icon="check-circle-outline" 
-        color="#10B981" 
-        isDark={isDark} 
-      />
-      <StatCard 
-        title="Tasks Posted" 
-        value={stats.totalTasksPosted} 
-        icon="add-circle-outline" 
-        color="#8B85FF" 
-        isDark={isDark} 
-      />
-      <StatCard 
-        title="Total Earned" 
-        value={formatCurrency(stats.totalEarned)} 
-        icon="cash-outline" 
-        color="#F59E0B" 
-        isDark={isDark} 
-      />
-      <StatCard 
-        title="Total Spent" 
-        value={formatCurrency(stats.totalSpent)} 
-        icon="card-outline" 
-        color="#EF4444" 
-        isDark={isDark} 
-      />
-      <StatCard 
-        title="Rating" 
-        value={stats.avgRating.toFixed(1)} 
-        icon="star-outline" 
-        color="#F59E0B" 
-        isDark={isDark} 
-        subtitle={`${stats.completionRate}% completion`}
-      />
-      <StatCard 
-        title="Response Rate" 
-        value={`${stats.responseRate}%`} 
-        icon="chatbubble-outline" 
-        color="#8B5CF6" 
-        isDark={isDark} 
-        subtitle={stats.responseTime}
-      />
+      <StatCard title="Tasks Completed" value={stats.totalTasksCompleted} icon="checkmark-circle" color={Colors.semantic.success} />
+      <StatCard title="Tasks Posted" value={stats.totalTasksPosted} icon="add-circle" color={Colors.brand.accent} />
+      <StatCard title="Total Earned" value={formatCurrency(stats.totalEarned)} icon="cash" color={Colors.semantic.success} />
+      <StatCard title="Total Spent" value={formatCurrency(stats.totalSpent)} icon="card" color={Colors.semantic.error} />
+      <StatCard title="Rating" value={stats.avgRating.toFixed(1)} icon="star" color={Colors.semantic.warning} subtitle={`${stats.completionRate}% completion`} />
+      <StatCard title="Response Rate" value={`${stats.responseRate}%`} icon="chatbubble" color={Colors.semantic.info} subtitle={stats.responseTime} />
     </View>
 
     {/* Streaks */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Streaks</Text>
+    <SectionCard title="Streaks" delay={140}>
       <View style={styles.streakRow}>
         <View style={styles.streakItem}>
-          <View style={[styles.streakIcon, { backgroundColor: '#EF444415' }]}>
-            <Ionicons name="flame-outline" size={24} color="#EF4444" />
+          <View style={[styles.streakIcon, { backgroundColor: Colors.semantic.errorSoft }]}>
+            <Ionicons name="flame" size={26} color={Colors.semantic.error} />
           </View>
-          <Text style={[styles.streakValue, { color: isDark ? '#fff' : '#000' }]}>{stats.currentStreak}</Text>
-          <Text style={[styles.streakLabel, { color: isDark ? '#888' : '#666' }]}>Current Streak</Text>
-          <Text style={[styles.streakSub, { color: '#EF4444' }]}>days</Text>
+          <Text style={styles.streakValue}>{stats.currentStreak}</Text>
+          <Text style={styles.streakLabel}>Current streak</Text>
+          <Text style={[styles.streakSub, { color: Colors.semantic.error }]}>days</Text>
         </View>
-        <View style={[styles.streakDivider, { backgroundColor: '#eee' }]} />
+        <View style={styles.streakDivider} />
         <View style={styles.streakItem}>
-          <View style={[styles.streakIcon, { backgroundColor: '#F59E0B15' }]}>
-            <Ionicons name="trophy-outline" size={24} color="#F59E0B" />
+          <View style={[styles.streakIcon, { backgroundColor: Colors.semantic.warningSoft }]}>
+            <Ionicons name="trophy" size={26} color={Colors.semantic.warning} />
           </View>
-          <Text style={[styles.streakValue, { color: isDark ? '#fff' : '#000' }]}>{stats.longestStreak}</Text>
-          <Text style={[styles.streakLabel, { color: isDark ? '#888' : '#666' }]}>Longest Streak</Text>
-          <Text style={[styles.streakSub, { color: '#F59E0B' }]}>days</Text>
+          <Text style={styles.streakValue}>{stats.longestStreak}</Text>
+          <Text style={styles.streakLabel}>Longest streak</Text>
+          <Text style={[styles.streakSub, { color: Colors.semantic.warning }]}>days</Text>
         </View>
       </View>
-    </View>
+    </SectionCard>
 
     {/* Member Since */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Member Since</Text>
-      <View style={styles.memberSinceRow}>
-        <View style={[styles.memberSinceIcon, { backgroundColor: '#8B85FF15' }]}>
-          <Ionicons name="calendar-outline" size={24} color="#8B85FF" />
+    <SectionCard title="Member since" delay={220}>
+      <View style={styles.memberRow}>
+        <View style={[styles.memberIcon, { backgroundColor: Colors.brand.accentSoft }]}>
+          <Ionicons name="calendar" size={22} color={Colors.brand.accent} />
         </View>
         <View>
-          <Text style={[styles.memberSinceDate, { color: isDark ? '#fff' : '#000' }]}>{new Date(stats.memberSince).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
-          <Text style={[styles.memberSinceLabel, { color: isDark ? '#888' : '#666' }]}>Joined LocalBuddy</Text>
+          <Text style={styles.memberDate}>{stats.memberSince ? new Date(stats.memberSince).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</Text>
+          <Text style={styles.memberLabel}>Joined Local Buddy</Text>
         </View>
       </View>
-    </View>
+    </SectionCard>
   </View>
 );
 
+// ============================================================
 // Tasks Tab
-const TasksTab = ({ stats, isDark }: any) => (
+// ============================================================
+const TasksTab = ({ stats }: any) => (
   <View>
-    {/* Category Breakdown */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Tasks by Category</Text>
-      <View style={styles.categoryList}>
-        {stats.byCategory.map((cat: any, i: number) => (
-          <View key={cat.category} style={[styles.categoryRow, i > 0 && { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 12, marginTop: 12 }]}>
-            <View style={[styles.categoryColor, { backgroundColor: cat.color }]} />
-            <View style={styles.categoryInfo}>
-              <Text style={[styles.categoryName, { color: isDark ? '#fff' : '#000' }]}>{cat.category}</Text>
-              <Text style={[styles.categoryCount, { color: isDark ? '#888' : '#666' }]}>{cat.count} tasks</Text>
+    <SectionCard title="Tasks by category">
+      {stats.byCategory.length === 0 ? (
+        <EmptyNote text="Category breakdown appears once tasks flow in." />
+      ) : (
+        <View>
+          {stats.byCategory.map((cat: any, i: number) => (
+            <View key={cat.category} style={[styles.categoryRow, i > 0 && styles.categoryRowDivider]}>
+              <View style={[styles.categoryColor, { backgroundColor: cat.color }]} />
+              <View style={styles.categoryInfo}>
+                <Text style={styles.categoryName}>{cat.category}</Text>
+                <Text style={styles.categoryCount}>{cat.count} tasks</Text>
+              </View>
+              <View style={styles.categoryBar}>
+                <View style={[styles.categoryBarFill, { backgroundColor: cat.color, width: `${(cat.count / Math.max(...stats.byCategory.map((c: any) => c.count))) * 100}%` }]} />
+              </View>
+              <Text style={styles.categoryValue}>{cat.count}</Text>
             </View>
-            <View style={styles.categoryBar}>
-              <View style={[styles.categoryBarFill, { backgroundColor: cat.color, width: `${(cat.count / Math.max(...stats.byCategory.map((c: any) => c.count))) * 100}%` }]} />
-            </View>
-            <Text style={[styles.categoryValue, { color: isDark ? '#fff' : '#000' }]}>{cat.count}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-
-    {/* Monthly Chart */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Monthly Activity</Text>
-      <View style={styles.chartContainer}>
-        {stats.byMonth.map((month: any) => (
-          <View key={month.month} style={styles.chartBarGroup}>
-            <View style={styles.chartBars}>
-              <View style={[styles.chartBar, { height: `${(month.completed / 10) * 100}%`, backgroundColor: '#10B981' }]} />
-              <View style={[styles.chartBar, { height: `${(month.posted / 10) * 100}%`, backgroundColor: Colors.brand.primary, marginLeft: 4 }]} />
-            </View>
-            <Text style={[styles.chartLabel, { color: isDark ? '#888' : '#666' }]}>{month.month}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.chartLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#10B981' }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Completed</Text>
+          ))}
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: Colors.brand.primary }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Posted</Text>
-        </View>
-      </View>
-    </View>
+      )}
+    </SectionCard>
 
-    {/* Summary Cards */}
+    <SectionCard title="Monthly activity" delay={120}>
+      {stats.byMonth.length === 0 ? (
+        <EmptyNote text="Monthly chart appears as you complete more tasks." />
+      ) : (
+        <BarChart
+          groups={stats.byMonth.map((m: any) => ({
+            label: m.month,
+            bars: [
+              { value: m.completed, max: 10, color: Colors.semantic.success },
+              { value: m.posted, max: 10, color: Colors.brand.accent },
+            ],
+          }))}
+          legend={[
+            { label: 'Completed', color: Colors.semantic.success },
+            { label: 'Posted', color: Colors.brand.accent },
+          ]}
+        />
+      )}
+    </SectionCard>
+
     <View style={styles.statsGrid}>
-      <StatCard title="In Progress" value={stats.inProgress} icon="time-outline" color="#F59E0B" isDark={isDark} />
-      <StatCard title="Cancelled" value={stats.cancelled} icon="close-circle-outline" color="#EF4444" isDark={isDark} />
-      <StatCard title="Applied" value={stats.applied} icon="send-outline" color="#8B5CF6" isDark={isDark} />
+      <StatCard title="In Progress" value={stats.inProgress} icon="time" color={Colors.semantic.warning} />
+      <StatCard title="Cancelled" value={stats.cancelled} icon="close-circle" color={Colors.semantic.error} />
+      <StatCard title="Applied" value={stats.applied} icon="send" color={Colors.semantic.info} />
     </View>
   </View>
 );
 
+// ============================================================
 // Earnings Tab
-const EarningsTab = ({ stats, isDark, formatCurrency }: any) => (
+// ============================================================
+const EarningsTab = ({ stats, formatCurrency }: any) => (
   <View>
-    {/* Net Earnings Card */}
-    <View style={[styles.netEarningsCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-      <Text style={[styles.netEarningsLabel, { color: isDark ? '#888' : '#666' }]}>Net Earnings</Text>
-      <Text style={[styles.netEarningsValue, { color: stats.netEarnings >= 0 ? '#10B981' : '#EF4444' }]}>{formatCurrency(stats.netEarnings)}</Text>
-      <View style={styles.netEarningsBreakdown}>
-        <View style={styles.netEarningsItem}>
-          <Text style={[styles.netEarningsItemLabel, { color: isDark ? '#888' : '#666' }]}>Earned</Text>
-          <Text style={[styles.netEarningsItemValue, { color: '#10B981' }]}>+{formatCurrency(stats.totalEarned)}</Text>
+    {/* Net Earnings hero */}
+    <MotiView
+      from={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'timing', duration: 420 }}
+      style={styles.netCard}
+    >
+      <Text style={styles.netLabel}>NET EARNINGS</Text>
+      <Text style={[styles.netValue, { color: stats.netEarnings >= 0 ? '#FFFFFF' : '#FFD6D6' }]}>{formatCurrency(stats.netEarnings)}</Text>
+      <View style={styles.netBreakdown}>
+        <View style={styles.netItem}>
+          <Text style={styles.netItemLabel}>Earned</Text>
+          <Text style={[styles.netItemValue, { color: '#7CF2C4' }]}>+{formatCurrency(stats.totalEarned)}</Text>
         </View>
-        <View style={[styles.netEarningsDivider, { backgroundColor: '#eee' }]} />
-        <View style={styles.netEarningsItem}>
-          <Text style={[styles.netEarningsItemLabel, { color: isDark ? '#888' : '#666' }]}>Spent</Text>
-          <Text style={[styles.netEarningsItemValue, { color: '#EF4444' }]}>-{formatCurrency(stats.totalSpent)}</Text>
+        <View style={styles.netDivider} />
+        <View style={styles.netItem}>
+          <Text style={styles.netItemLabel}>Spent</Text>
+          <Text style={[styles.netItemValue, { color: '#FFB4B4' }]}>−{formatCurrency(stats.totalSpent)}</Text>
         </View>
       </View>
-    </View>
+    </MotiView>
 
-    {/* Monthly Earnings Chart */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Monthly Earnings</Text>
-      <View style={styles.chartContainer}>
-        {stats.monthly.map((month: any) => (
-          <View key={month.month} style={styles.chartBarGroup}>
-            <View style={styles.chartBars}>
-              <View style={[styles.chartBar, { height: `${(month.earned / 250) * 100}%`, backgroundColor: '#10B981' }]} />
-              <View style={[styles.chartBar, { height: `${(month.spent / 250) * 100}%`, backgroundColor: '#EF4444', marginLeft: 4 }]} />
+    <SectionCard title="Monthly earnings" delay={120}>
+      {stats.monthly.length === 0 ? (
+        <EmptyNote text="Earnings trends show up after your first payouts." />
+      ) : (
+        <BarChart
+          groups={stats.monthly.map((m: any) => ({
+            label: m.month,
+            bars: [
+              { value: m.earned, max: 250, color: Colors.semantic.success },
+              { value: m.spent, max: 250, color: Colors.semantic.error },
+            ],
+          }))}
+          legend={[
+            { label: 'Earned', color: Colors.semantic.success },
+            { label: 'Spent', color: Colors.semantic.error },
+          ]}
+        />
+      )}
+    </SectionCard>
+
+    <SectionCard title="Earnings by category" delay={200}>
+      {stats.byCategory.length === 0 ? (
+        <EmptyNote text="No category earnings yet." />
+      ) : (
+        <View>
+          {stats.byCategory.map((cat: any, i: number) => (
+            <View key={cat.category} style={[styles.categoryRow, i > 0 && styles.categoryRowDivider]}>
+              <View style={[styles.categoryColor, { backgroundColor: cat.color }]} />
+              <View style={styles.categoryInfo}>
+                <Text style={styles.categoryName}>{cat.category}</Text>
+                <Text style={styles.categoryCount}>{cat.count} tasks</Text>
+              </View>
+              <Text style={[styles.categoryValue, { color: Colors.semantic.success }]}>{formatCurrency(cat.earned)}</Text>
             </View>
-            <Text style={[styles.chartLabel, { color: isDark ? '#888' : '#666' }]}>{month.month}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.chartLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#10B981' }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Earned</Text>
+          ))}
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#EF4444' }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Spent</Text>
-        </View>
-      </View>
-    </View>
+      )}
+    </SectionCard>
 
-    {/* Earnings by Category */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Earnings by Category</Text>
-      <View style={styles.categoryList}>
-        {stats.byCategory.map((cat: any, i: number) => (
-          <View key={cat.category} style={[styles.categoryRow, i > 0 && { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 12, marginTop: 12 }]}>
-            <View style={[styles.categoryColor, { backgroundColor: cat.color }]} />
-            <View style={styles.categoryInfo}>
-              <Text style={[styles.categoryName, { color: isDark ? '#fff' : '#000' }]}>{cat.category}</Text>
-              <Text style={[styles.categoryCount, { color: isDark ? '#888' : '#666' }]}>{cat.count} tasks</Text>
-            </View>
-            <Text style={[styles.categoryValue, { color: '#10B981' }]}>{formatCurrency(cat.earned)}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-
-    {/* Summary Stats */}
     <View style={styles.statsGrid}>
-      <StatCard title="This Month" value={formatCurrency(stats.thisMonth)} icon="calendar-outline" color="#8B85FF" isDark={isDark} />
-      <StatCard title="Last Month" value={formatCurrency(stats.lastMonth)} icon="calendar-outline" color="#8B5CF6" isDark={isDark} />
-      <StatCard title="Avg/Task" value={formatCurrency(stats.avgPerTask)} icon="calculator-outline" color="#10B981" isDark={isDark} />
-      <StatCard title="Highest" value={formatCurrency(stats.highestEarning)} icon="trending-up-outline" color="#F59E0B" isDark={isDark} />
+      <StatCard title="This Month" value={formatCurrency(stats.thisMonth)} icon="calendar" color={Colors.brand.accent} />
+      <StatCard title="Last Month" value={formatCurrency(stats.lastMonth)} icon="calendar-outline" color={Colors.semantic.info} />
+      <StatCard title="Avg / Task" value={formatCurrency(stats.avgPerTask)} icon="calculator" color={Colors.semantic.success} />
+      <StatCard title="Highest" value={formatCurrency(stats.highestEarning)} icon="trending-up" color={Colors.semantic.warning} />
     </View>
   </View>
 );
 
+// ============================================================
 // Activity Tab
-const ActivityTab = ({ stats, isDark }: any) => (
+// ============================================================
+const ActivityTab = ({ stats }: any) => (
   <View>
-    {/* Weekly Activity */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Weekly Activity</Text>
-      <View style={styles.chartContainer}>
-        {stats.weeklyActivity.map((day: any) => (
-          <View key={day.day} style={styles.chartBarGroup}>
-            <View style={styles.chartBars}>
-              <View style={[styles.chartBar, { height: `${(day.tasks / 5) * 100}%`, backgroundColor: Colors.brand.primary }]} />
-              <View style={[styles.chartBar, { height: `${(day.hours / 5) * 100}%`, backgroundColor: '#10B981', marginLeft: 4 }]} />
-            </View>
-            <Text style={[styles.chartLabel, { color: isDark ? '#888' : '#666' }]}>{day.day}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.chartLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: Colors.brand.primary }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Tasks</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#10B981' }]} />
-          <Text style={[styles.legendText, { color: isDark ? '#ddd' : '#333' }]}>Hours</Text>
-        </View>
-      </View>
-    </View>
+    <SectionCard title="Weekly activity">
+      {stats.weeklyActivity.length === 0 ? (
+        <EmptyNote text="Your weekly rhythm appears here once active." />
+      ) : (
+        <BarChart
+          groups={stats.weeklyActivity.map((d: any) => ({
+            label: d.day,
+            bars: [
+              { value: d.tasks, max: 5, color: Colors.brand.accent },
+              { value: d.hours, max: 5, color: Colors.semantic.success },
+            ],
+          }))}
+          legend={[
+            { label: 'Tasks', color: Colors.brand.accent },
+            { label: 'Hours', color: Colors.semantic.success },
+          ]}
+        />
+      )}
+    </SectionCard>
 
-    {/* Activity Stats */}
     <View style={styles.statsGrid}>
-      <StatCard title="Login Streak" value={stats.loginStreak} icon="flame-outline" color="#EF4444" isDark={isDark} subtitle="days" />
-      <StatCard title="Tasks This Week" value={stats.tasksThisWeek} icon="calendar-outline" color="#8B85FF" isDark={isDark} />
-      <StatCard title="Tasks This Month" value={stats.tasksThisMonth} icon="calendar-outline" color="#10B981" isDark={isDark} />
-      <StatCard title="Hours Active" value={stats.hoursActive} icon="time-outline" color="#F59E0B" isDark={isDark} />
-      <StatCard title="Messages Sent" value={stats.messagesSent} icon="chatbubble-outline" color="#8B5CF6" isDark={isDark} />
-      <StatCard title="Reviews Written" value={stats.reviewsWritten} icon="star-outline" color="#F59E0B" isDark={isDark} />
-      <StatCard title="Referrals Made" value={stats.referralsMade} icon="person-add-outline" color="#8B85FF" isDark={isDark} />
-      <StatCard title="Achievements" value={stats.achievementsUnlocked} icon="trophy-outline" color="#EF4444" isDark={isDark} />
+      <StatCard title="Login Streak" value={stats.loginStreak} icon="flame" color={Colors.semantic.error} subtitle="days" />
+      <StatCard title="Tasks This Week" value={stats.tasksThisWeek} icon="calendar" color={Colors.brand.accent} />
+      <StatCard title="Tasks This Month" value={stats.tasksThisMonth} icon="calendar-outline" color={Colors.semantic.success} />
+      <StatCard title="Hours Active" value={stats.hoursActive} icon="time" color={Colors.semantic.warning} />
+      <StatCard title="Messages Sent" value={stats.messagesSent} icon="chatbubble" color={Colors.semantic.info} />
+      <StatCard title="Reviews Written" value={stats.reviewsWritten} icon="star" color={Colors.semantic.warning} />
+      <StatCard title="Referrals Made" value={stats.referralsMade} icon="person-add" color={Colors.brand.accent} />
+      <StatCard title="Achievements" value={stats.achievementsUnlocked} icon="trophy" color={Colors.semantic.error} />
     </View>
 
-    {/* Last Active */}
-    <View style={[styles.sectionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Last Active</Text>
-      <View style={styles.memberSinceRow}>
-        <View style={[styles.memberSinceIcon, { backgroundColor: '#10B98115' }]}>
-          <Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />
+    <SectionCard title="Last active" delay={200}>
+      <View style={styles.memberRow}>
+        <View style={[styles.memberIcon, { backgroundColor: Colors.semantic.successSoft }]}>
+          <Ionicons name="checkmark-circle" size={22} color={Colors.semantic.success} />
         </View>
         <View>
-          <Text style={[styles.memberSinceDate, { color: isDark ? '#fff' : '#000' }]}>{new Date(stats.lastActive).toLocaleString()}</Text>
-          <Text style={[styles.memberSinceLabel, { color: isDark ? '#888' : '#666' }]}>Currently active</Text>
+          <Text style={styles.memberDate}>{stats.lastActive ? new Date(stats.lastActive).toLocaleString('en-IN') : '—'}</Text>
+          <Text style={styles.memberLabel}>Currently active</Text>
         </View>
       </View>
-    </View>
-  </View>
-);
-
-// Stat Card Component
-const StatCard = ({ title, value, icon, color, isDark, subtitle }: any) => (
-  <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <Text style={[styles.statValue, { color: isDark ? '#fff' : '#000' }]}>{value}</Text>
-    <Text style={[styles.statTitle, { color: isDark ? '#888' : '#666' }]}>{title}</Text>
-    {subtitle && <Text style={[styles.statSubtitle, { color: color }]}>{subtitle}</Text>}
+    </SectionCard>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  timeRangeContainer: { borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  timeRangeLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
-  timeRangeTabs: { flexDirection: 'row', gap: 8 },
-  timeRangeTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
-  timeRangeTabActive: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary },
-  timeRangeTabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  tabContainer: { borderRadius: 28, padding: 4, borderWidth: 1, borderColor: '#eee' },
-  tabScroll: { flexDirection: 'row', gap: 4 },
-  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16 },
-  tabActive: { backgroundColor: Colors.brand.primary },
-  tabText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginTop: 16 },
-  statCard: { width: '48%', borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  statIcon: { width: 48, height: 48, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  statValue: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  statTitle: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center', marginTop: 4 },
-  statSubtitle: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
-  sectionCard: { borderRadius: 28, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  levelCard: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
-  levelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing[4] },
+  loadingBadge: {
+    width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  loadingText: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[4] },
+  pageTitle: { fontFamily: Typography.fontFamily.display, fontSize: 27, color: Colors.text.primary },
+  pageSub: { fontFamily: Typography.fontFamily.body, fontSize: 12.5, color: Colors.text.secondary, marginTop: 2 },
+  exportBtn: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.primary,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.button,
+  },
+
+  rangeWrap: {
+    flexDirection: 'row', backgroundColor: Colors.surface.tertiary,
+    borderRadius: BorderRadius.pill, padding: 5, marginBottom: Spacing[4],
+  },
+  rangeTab: { flex: 1, alignItems: 'center', paddingVertical: Spacing[2] + 2, borderRadius: BorderRadius.pill },
+  rangeTabActive: { backgroundColor: Colors.brand.primary, ...Shadows.button },
+  rangeTabText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+  rangeTabTextActive: { color: '#FFFFFF' },
+
+  tabContainer: {
+    flexDirection: 'row', backgroundColor: Colors.surface.elevated,
+    borderRadius: BorderRadius.lg, padding: 5, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: Spacing[2] + 3, borderRadius: BorderRadius.md },
+  tabActive: { backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange },
+  tabText: { fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+  tabTextActive: { color: '#FFFFFF' },
+
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing[3], marginTop: Spacing[4] },
+  statCard: {
+    width: '48.5%', borderRadius: BorderRadius.lg, padding: Spacing[4],
+    borderWidth: 1, borderColor: Colors.border.light, backgroundColor: Colors.surface.elevated,
+    alignItems: 'center', ...Shadows.card,
+  },
+  statIcon: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing[2] },
+  statValue: { fontSize: 21, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  statTitle: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center', marginTop: 4 },
+  statSubtitle: { fontSize: 10.5, fontFamily: Typography.fontFamily.semiBold, marginTop: 2 },
+
+  sectionCard: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5], marginTop: Spacing[4],
+    borderWidth: 1, borderColor: Colors.border.light, backgroundColor: Colors.surface.elevated,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 17, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[4] },
+
+  levelCard: {
+    borderRadius: BorderRadius.xl, padding: Spacing[5],
+    backgroundColor: Colors.brand.primary, ...Shadows.button,
+  },
+  levelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing[4] },
   levelInfo: { flex: 1 },
-  levelLabel: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  levelNumber: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  levelProgressContainer: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  levelProgressText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  levelProgressBar: { height: 8, borderRadius: 28, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  levelProgressFill: { height: '100%', borderRadius: 4 },
+  levelLabel: { fontSize: 11, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.65)', letterSpacing: 1 },
+  levelNumber: { fontSize: 28, fontFamily: Typography.fontFamily.display, color: '#FFFFFF', marginTop: 2 },
+  levelBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 6,
+  },
+  levelBadgeText: { fontSize: 11.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+  levelProgressBar: { height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.18)', overflow: 'hidden' },
+  levelProgressFill: { height: '100%', borderRadius: 5, backgroundColor: Colors.brand.accent },
+
   streakRow: { flexDirection: 'row' },
-  streakItem: { flex: 1, alignItems: 'center', gap: 8 },
-  streakIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-  streakValue: { fontSize: 28, fontFamily: 'Inter_700Bold' },
-  streakLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center' },
-  streakSub: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  streakDivider: { width: 1, height: 60 },
-  memberSinceRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  memberSinceIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-  memberSinceDate: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  memberSinceLabel: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  categoryList: { gap: 0 },
-  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  streakItem: { flex: 1, alignItems: 'center', gap: 6 },
+  streakIcon: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  streakValue: { fontSize: 28, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  streakLabel: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center' },
+  streakSub: { fontSize: 10.5, fontFamily: Typography.fontFamily.semiBold, textTransform: 'uppercase', letterSpacing: 0.6 },
+  streakDivider: { width: 1, backgroundColor: Colors.border.light, marginVertical: 8 },
+
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[4] },
+  memberIcon: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
+  memberDate: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  memberLabel: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2 },
+
+  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingVertical: Spacing[2] },
+  categoryRowDivider: { borderTopWidth: 1, borderTopColor: Colors.border.light, paddingTop: Spacing[3], marginTop: Spacing[2] },
   categoryColor: { width: 12, height: 12, borderRadius: 6 },
   categoryInfo: { flex: 1 },
-  categoryName: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  categoryCount: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  categoryBar: { width: 60, height: 6, borderRadius: 5, backgroundColor: '#E5E7EB', marginHorizontal: 12 },
-  categoryBarFill: { height: '100%', borderRadius: 3 },
-  categoryValue: { fontSize: 14, fontFamily: 'Inter_700Bold', minWidth: 50, textAlign: 'right' },
-  chartContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 120, paddingVertical: 16 },
+  categoryName: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  categoryCount: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 1 },
+  categoryBar: { width: 64, height: 8, borderRadius: 4, backgroundColor: Colors.surface.tertiary, overflow: 'hidden' },
+  categoryBarFill: { height: '100%', borderRadius: 4 },
+  categoryValue: { fontSize: 14, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary, minWidth: 44, textAlign: 'right' },
+
+  chartContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 130, paddingVertical: Spacing[3] },
   chartBarGroup: { alignItems: 'center', flex: 1 },
-  chartBars: { flexDirection: 'row', alignItems: 'flex-end', height: 100, justifyContent: 'center', gap: 4 },
-  chartBar: { width: 16, borderRadius: 4 },
-  chartLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', marginTop: 8, color: '#666' },
-  chartLegend: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginTop: 16 },
+  chartBars: { flexDirection: 'row', alignItems: 'flex-end', height: 96, justifyContent: 'center', gap: 4 },
+  chartBar: { width: 14, borderRadius: 6 },
+  chartLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, marginTop: 6, color: Colors.text.muted },
+  chartLegend: { flexDirection: 'row', justifyContent: 'center', gap: Spacing[5], marginTop: Spacing[3] },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendColor: { width: 12, height: 12, borderRadius: 3 },
-  legendText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  netEarningsCard: { borderRadius: 28, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16, alignItems: 'center' },
-  netEarningsLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
-  netEarningsValue: { fontSize: 36, fontFamily: 'Inter_700Bold' },
-  netEarningsBreakdown: { flexDirection: 'row', alignItems: 'center', marginTop: 16, width: '100%' },
-  netEarningsItem: { flex: 1, alignItems: 'center' },
-  netEarningsItemLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', marginBottom: 2 },
-  netEarningsItemValue: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  netEarningsDivider: { width: 1, height: 40 },
+  legendColor: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+
+  netCard: {
+    borderRadius: BorderRadius.xl, padding: Spacing[6], alignItems: 'center',
+    backgroundColor: Colors.brand.primary, ...Shadows.button,
+  },
+  netLabel: { fontSize: 11, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.65)', letterSpacing: 1.2, marginBottom: Spacing[1] },
+  netValue: { fontSize: 38, fontFamily: Typography.fontFamily.bold, letterSpacing: 0.3 },
+  netBreakdown: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing[4], width: '100%' },
+  netItem: { flex: 1, alignItems: 'center' },
+  netItemLabel: { fontSize: 11, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.65)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8 },
+  netItemValue: { fontSize: 15, fontFamily: Typography.fontFamily.bold },
+  netDivider: { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.2)' },
+
+  emptyNote: { alignItems: 'center', paddingVertical: Spacing[5], gap: Spacing[2] },
+  emptyNoteText: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center', lineHeight: 18 },
 });

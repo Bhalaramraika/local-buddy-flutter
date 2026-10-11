@@ -1,31 +1,34 @@
 /**
- * Referral Program Screen - Referral program overview and sharing
+ * Referral Program Screen — Soft Modern
+ * Orange hero with referral code chip, tier progress bar,
+ * numbered "how it works" steps, milestone reward cards.
+ * Data loading / share logic unchanged.
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Alert,
   Share,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { apiGet } from '@/services/api';
-import { Colors } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function ReferralScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { theme, showToast } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
   const [referralData, setReferralData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -46,6 +49,7 @@ export default function ReferralScreen() {
         pendingEarnings: stats.pending * 50,
         referralLink: codeRes?.shareUrl || `https://localbuddy.app/r/${code}`,
         tier: stats.completed >= 20 ? 'Platinum' : stats.completed >= 10 ? 'Gold' : 'Silver',
+        nextTier: stats.completed >= 20 ? 'Platinum' : stats.completed >= 10 ? 'Platinum' : 'Gold',
         nextTierRequirement: stats.completed >= 20 ? 50 : 20,
         rewards: [
           { referrals: 1, reward: '₹50', description: 'First referral bonus' },
@@ -67,7 +71,6 @@ export default function ReferralScreen() {
     loadReferralData();
   }, []);
 
-
   const copyReferralCode = () => {
     if (referralData) {
       // In a real app, use Clipboard.setString(referralData.code)
@@ -77,19 +80,12 @@ export default function ReferralScreen() {
     }
   };
 
-  const copyReferralLink = () => {
-    if (referralData) {
-      // In a real app, use Clipboard.setString(referralData.referralLink)
-      showToast('Referral link copied!', 'success');
-    }
-  };
-
   const shareReferral = async () => {
     if (referralData) {
       try {
         await Share.share({
-          message: `Join me on LocalBuddy! Use my referral code ${referralData.code} to get $10 off your first task. ${referralData.referralLink}`,
-          title: 'Join LocalBuddy',
+          message: `Join me on Local Buddy! Use my referral code ${referralData.code} to get ₹10 off your first task. ${referralData.referralLink}`,
+          title: 'Join Local Buddy',
           url: referralData.referralLink,
         });
       } catch (error) {
@@ -100,284 +96,349 @@ export default function ReferralScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'completed':
-        return { label: 'Completed', color: '#10B981', bg: '#10B98115', icon: 'check-circle-outline' };
+        return { label: 'Completed', color: Colors.semantic.success, bg: Colors.semantic.successSoft, icon: 'checkmark-circle' };
       case 'pending':
-        return { label: 'Pending', color: '#F59E0B', bg: '#F59E0B15', icon: 'time-outline' };
+        return { label: 'Pending', color: Colors.semantic.warning, bg: Colors.semantic.warningSoft, icon: 'time-outline' };
       case 'cancelled':
-        return { label: 'Cancelled', color: '#EF4444', bg: '#EF444415', icon: 'close-circle-outline' };
+        return { label: 'Cancelled', color: Colors.semantic.error, bg: Colors.semantic.errorSoft, icon: 'close-circle' };
       default:
-        return { label: 'Unknown', color: '#9CA3AF', bg: '#9CA3AF15', icon: 'help-circle-outline' };
+        return { label: 'Unknown', color: Colors.text.muted, bg: Colors.surface.tertiary, icon: 'help-circle-outline' };
     }
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Referral Program</Text>
-            <View style={{ width: 44 }} />
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingBadge}>
+            <Ionicons name="gift" size={30} color={Colors.brand.accent} />
           </View>
-        </View>
-        <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#8B85FF" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading referral data...</Text>
+          <Text style={styles.loadingText}>Loading referral data...</Text>
         </View>
       </View>
     );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Referral Program</Text>
-          <TouchableOpacity onPress={() => router.push('/(screens)/my-referrals')}>
-            <Text style={[styles.myReferralsText, { color: Colors.brand.primary }]}>My Referrals</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+  if (!referralData) {
+    return null;
+  }
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero Card */}
-        <View style={[styles.heroCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <View style={styles.heroTop}>
-            <View style={styles.tierBadge}>
-              <Text style={styles.tierLabel}>Your Tier</Text>
-              <Text style={styles.tierName}>{referralData.tier}</Text>
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Refer & earn" subtitle="Invite friends, earn rewards" onBack={() => router.back()} />
+        {/* Orange hero with referral code */}
+        <MotiView
+          from={{ opacity: 0, translateY: 18 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 440 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.tierBadge}>
+            <Ionicons name="gift" size={15} color="#FFFFFF" />
+            <Text style={styles.tierLabel}>Your tier</Text>
+            <Text style={styles.tierName}>{referralData.tier}</Text>
+          </View>
+
+          <View style={styles.codeCard}>
+            <Text style={styles.codeLabel}>YOUR REFERRAL CODE</Text>
+            <View style={styles.codeContainer}>
+              <Text style={styles.codeText}>{referralData.code}</Text>
+              <Pressable
+                style={[styles.copyButton, copied && styles.copyButtonCopied]}
+                onPress={copyReferralCode}
+                accessibilityLabel="Copy referral code"
+              >
+                <Ionicons name={copied ? 'checkmark' : 'copy'} size={19} color="#FFFFFF" />
+              </Pressable>
             </View>
-            <View style={styles.referralCodeCard}>
-              <Text style={[styles.codeLabel, { color: isDark ? '#888' : '#666' }]}>Your Referral Code</Text>
-              <View style={styles.codeContainer}>
-                <Text style={[styles.codeText, { color: isDark ? '#fff' : '#000' }]}>{referralData.code}</Text>
-                <TouchableOpacity 
-                  style={[styles.copyButton, copied && styles.copyButtonCopied]}
-                  onPress={copyReferralCode}
-                >
-                  <Ionicons name={copied ? 'checkmark-outline' : 'copy-outline'} size={20} color={copied ? '#10B981' : Colors.brand.primary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.codeCopied, { color: copied ? '#10B981' : 'transparent' }]}>Copied!</Text>
-            </View>
+            <Text style={[styles.codeCopied, { opacity: copied ? 1 : 0 }]}>Copied!</Text>
           </View>
 
           <View style={styles.heroStats}>
             <View style={styles.heroStat}>
-              <Text style={[styles.heroStatValue, { color: isDark ? '#fff' : '#000' }]}>${referralData.totalEarned.toFixed(2)}</Text>
-              <Text style={[styles.heroStatLabel, { color: isDark ? '#888' : '#666' }]}>Total Earned</Text>
+              <Text style={styles.heroStatValue}>₹{referralData.totalEarned.toFixed(0)}</Text>
+              <Text style={styles.heroStatLabel}>Total Earned</Text>
             </View>
-            <View style={[styles.heroStat, { borderLeftWidth: 1, borderLeftColor: '#eee', borderRightWidth: 1, borderRightColor: '#eee' }]}>
-              <Text style={[styles.heroStatValue, { color: isDark ? '#fff' : '#000' }]}>{referralData.successfulReferrals}</Text>
-              <Text style={[styles.heroStatLabel, { color: isDark ? '#888' : '#666' }]}>Successful</Text>
-            </View>
+            <View style={styles.heroDivider} />
             <View style={styles.heroStat}>
-              <Text style={[styles.heroStatValue, { color: isDark ? '#fff' : '#000' }]}>{referralData.pendingReferrals}</Text>
-              <Text style={[styles.heroStatLabel, { color: isDark ? '#888' : '#666' }]}>Pending</Text>
+              <Text style={styles.heroStatValue}>{referralData.successfulReferrals}</Text>
+              <Text style={styles.heroStatLabel}>Successful</Text>
+            </View>
+            <View style={styles.heroDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{referralData.pendingReferrals}</Text>
+              <Text style={styles.heroStatLabel}>Pending</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.shareButton, { backgroundColor: Colors.brand.primary }]} onPress={shareReferral}>
-            <Ionicons name="share-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.shareButtonText}>Share Referral Link</Text>
-          </TouchableOpacity>
-        </View>
+          <Pressable style={styles.shareButton} onPress={shareReferral}>
+            <Ionicons name="share-social" size={18} color={Colors.brand.accent} />
+            <Text style={styles.shareButtonText}>Share referral link</Text>
+          </Pressable>
+        </MotiView>
+
+        {/* My Referrals shortcut */}
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 120 }}>
+          <Pressable style={styles.myReferralsRow} onPress={() => router.push('/(screens)/my-referrals')}>
+            <View style={styles.myReferralsIcon}>
+              <Ionicons name="people" size={18} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.myReferralsText}>See all my referrals</Text>
+            <Ionicons name="chevron-forward" size={17} color={Colors.text.muted} />
+          </Pressable>
+        </MotiView>
 
         {/* Progress to Next Tier */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
+        <MotableSection index={1} title={`Progress to ${referralData.nextTier}`}>
           <View style={styles.tierProgressHeader}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Progress to {referralData.nextTier}</Text>
-            <Text style={[styles.tierProgressText, { color: isDark ? '#888' : '#666' }]}>{referralData.successfulReferrals} / {referralData.nextTierRequirement} referrals</Text>
+            <Text style={styles.tierProgressText}>{referralData.successfulReferrals} / {referralData.nextTierRequirement} referrals</Text>
           </View>
           <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: Colors.brand.primary,
-                  width: `${Math.min((referralData.successfulReferrals / referralData.nextTierRequirement) * 100, 100)}%`
-                }
-              ]} 
+            <MotiView
+              from={{ width: '0%' }}
+              animate={{ width: `${Math.min((referralData.successfulReferrals / referralData.nextTierRequirement) * 100, 100)}%` }}
+              transition={{ type: 'timing', duration: 800, delay: 350 }}
+              style={styles.progressFill}
             />
           </View>
-          <Text style={[styles.tierProgressDetail, { color: isDark ? '#888' : '#666' }]}>{referralData.nextTierRequirement - referralData.successfulReferrals} more referrals to reach {referralData.nextTier}</Text>
-        </View>
+          <Text style={styles.tierProgressDetail}>{referralData.nextTierRequirement - referralData.successfulReferrals} more referrals to reach {referralData.nextTier}</Text>
+        </MotableSection>
 
         {/* How It Works */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>How It Works</Text>
+        <MotableSection index={2} title="How it works">
           <View style={styles.stepsContainer}>
             {[
-              { number: 1, title: 'Share Your Code', description: 'Share your referral code or link with friends' },
-              { number: 2, title: 'They Sign Up', description: 'Friends sign up using your code or link' },
-              { number: 3, title: 'They Complete Tasks', description: 'Friends complete their first task' },
-              { number: 4, title: 'You Both Earn', description: 'You get $30, they get $10 bonus' },
+              { number: 1, title: 'Share your code', description: 'Share your referral code or link with friends' },
+              { number: 2, title: 'They sign up', description: 'Friends join using your code or link' },
+              { number: 3, title: 'They complete tasks', description: 'Friends finish their first task' },
+              { number: 4, title: 'You both earn', description: 'You get ₹30, they get ₹10 bonus' },
             ].map((step) => (
               <View key={step.number} style={styles.step}>
-                <View style={styles.stepNumber}>{step.number}</View>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{step.number}</Text>
+                </View>
                 <View style={styles.stepContent}>
-                  <Text style={[styles.stepTitle, { color: isDark ? '#fff' : '#000' }]}>{step.title}</Text>
-                  <Text style={[styles.stepDescription, { color: isDark ? '#888' : '#666' }]}>{step.description}</Text>
+                  <Text style={styles.stepTitle}>{step.title}</Text>
+                  <Text style={styles.stepDescription}>{step.description}</Text>
                 </View>
               </View>
             ))}
           </View>
-        </View>
+        </MotableSection>
 
         {/* Rewards Tiers */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Milestone Rewards</Text>
+        <MotableSection index={3} title="Milestone rewards">
           <View style={styles.rewardsList}>
             {referralData.rewards.map((reward: any, index: number) => {
               const achieved = referralData.successfulReferrals >= reward.referrals;
-              const current = referralData.successfulReferrals >= reward.referrals && 
+              const current = referralData.successfulReferrals >= reward.referrals &&
                 (index === referralData.rewards.length - 1 || referralData.successfulReferrals < referralData.rewards[index + 1].referrals);
-              
+
               return (
-                <View key={reward.referrals} style={[styles.rewardItem, achieved && styles.rewardAchieved, current && styles.rewardCurrent]}>
-                  <View style={[styles.rewardIcon, achieved && styles.rewardIconAchieved, current && styles.rewardIconCurrent]}>
-                    <Ionicons name={achieved ? 'checkmark-outline' : 'lock-closed-outline'} size={20} color={achieved ? '#fff' : (isDark ? '#555' : '#999')} />
+                <View key={reward.referrals} style={[styles.rewardItem, achieved && styles.rewardAchieved, current && !achieved && styles.rewardCurrent]}>
+                  <View style={[styles.rewardIcon, achieved ? styles.rewardIconAchieved : current ? styles.rewardIconCurrent : null]}>
+                    <Ionicons name={achieved ? 'checkmark' : 'lock-closed'} size={18} color={achieved || current ? '#FFFFFF' : Colors.text.muted} />
                   </View>
                   <View style={styles.rewardInfo}>
                     <View style={styles.rewardHeader}>
-                      <Text style={[styles.rewardReferrals, { color: isDark ? '#fff' : '#000' }]}>{reward.referrals} Referral{reward.referrals > 1 ? 's' : ''}</Text>
-                      <Text style={[styles.rewardAmount, { color: achieved ? '#10B981' : (isDark ? '#888' : '#666')}]}>{reward.reward}</Text>
+                      <Text style={styles.rewardReferrals}>{reward.referrals} Referral{reward.referrals > 1 ? 's' : ''}</Text>
+                      <Text style={[styles.rewardAmount, achieved && { color: Colors.semantic.success }]}>{reward.reward}</Text>
                     </View>
-                    <Text style={[styles.rewardDescription, { color: isDark ? '#888' : '#666' }]}>{reward.description}</Text>
+                    <Text style={styles.rewardDescription}>{reward.description}</Text>
                   </View>
-                  {achieved && <Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />}
+                  {achieved ? <Ionicons name="checkmark-circle" size={20} color={Colors.semantic.success} /> : null}
                 </View>
               );
             })}
           </View>
-        </View>
+        </MotableSection>
 
         {/* Recent Activity */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16, marginBottom: 40 }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => router.push('/(screens)/my-referrals')}>
-              <Text style={[styles.seeAllText, { color: Colors.brand.primary }]}>See All</Text>
-            </TouchableOpacity>
-          </View>
+        <MotableSection index={4} title="Recent activity">
           {referralData.recentActivity.length === 0 ? (
             <View style={styles.emptyActivity}>
-              <Ionicons name="people-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyActivityText, { color: isDark ? '#fff' : '#000' }]}>No referrals yet</Text>
-              <Text style={[styles.emptyActivitySubtext, { color: isDark ? '#888' : '#666' }]}>Share your code to start earning</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="people-outline" size={30} color={Colors.brand.accent} />
+              </View>
+              <Text style={styles.emptyActivityText}>No referrals yet</Text>
+              <Text style={styles.emptyActivitySubtext}>Share your code to start earning</Text>
             </View>
           ) : (
             <View style={styles.activityList}>
               {referralData.recentActivity.slice(0, 5).map((activity: any) => {
                 const statusConfig = getStatusConfig(activity.status);
                 return (
-                  <TouchableOpacity key={activity.id} style={styles.activityItem}>
+                  <View key={activity.id} style={styles.activityItem}>
                     <View style={styles.activityAvatar}>
                       <Text style={styles.activityAvatarText}>{activity.name.charAt(0)}</Text>
                     </View>
                     <View style={styles.activityInfo}>
-                      <Text style={[styles.activityName, { color: isDark ? '#fff' : '#000' }]}>{activity.name}</Text>
-                      <Text style={[styles.activityDate, { color: isDark ? '#888' : '#666' }]}>{formatDate(activity.date)}</Text>
+                      <Text style={styles.activityName}>{activity.name}</Text>
+                      <Text style={styles.activityDate}>{formatDate(activity.date)}</Text>
                     </View>
                     <View style={styles.activityEarnings}>
                       <View style={[styles.activityStatus, { backgroundColor: statusConfig.bg }]}>
-                        <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} style={{ marginRight: 4 }} />
+                        <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
                         <Text style={[styles.activityStatusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
                       </View>
-                      <Text style={[styles.activityAmount, { color: activity.status === 'completed' ? '#10B981' : (isDark ? '#888' : '#666')}]}>{activity.status === 'completed' ? '+' : ''}$${activity.earnings.toFixed(2)}</Text>
+                      <Text style={[styles.activityAmount, { color: activity.status === 'completed' ? Colors.semantic.success : Colors.text.muted }]}>
+                        {activity.status === 'completed' ? '+' : ''}₹{activity.earnings.toFixed(0)}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
           )}
-        </View>
+        </MotableSection>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
+function MotableSection({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 80 }}
+      style={styles.section}
+    >
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </MotiView>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  myReferralsText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  heroCard: { borderRadius: 32, padding: 24, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
-  heroTop: { marginBottom: 20 },
-  tierBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
-  tierLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.brand.primary },
-  tierName: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.brand.primary },
-  referralCodeCard: { backgroundColor: '#8B85FF15', borderRadius: 28, padding: 20 },
-  codeLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 8 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing[4] },
+  loadingBadge: {
+    width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  loadingText: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  heroCard: {
+    borderRadius: BorderRadius['2xl'], padding: Spacing[6],
+    backgroundColor: Colors.brand.accent, marginBottom: Spacing[4], ...Shadows.buttonOrange,
+  },
+  tierBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 6, marginBottom: Spacing[5],
+  },
+  tierLabel: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.9)' },
+  tierName: { fontSize: 13, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
+  codeCard: {
+    backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: BorderRadius.lg,
+    padding: Spacing[4], marginBottom: Spacing[5],
+  },
+  codeLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.bold, color: 'rgba(255,255,255,0.75)', letterSpacing: 1.4, marginBottom: Spacing[2] },
   codeContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  codeText: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
-  copyButton: { width: 44, height: 44, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center' },
-  copyButtonCopied: { backgroundColor: '#10B981' },
-  codeCopied: { fontSize: 12, fontFamily: 'Inter_500Medium', marginTop: 8, textAlign: 'center' },
-  heroStats: { flexDirection: 'row', marginBottom: 20 },
+  codeText: { fontSize: 27, fontFamily: Typography.fontFamily.bold, letterSpacing: 2.5, color: '#FFFFFF' },
+  copyButton: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  copyButtonCopied: { backgroundColor: Colors.semantic.success },
+  codeCopied: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: '#FFFFFF', marginTop: Spacing[2], textAlign: 'right' },
+  heroStats: { flexDirection: 'row', marginBottom: Spacing[5] },
+  heroDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.25)', marginVertical: 4 },
   heroStat: { flex: 1, alignItems: 'center' },
-  heroStatValue: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  heroStatLabel: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4 },
-  shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 12 },
-  shareButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#fff' },
-  section: { borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  tierProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  tierProgressText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  progressBar: { height: 8, borderRadius: 28, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4 },
-  tierProgressDetail: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8 },
-  stepsContainer: { gap: 20 },
-  step: { flexDirection: 'row', gap: 16 },
-  stepNumber: { width: 32, height: 32, borderRadius: 28, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  heroStatValue: { fontSize: 22, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
+  heroStatLabel: { fontSize: 11, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.8)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  shareButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing[2],
+    paddingVertical: Spacing[4], borderRadius: BorderRadius.pill, backgroundColor: '#FFFFFF',
+  },
+  shareButtonText: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed },
+
+  myReferralsRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[4],
+    marginBottom: Spacing[4], ...Shadows.card,
+  },
+  myReferralsIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  myReferralsText: { flex: 1, fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5], marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[4] },
+  tierProgressHeader: { marginBottom: Spacing[3], marginTop: -Spacing[2] },
+  tierProgressText: { fontSize: 13, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  progressBar: { height: 10, borderRadius: 5, backgroundColor: Colors.surface.tertiary, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 5, backgroundColor: Colors.brand.accent },
+  tierProgressDetail: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2] },
+
+  stepsContainer: { gap: Spacing[4] },
+  step: { flexDirection: 'row', gap: Spacing[3], alignItems: 'flex-start' },
+  stepNumber: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.brand.accent,
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0, ...Shadows.buttonOrange,
+  },
+  stepNumberText: { color: '#FFFFFF', fontSize: 14, fontFamily: Typography.fontFamily.bold },
   stepContent: { flex: 1 },
-  stepTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  stepDescription: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2, lineHeight: 18 },
-  rewardsList: { gap: 12 },
-  rewardItem: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
-  rewardAchieved: { borderColor: '#10B981', backgroundColor: '#10B98110' },
-  rewardCurrent: { borderColor: Colors.brand.primary, backgroundColor: '#8B85FF10' },
-  rewardIcon: { width: 44, height: 44, borderRadius: 28, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' },
-  rewardIconAchieved: { backgroundColor: '#10B981' },
-  rewardIconCurrent: { backgroundColor: Colors.brand.primary },
+  stepTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  stepDescription: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2, lineHeight: 18 },
+
+  rewardsList: { gap: Spacing[3] },
+  rewardItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    padding: Spacing[4], borderRadius: BorderRadius.md,
+    borderWidth: 1.5, borderColor: Colors.border.light, backgroundColor: Colors.surface.primary,
+  },
+  rewardAchieved: { borderColor: Colors.semantic.success, backgroundColor: Colors.semantic.successSoft },
+  rewardCurrent: { borderColor: Colors.brand.accent, backgroundColor: Colors.brand.accentSoft },
+  rewardIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.tertiary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  rewardIconAchieved: { backgroundColor: Colors.semantic.success },
+  rewardIconCurrent: { backgroundColor: Colors.brand.accent },
   rewardInfo: { flex: 1 },
   rewardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rewardReferrals: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  rewardAmount: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  rewardDescription: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  seeAllText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  emptyActivity: { alignItems: 'center', paddingVertical: 32 },
-  emptyActivityText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginTop: 12 },
-  emptyActivitySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },
-  activityList: { gap: 12 },
-  activityItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  activityAvatar: { width: 44, height: 44, borderRadius: 28, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
-  activityAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.brand.primary },
+  rewardReferrals: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  rewardAmount: { fontSize: 15, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  rewardDescription: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2 },
+
+  emptyActivity: { alignItems: 'center', paddingVertical: Spacing[6] },
+  emptyIconWrap: {
+    width: 68, height: 68, borderRadius: 34, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  emptyActivityText: { fontSize: 15.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptyActivitySubtext: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 4 },
+  activityList: { gap: Spacing[2] },
+  activityItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingVertical: Spacing[2] },
+  activityAvatar: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  activityAvatarText: { fontSize: 16, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accentPressed },
   activityInfo: { flex: 1 },
-  activityName: { fontSize: 15, fontFamily: 'Inter_500Medium' },
-  activityDate: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  activityEarnings: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  activityStatus: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  activityStatusText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  activityAmount: { fontSize: 15, fontFamily: 'Inter_700Bold' },
+  activityName: { fontSize: 14, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  activityDate: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 1 },
+  activityEarnings: { alignItems: 'flex-end', gap: 4 },
+  activityStatus: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing[2], paddingVertical: 3, borderRadius: BorderRadius.pill },
+  activityStatusText: { fontSize: 10, fontFamily: Typography.fontFamily.semiBold },
+  activityAmount: { fontSize: 14, fontFamily: Typography.fontFamily.bold },
 });

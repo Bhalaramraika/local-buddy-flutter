@@ -1,27 +1,26 @@
 /**
- * Wallet Screen - Balance, transactions, top-up, withdraw
+ * Wallet Screen — Soft Modern
+ * Signature orange balance card, white stat tiles,
+ * cocoa segmented filters, soft transaction rows.
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton } from '@/components/ui';
 import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
 
 export default function WalletScreen() {
   const router = useRouter();
-  const { wallet, balance, transactions, fetchWallet, fetchTransactions, withdraw, isLoading: walletLoading } = useWalletStore();
+  const { wallet, balance, transactions, fetchWallet, fetchTransactions, isLoading: walletLoading } = useWalletStore();
   const { user, isAuthenticated } = useAuthStore();
-  const { theme } = useUIStore();
-  const systemScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'credit' | 'debit'>('all');
-
-  // System-aware: 'system' follows the OS scheme so text/background always contrast
-  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
 
   // Unified values: REST (/wallet) OR Firestore realtime sync — whichever is
   // freshest. The realtime listener also feeds `wallet`, so the tab never
@@ -51,108 +50,167 @@ export default function WalletScreen() {
     return true;
   });
 
-  const renderTransaction = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[styles.transactionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-      onPress={() => router.push({ pathname: `/(screens)/transaction-detail`, params: { id: item.id } })}
+  const renderTransaction = ({ item, index }: { item: any; index: number }) => (
+    <MotiView
+      from={{ opacity: 0, translateY: 12 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 340, delay: Math.min(index, 8) * 45 }}
     >
-      <View style={styles.transactionIconContainer}>
-        <View style={[styles.transactionIcon, { backgroundColor: item.type === 'credit' ? '#10B98120' : '#EF444420' }]}>
-          <Ionicons 
-            name={item.type === 'credit' ? 'arrow-down-circle-outline' : 'arrow-up-circle-outline'} 
-            size={24} 
-            color={item.type === 'credit' ? '#10B981' : '#EF4444'} 
+      <Pressable
+        style={({ pressed }) => [styles.transactionCard, pressed && { transform: [{ scale: 0.985 }] }]}
+        onPress={() => router.push({ pathname: `/(screens)/transaction-detail`, params: { id: item.id } })}
+      >
+        <View style={[styles.transactionIcon, { backgroundColor: item.type === 'credit' ? Colors.semantic.successSoft : Colors.semantic.errorSoft }]}>
+          <Ionicons
+            name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'}
+            size={20}
+            color={item.type === 'credit' ? Colors.semantic.success : Colors.semantic.error}
           />
         </View>
-      </View>
-      <View style={styles.transactionDetails}>
-        <View style={styles.transactionHeader}>
-          <Text style={[styles.transactionTitle, { color: isDark ? '#fff' : '#000' }]}>{item.description}</Text>
-          <Text style={[styles.transactionAmount, { color: item.type === 'credit' ? '#10B981' : '#EF4444' }]}>
-            {item.type === 'credit' ? '+' : '-'}{formatCurrency(item.amount)}
-          </Text>
-        </View>
-        <View style={styles.transactionMeta}>
-          <Text style={[styles.transactionType, { color: isDark ? '#888' : '#666' }]}>{item.type === 'credit' ? 'Credit' : 'Debit'}</Text>
-          <Text style={[styles.transactionTime, { color: isDark ? '#888' : '#666' }]}>{formatRelativeTime(item.createdAt)}</Text>
-          {item.status && (
-            <Text style={[styles.transactionStatus, { color: item.status === 'completed' ? '#10B981' : item.status === 'pending' ? '#F59E0B' : '#EF4444' }]}>
-              {item.status}
+        <View style={styles.transactionDetails}>
+          <View style={styles.transactionHeader}>
+            <Text style={styles.transactionTitle} numberOfLines={1}>{item.description}</Text>
+            <Text style={[styles.transactionAmount, { color: item.type === 'credit' ? Colors.semantic.success : Colors.semantic.error }]}>
+              {item.type === 'credit' ? '+' : '-'}{formatCurrency(item.amount)}
             </Text>
-          )}
+          </View>
+          <View style={styles.transactionMeta}>
+            <Text style={styles.transactionType}>{item.type === 'credit' ? 'Credit' : 'Debit'}</Text>
+            <Text style={styles.transactionTime}>{formatRelativeTime(item.createdAt)}</Text>
+            {item.status ? (
+              <Text style={[styles.transactionStatus, { color: item.status === 'completed' ? Colors.semantic.success : item.status === 'pending' ? Colors.semantic.warning : Colors.semantic.error }]}>
+                {item.status}
+              </Text>
+            ) : null}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+    </MotiView>
   );
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={styles.authPrompt}>
-          <MaterialCommunityIcons name="wallet-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Wallet</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Sign in to manage your earnings and payments</Text>
-        </View>
+      <View style={styles.container}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 450 }}
+          style={styles.authPrompt}
+        >
+          <View style={styles.authIconWrap}>
+            <Ionicons name="wallet" size={40} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.authTitle}>Wallet</Text>
+          <Text style={styles.authSubtitle}>Sign in to manage your earnings and payments</Text>
+          <SoftButton label="Sign in" variant="accent" fullWidth={false} icon="arrow-forward" onPress={() => router.push('/login')} style={{ paddingHorizontal: Spacing[8], marginTop: Spacing[5] }} withGlow />
+        </MotiView>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />}
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.content}
     >
-      {/* Balance Card */}
-        <View style={[styles.balanceCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-        <Text style={[styles.balanceLabel, { color: isDark ? '#aaa' : '#666' }]}>Available Balance</Text>
-        <Text style={[styles.balanceAmount, { color: isDark ? '#fff' : '#000' }]}>{formatCurrency(availableBalance)}</Text>
-        <View style={styles.balanceActions}>
-          <TouchableOpacity style={[styles.balanceActionBtn, { backgroundColor: '#8B85FF' }]} onPress={() => router.push('/(screens)/wallet-topup')}>
-            <Ionicons name="add-circle-outline" size={20} color="#fff" />
-            <Text style={[styles.balanceActionText, { color: '#fff' }]}>Add Money</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.balanceActionBtn, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]} onPress={() => router.push('/(screens)/wallet-withdraw')}>
-            <Ionicons name="remove-circle-outline" size={20} color={isDark ? '#fff' : '#000'} />
-            <Text style={[styles.balanceActionText, { color: isDark ? '#fff' : '#000' }]}>Withdraw</Text>
-          </TouchableOpacity>
+      {/* Header */}
+      <MotiView
+        from={{ opacity: 0, translateY: -10 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 380 }}
+        style={styles.headerWrap}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Wallet</Text>
+          <Text style={styles.pageSubtitle}>Your balance, earnings and payments</Text>
         </View>
-      </View>
+        <Pressable
+          style={styles.settingsBtn}
+          onPress={() => router.push('/(screens)/wallet-settings')}
+          accessibilityLabel="Wallet settings"
+          hitSlop={8}
+        >
+          <Ionicons name="settings-outline" size={19} color={Colors.brand.accent} />
+        </Pressable>
+      </MotiView>
+
+      {/* Signature orange balance card */}
+      <MotiView
+        from={{ opacity: 0, translateY: 18 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 440, delay: 80 }}
+      >
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceLabelRow}>
+            <View style={styles.balanceIconChip}>
+              <Ionicons name="wallet" size={15} color="#FFFFFF" />
+            </View>
+            <Text style={styles.balanceLabel}>Available Balance</Text>
+          </View>
+          <Text style={styles.balanceAmount}>{formatCurrency(availableBalance)}</Text>
+          <View style={styles.balanceActions}>
+            <Pressable style={[styles.balanceActionBtn, styles.balanceActionGreen]} onPress={() => router.push('/(screens)/wallet-topup')}>
+              <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.balanceActionText}>Add Money</Text>
+            </Pressable>
+            <Pressable style={[styles.balanceActionBtn, styles.balanceActionGhost]} onPress={() => router.push('/(screens)/wallet-withdraw')}>
+              <Ionicons name="arrow-down-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.balanceActionText}>Withdraw</Text>
+            </Pressable>
+          </View>
+        </View>
+      </MotiView>
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>+{formatCurrency(totalEarnings)}</Text>
-          <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Total Earnings</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#EF4444' }]}>-{formatCurrency(totalSpent)}</Text>
-          <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Total Spent</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{formatCurrency(pendingBalance)}</Text>
-          <Text style={[styles.statLabel, { color: isDark ? '#888' : '#666' }]}>Pending</Text>
-        </View>
+        {[
+          { value: `+${formatCurrency(totalEarnings)}`, label: 'Earnings', color: Colors.semantic.success, icon: 'trending-up' as const },
+          { value: `-${formatCurrency(totalSpent)}`, label: 'Spent', color: Colors.semantic.error, icon: 'trending-down' as const },
+          { value: formatCurrency(pendingBalance), label: 'Pending', color: Colors.semantic.warning, icon: 'time' as const },
+        ].map((s, i) => (
+          <MotiView
+            key={s.label}
+            from={{ opacity: 0, translateY: 16 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400, delay: 180 + i * 70 }}
+            style={styles.statWrap}
+          >
+            <View style={styles.statCard}>
+              <Ionicons name={s.icon} size={16} color={s.color} style={{ marginBottom: 6 }} />
+              <Text style={[styles.statValue, { color: s.color }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          </MotiView>
+        ))}
       </View>
 
       {/* Transaction Filters */}
-      <View style={[styles.filterContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <Text style={[styles.filterLabel, { color: isDark ? '#fff' : '#000' }]}>Transactions</Text>
+      <MotiView
+        from={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ type: 'timing', duration: 400, delay: 320 }}
+        style={styles.filterContainer}
+      >
+        <Text style={styles.filterLabel}>Transactions</Text>
         <View style={styles.filterTabs}>
-          {['all', 'credit', 'debit'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-                style={[styles.filterTab, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }, activeTab === tab && styles.filterTabActive]}
-              onPress={() => setActiveTab(tab as any)}
-            >
-              <Text style={[styles.filterTabText, { color: activeTab === tab ? '#fff' : isDark ? '#aaa' : '#666' }]}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(['all', 'credit', 'debit'] as const).map((tab) => {
+            const active = activeTab === tab;
+            return (
+              <Pressable
+                key={tab}
+                style={[styles.filterTab, active && styles.filterTabActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[styles.filterTabText, active && styles.filterTabTextActive]}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
-      </View>
+      </MotiView>
 
       {/* Transaction List */}
       <FlatList
@@ -160,16 +218,24 @@ export default function WalletScreen() {
         renderItem={renderTransaction}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        scrollEnabled={false}
         ListEmptyComponent={
-          <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-            <MaterialCommunityIcons name="cash" size={48} color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>No transactions yet</Text>
-            <Text style={[styles.emptySubtext, { color: isDark ? '#888' : '#666' }]}>
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.emptyState}
+          >
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="receipt-outline" size={34} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyText}>No transactions yet</Text>
+            <Text style={styles.emptySubtext}>
               {activeTab === 'all' ? 'Your transaction history will appear here' :
                activeTab === 'credit' ? 'No incoming transactions yet' :
                'No outgoing transactions yet'}
             </Text>
-          </View>
+          </MotiView>
         }
       />
     </ScrollView>
@@ -177,40 +243,87 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingBottom: 30 },
-  balanceCard: { margin: 16, padding: 24, borderRadius: 22, shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.07, shadowRadius: 24, elevation: 4 },
-  balanceLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
-  balanceAmount: { fontSize: 36, fontFamily: 'Inter_700Bold', marginBottom: 20 },
-  balanceActions: { flexDirection: 'row', gap: 12 },
-  balanceActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 10 },
-  balanceActionText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, padding: 16, borderRadius: 24, alignItems: 'center' },
-  statValue: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 4 },
-  statLabel: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  filterContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  filterLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
-  filterTabs: { flexDirection: 'row', gap: 8 },
-     filterTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  filterTabActive: { backgroundColor: '#8B85FF' },
-  filterTabText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  listContent: { padding: 16, paddingBottom: 30 },
-  transactionCard: { flexDirection: 'row', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 2 },
-  transactionIconContainer: { marginRight: 12 },
-  transactionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  content: { paddingBottom: 120 },
+
+  headerWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[4],
+  },
+  settingsBtn: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pageTitle: { fontFamily: Typography.fontFamily.display, fontSize: 30, lineHeight: 38, color: Colors.text.primary },
+  pageSubtitle: { fontFamily: Typography.fontFamily.body, fontSize: 13, color: Colors.text.secondary, marginTop: 3 },
+
+  balanceCard: {
+    marginHorizontal: Spacing[5], marginBottom: Spacing[5],
+    padding: Spacing[6], borderRadius: BorderRadius['2xl'],
+    backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange,
+  },
+  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], marginBottom: Spacing[2] },
+  balanceIconChip: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  balanceLabel: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase', letterSpacing: 1 },
+  balanceAmount: { fontSize: 40, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF', marginBottom: Spacing[5], letterSpacing: 0.3 },
+  balanceActions: { flexDirection: 'row', gap: Spacing[3] },
+  balanceActionBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, paddingVertical: Spacing[3], borderRadius: BorderRadius.pill,
+  },
+  balanceActionGreen: { backgroundColor: Colors.semantic.success },
+  balanceActionGhost: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  balanceActionText: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  statsRow: { flexDirection: 'row', paddingHorizontal: Spacing[5], gap: Spacing[3], marginBottom: Spacing[5] },
+  statWrap: { flex: 1 },
+  statCard: {
+    padding: Spacing[4], borderRadius: BorderRadius.lg, alignItems: 'center',
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  statValue: { fontSize: 14.5, fontFamily: Typography.fontFamily.bold, marginBottom: 3 },
+  statLabel: { fontSize: 11, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+
+  filterContainer: { paddingHorizontal: Spacing[5], marginBottom: Spacing[3] },
+  filterLabel: { fontSize: 20, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[3] },
+  filterTabs: { flexDirection: 'row', backgroundColor: Colors.surface.tertiary, borderRadius: BorderRadius.pill, padding: 5, alignSelf: 'flex-start' },
+  filterTab: { paddingHorizontal: Spacing[5], paddingVertical: Spacing[2], borderRadius: BorderRadius.pill },
+  filterTabActive: { backgroundColor: Colors.brand.primary, ...Shadows.button },
+  filterTabText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+  filterTabTextActive: { color: '#FFFFFF' },
+
+  listContent: { paddingHorizontal: Spacing[5], paddingBottom: 30 },
+  transactionCard: {
+    flexDirection: 'row', padding: Spacing[4], borderRadius: BorderRadius.lg,
+    marginBottom: Spacing[3], backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  transactionIcon: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3] },
   transactionDetails: { flex: 1, justifyContent: 'center' },
-  transactionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  transactionTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', flex: 1 },
-  transactionAmount: { fontSize: 15, fontFamily: 'Inter_700Bold' },
-  transactionMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  transactionType: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  transactionTime: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  transactionStatus: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textTransform: 'capitalize' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, marginTop: 40 },
-  emptyText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
-  emptySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
+  transactionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  transactionTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, flex: 1, marginRight: Spacing[2] },
+  transactionAmount: { fontSize: 15, fontFamily: Typography.fontFamily.bold },
+  transactionMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[3] },
+  transactionType: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  transactionTime: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  transactionStatus: { fontSize: 11, fontFamily: Typography.fontFamily.semiBold, textTransform: 'capitalize' },
+
+  emptyState: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8], marginTop: Spacing[10] },
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  emptyText: { fontSize: 17, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptySubtext: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center', lineHeight: 20 },
+
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  authIconWrap: {
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  authTitle: { fontSize: 27, fontFamily: Typography.fontFamily.display, marginTop: Spacing[5], textAlign: 'center', color: Colors.text.primary },
+  authSubtitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center', lineHeight: 21 },
 });

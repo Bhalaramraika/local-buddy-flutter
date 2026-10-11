@@ -1,24 +1,29 @@
 /**
- * Account Settings Screen - Account management settings
+ * Account Settings — Soft Modern
+ * Rounded section cards, cream inputs, orange save pill,
+ * soft-red danger zone. Logic (save phone, delete account) unchanged.
  */
 
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
   StyleSheet,
   Alert,
-  Switch,
   TextInput,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiDelete, getApiErrorMessage } from '@/services/api';
 import { useUIStore } from '@/store/uiStore';
+import { ScreenHeader } from '@/components/ui';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
@@ -27,10 +32,8 @@ export default function AccountSettingsScreen() {
   // variant would silently lose changes on restart.
   const { updateProfile, logout } = useAuth();
   const { showToast } = useUIStore();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
-  const [email, setEmail] = useState(user?.email || '');
+
+  const [email] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
 
@@ -73,6 +76,7 @@ export default function AccountSettingsScreen() {
                       showToast(getApiErrorMessage(err, 'Could not delete account.'), 'error');
                       return;
                     }
+                    showToast('Your account has been deleted', 'info');
                     // Wipe local session and go back to welcome
                     try { await logout(); } catch { /* best-effort */ }
                     router.replace('/');
@@ -87,125 +91,100 @@ export default function AccountSettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Account Settings</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Account settings" subtitle="Identity, phone and privacy" onBack={() => router.back()} />
         {/* Profile Section */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Profile Information</Text>
-          
+        <MotableSection index={0} title="Profile information" subtitle="Your login identity and contact">
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? '#ddd' : '#333' }]}>Email</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDark ? '#222' : '#eee', color: isDark ? '#888' : '#666' }]}
-              value={email}
-              editable={false}
-              placeholder="Login email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={[styles.inputHint, { color: isDark ? '#888' : '#666' }]}>Login ID — cannot be changed</Text>
+            <Text style={styles.inputLabel}>Email</Text>
+            <View style={styles.readonlyWrap}>
+              <Ionicons name="mail" size={16} color={Colors.text.muted} />
+              <TextInput
+                style={styles.inputReadonly}
+                value={email}
+                editable={false}
+                placeholder="Login email"
+                placeholderTextColor={Colors.text.muted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <View style={styles.lockChip}>
+                <Ionicons name="lock-closed" size={11} color={Colors.text.muted} />
+              </View>
+            </View>
+            <Text style={styles.inputHint}>Login ID — cannot be changed</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? '#ddd' : '#333' }]}>Phone Number</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5', color: isDark ? '#fff' : '#000' }]}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Enter phone number"
-              keyboardType="phone-pad"
-            />
-            <Text style={[styles.inputHint, { color: isDark ? '#888' : '#666' }]}>Used for SMS verification</Text>
+            <Text style={styles.inputLabel}>Phone number</Text>
+            <View style={styles.inputWrap}>
+              <View style={styles.inputIconChip}>
+                <Ionicons name="call" size={15} color={Colors.brand.accent} />
+              </View>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter phone number"
+                placeholderTextColor={Colors.text.muted}
+                keyboardType="phone-pad"
+              />
+            </View>
+            <Text style={styles.inputHint}>Used for SMS verification</Text>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, { backgroundColor: '#8B85FF' }]}
+          <SoftButton
+            label={loading ? 'Saving…' : 'Save changes'}
             onPress={handleSave}
-            disabled={loading}
-          >
-            <Text style={[styles.saveButtonText, { color: '#fff' }]}>{loading ? 'Saving...' : 'Save Changes'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Notification Preferences — managed on the dedicated page (real, server-synced) */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Notification Preferences</Text>
-          <SettingItem
-            title="Open Notification Settings"
-            description="Choose which updates you want to receive"
-            icon="notifications-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/notification-settings')}
-            showArrow
+            loading={loading}
+            variant="accent"
+            icon="checkmark-circle-outline"
+            withGlow
+            style={{ marginTop: Spacing[2] }}
           />
-        </View>
+        </MotableSection>
+
+        {/* Notification Preferences */}
+        <MotableSection index={1} title="Notifications" subtitle="What buzzes your phone">
+          <SettingItem
+            title="Notification Settings"
+            description="Choose which updates you receive"
+            icon="notifications-outline"
+            onPress={() => router.push('/(screens)/notification-settings')}
+          />
+        </MotableSection>
 
         {/* Privacy */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Privacy</Text>
-          
+        <MotableSection index={2} title="Privacy" subtitle="Who sees what">
           <SettingItem
             title="Profile Visibility"
             description="Control who can see your profile"
             icon="person-outline"
-            color="#8B85FF"
-            isDark={isDark}
             onPress={() => router.push('/(screens)/privacy-settings')}
-            showArrow
             trailing="Public"
           />
-          
           <SettingItem
             title="Data & Privacy"
             description="Manage your data and privacy settings"
             icon="shield-checkmark-outline"
-            color="#10B981"
-            isDark={isDark}
             onPress={() => router.push('/(screens)/privacy-settings')}
-            showArrow
+            last
           />
-          
-          <SettingItem
-            title="Blocked Users"
-            description="Manage users you've blocked"
-            icon="person-remove-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={() => router.push('/blocked-users')}
-            showArrow
-          />
-        </View>
+        </MotableSection>
 
         {/* Danger Zone */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Danger Zone</Text>
-          
+        <MotableSection index={3} title="Danger zone" subtitle="Irreversible actions" danger>
           <SettingItem
             title="Delete Account"
             description="Permanently delete your account and all data"
             icon="trash-outline"
-            color="#EF4444"
-            isDark={isDark}
+            iconTone="error"
             onPress={handleDeleteAccount}
-            showArrow
             destructive
+            last
           />
-        </View>
+        </MotableSection>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -213,106 +192,97 @@ export default function AccountSettingsScreen() {
   );
 }
 
-const SettingItem = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  onPress, 
-  showArrow = false, 
-  trailing,
-  destructive = false 
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+function MotableSection({ index, title, subtitle, danger, children }: { index: number; title: string; subtitle?: string; danger?: boolean; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 90 }}
+      style={[styles.section, danger && styles.sectionDanger]}
+    >
+      <Text style={[styles.sectionTitle, danger && { color: Colors.semantic.error }]}>{title}</Text>
+      {subtitle ? <Text style={styles.sectionSub}>{subtitle}</Text> : null}
+      {children}
+    </MotiView>
+  );
+}
+
+const SettingItem = ({ title, description, icon, iconTone, onPress, trailing, destructive, last }: any) => (
+  <Pressable
+    style={({ pressed }) => [
+      styles.settingItem,
+      last && { borderBottomWidth: 0 },
+      pressed && { backgroundColor: Colors.surface.creamSoft },
+    ]}
     onPress={onPress}
   >
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+    <View style={[styles.settingIcon, iconTone === 'error' ? styles.settingIconError : styles.settingIconAccent]}>
+      <Ionicons name={icon} size={19} color={iconTone === 'error' ? Colors.semantic.error : Colors.brand.accent} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: destructive ? '#EF4444' : (isDark ? '#fff' : '#000') }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+      <Text style={[styles.settingTitle, destructive && { color: Colors.semantic.error }]}>{title}</Text>
+      <Text style={styles.settingDescription}>{description}</Text>
     </View>
     <View style={styles.settingTrailing}>
-      {trailing && <Text style={[styles.settingTrailingText, { color: isDark ? '#888' : '#666' }]}>{trailing}</Text>}
-      {showArrow && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#999'} />}
+      {trailing ? <Text style={styles.settingTrailingText}>{trailing}</Text> : null}
+      <Ionicons name="chevron-forward" size={17} color={destructive ? Colors.semantic.error : Colors.text.muted} />
     </View>
-  </TouchableOpacity>
-);
-
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange 
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
-    </View>
-    <Switch
-      value={value}
-      onValueChange={onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
-    />
-  </TouchableOpacity>
+  </Pressable>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  inputGroup: { marginBottom: 20 },
-  inputLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
-  input: { 
-    fontSize: 16, 
-    fontFamily: 'Inter_400Regular', 
-    paddingHorizontal: 16, 
-    paddingVertical: 14, 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#E5E7EB' 
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[5], paddingBottom: 40 },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
   },
-  inputHint: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 6 },
-  saveButton: { 
-    paddingVertical: 16, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    marginTop: 8 
+  sectionDanger: { backgroundColor: Colors.semantic.errorSoft, borderColor: Colors.semantic.error + '2E' },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  sectionSub: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 3, marginBottom: Spacing[4] },
+
+  inputGroup: { marginBottom: Spacing[5] },
+  inputLabel: { fontSize: 13, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, marginBottom: Spacing[2], marginLeft: Spacing[1] },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, borderColor: Colors.border.light, paddingHorizontal: Spacing[3],
   },
-  saveButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+  inputIconChip: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
   },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  input: {
+    flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body,
+    color: Colors.text.primary, paddingVertical: Spacing[3] + 2,
   },
+  readonlyWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    backgroundColor: Colors.surface.tertiary, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, borderColor: Colors.border.light, paddingHorizontal: Spacing[3],
+  },
+  inputReadonly: {
+    flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body,
+    color: Colors.text.muted, paddingVertical: Spacing[3] + 2,
+  },
+  lockChip: {
+    width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.surface.elevated,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  inputHint: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: Spacing[1] + 2, marginLeft: Spacing[1] },
+
+  settingItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  settingIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  settingIconAccent: { backgroundColor: Colors.brand.accentSoft },
+  settingIconError: { backgroundColor: '#FFFFFF' },
   settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingTrailing: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingTrailingText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
+  settingTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  settingDescription: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  settingTrailing: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  settingTrailingText: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
 });

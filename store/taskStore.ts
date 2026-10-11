@@ -37,6 +37,7 @@ export interface TaskApplication {
   taskId?: string;
   applicantId: string;
   applicantName: string;
+  applicantAvatar?: string;
   applicantRating?: number;
   applicantCompletedTasks?: number;
   applicantDistance?: number;
@@ -84,8 +85,8 @@ interface TaskState {
   deleteTask: (taskId: string) => Promise<void>;
   updateTaskStatus: (taskId: string, status: TaskStatus | string) => Promise<void>;
   refreshApplications: (taskId: string) => Promise<void>;
-  acceptApplication: (applicationId: string) => void;
-  rejectApplication: (applicationId: string) => void;
+  acceptApplication: (taskId: string, applicationId: string) => Promise<boolean>;
+  rejectApplication: (taskId: string, applicationId: string) => Promise<boolean>;
   clearError: () => void;
   clearCurrentTask: () => void;
 
@@ -139,6 +140,51 @@ const defaultPagination = {
   total: 0,
   hasMore: true,
 };
+
+/**
+ * Normalize a raw task document coming from the REST backend
+ * (Firestore shape: budget NUMBER, location {latitude, longitude, address},
+ * applicants: string[]) into the app's Task shape used by screens.
+ * Mirrors mapTask() in services/realtime.ts so realtime and REST data look
+ * identical to the UI.
+ */
+function normalizeTask(raw: any): Task {
+  if (!raw || typeof raw !== 'object') return raw;
+  return {
+    ...raw,
+    id: raw.id,
+    budget: {
+      amount: typeof raw.budget === 'number' ? raw.budget : (raw.budget?.amount ?? 0),
+      currency: raw.budget?.currency ?? 'INR',
+      type: raw.budget?.type ?? 'fixed',
+    },
+    location: {
+      address: raw.location?.address ?? (typeof raw.location === 'string' ? raw.location : ''),
+      area: raw.location?.area ?? '',
+      city: raw.location?.city ?? '',
+      coordinates: {
+        latitude: raw.location?.latitude ?? raw.location?.coordinates?.latitude ?? 0,
+        longitude: raw.location?.longitude ?? raw.location?.coordinates?.longitude ?? 0,
+      },
+      landmark: raw.location?.landmark,
+    },
+    applicants: Array.isArray(raw.applicants) ? raw.applicants : [],
+    applicationsCount: Array.isArray(raw.applicants)
+      ? raw.applicants.length
+      : (raw.applicationsCount ?? 0),
+    skills: raw.skills ?? raw.requirements ?? [],
+    images: raw.images ?? [],
+  } as Task;
+}
+
+/** Current signed-in user's id (lazy require avoids store import cycles). */
+function currentUserId(): string | undefined {
+  try {
+    return require('@/store/authStore').useAuthStore.getState().user?.id;
+  } catch {
+    return undefined;
+  }
+}
 
 export const useTaskStore = create<TaskState>()(
   persist(
@@ -261,9 +307,9 @@ export const useTaskStore = create<TaskState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await apiGet<any>(ENDPOINTS.tasks.list, { params });
-          const list: Task[] = (data?.tasks ?? data?.data ?? data ?? []) as Task[];
-          if (Array.isArray(list)) {
-            set({ tasks: list });
+          const rawList: any[] = data?.tasks ?? data?.data ?? (Array.isArray(data) ? data : []);
+          if (Array.isArray(rawList)) {
+            set({ tasks: rawList.map(normalizeTask) });
           }
           set({ isLoading: false });
           return get().tasks;
@@ -279,8 +325,9 @@ export const useTaskStore = create<TaskState>()(
         if (cached) set({ currentTask: cached });
         try {
           const data = await apiGet<any>(ENDPOINTS.tasks.get(taskId));
-          const task = (data?.task ?? data) as Task;
-          if (task && task.id) {
+          const raw = data?.task ?? data;
+          if (raw && raw.id) {
+            const task = normalizeTask(raw);
             set({ currentTask: task });
             return task;
           }
@@ -336,7 +383,7 @@ export const useTaskStore = create<TaskState>()(
           const data = await apiPost<any>(ENDPOINTS.tasks.create, body);
           const task = (data?.task ?? data) as Task;
           if (task && task.id) {
-            get().addTask(task);
+            get().addTask(normalizeTask(task));
           }
           set({ isCreating: false, error: null });
           return true;
@@ -351,34 +398,34 @@ export const useTaskStore = create<TaskState>()(
       },
 
       applyToTask: async (taskId, payload) => {
-        // NOTE: there is no buddy-application endpoint on the backend
-        // (POST /tasks/:id/assign is the poster action). We mark the
-        // application locally; the realtime listener re-syncs the task.
+        // Real backend flow: POST /tasks/:id/apply (KYC-gated server-side).
+        // Backend writes the buddy id into the task's `applicants` array and
+        // notifies the poster; realtime listeners re-sync the task doc.
         set({ isApplying: true, error: null });
+        const uid = currentUserId();
         try {
+          await apiPost<any>(ENDPOINTS.tasks.apply(taskId), {
+            message: payload?.message?.slice(0, 500),
+            proposedAmount: payload?.proposedBudget,
+          });
+
           const task = get().getTaskById(taskId);
-          if (task) {
-            const application = {
-              taskId,
-              applicantId: 'current-user',
-              applicantName: 'You',
-              message: payload?.message,
-              proposedBudget: payload?.proposedBudget,
-              status: 'pending',
-              createdAt: new Date().toISOString(),
-            } as any;
+          if (task && uid) {
             get().updateTask({
               ...(task as any),
-              applications: [...(((task as any).applications) || []), application],
-              applicationsCount: (((task as any).applicationsCount) || 0) + 1,
+              applicants: [...new Set([...(task.applicants || []), uid])],
+              applicationsCount: ((task as any).applicationsCount || (task.applicants?.length ?? 0)) + 1,
             } as Task);
           }
-          set({ isApplying: false });
+          set({ isApplying: false, error: null });
           return true;
-        } catch (error) {
-          console.warn('[TaskStore] applyToTask failed:', error);
-          set({ isApplying: false });
-          return false;
+        } catch (error: any) {
+          const message = getApiErrorMessage(error, 'Could not submit your application. Please try again.');
+          console.warn('[TaskStore] applyToTask failed:', error?.response?.data ?? error);
+          set({ isApplying: false, error: message });
+          // Rethrow so the screen can show the real backend message
+          // (KYC required, already applied, own task, task closed, ...).
+          throw new Error(message);
         }
       },
 
@@ -415,9 +462,11 @@ export const useTaskStore = create<TaskState>()(
         await get().fetchTasks();
         try {
           const mine = await apiGet<any>('/tasks/my/posted');
-          const list: Task[] = (mine?.tasks ?? mine?.data ?? []) as Task[];
-          if (Array.isArray(list) && list.length) {
-            set({ myTasks: list });
+          const list: any[] = mine?.tasks ?? mine?.data ?? [];
+          if (Array.isArray(list)) {
+            // Always sync on success — even an empty list means the server
+            // says "no posted tasks", so don't keep stale local entries.
+            set({ myTasks: list.map(normalizeTask) });
           }
         } catch (error) {
           console.warn('[TaskStore] refreshTasks (posted) failed:', error);
@@ -447,22 +496,74 @@ export const useTaskStore = create<TaskState>()(
         }
       },
 
-      refreshApplications: async (_taskId) => {
-        // No backend endpoint for applications yet; keep local list.
-        set({ applications: get().applications });
+      refreshApplications: async (taskId) => {
+        // Poster-only endpoint: GET /tasks/:id/applications returns each
+        // application enriched with the applicant's public profile.
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiGet<any>(ENDPOINTS.tasks.applications(taskId));
+          const raw: any[] = data?.applications ?? data?.data ?? [];
+          const applications: TaskApplication[] = raw.map((a: any) => ({
+            id: a.id,
+            taskId: a.taskId ?? taskId,
+            applicantId: a.buddyId ?? a.id,
+            applicantName: a.buddy?.name ?? 'Buddy',
+            applicantAvatar: a.buddy?.avatar ?? undefined,
+            applicantRating: a.buddy?.rating ?? 0,
+            applicantCompletedTasks: a.buddy?.completedTasks ?? 0,
+            applicantDistance: a.buddy?.distance, // present only if backend provides it
+            message: a.message ?? '',
+            proposedBudget: a.proposedAmount,
+            status: (a.status ?? 'pending') as TaskApplication['status'],
+            createdAt: a.createdAt ?? '',
+          }));
+          set({ applications, isLoading: false });
+        } catch (error: any) {
+          const message = getApiErrorMessage(error, 'Could not load applications.');
+          console.warn('[TaskStore] refreshApplications failed:', error?.response?.data ?? error);
+          set({ isLoading: false, error: message });
+          throw new Error(message);
+        }
       },
 
-      acceptApplication: (applicationId) => set((state) => ({
-        applications: state.applications.map((a) =>
-          a.id === applicationId ? { ...a, status: 'accepted' } : a
-        ),
-      })),
+      acceptApplication: async (taskId, applicationId) => {
+        // Decide endpoint: accept also assigns the task + creates the chat
+        // server-side. Optimistic update, rolled back on failure.
+        const prev = get().applications;
+        set((state) => ({
+          applications: state.applications.map((a) =>
+            a.id === applicationId ? { ...a, status: 'accepted' } : a
+          ),
+        }));
+        try {
+          await apiPost<any>(ENDPOINTS.tasks.decideApplication(taskId, applicationId), { action: 'accept' });
+          // Realtime task listener re-syncs status → 'assigned'.
+          return true;
+        } catch (error: any) {
+          set({ applications: prev });
+          const message = getApiErrorMessage(error, 'Could not accept this application.');
+          console.warn('[TaskStore] acceptApplication failed:', error?.response?.data ?? error);
+          throw new Error(message);
+        }
+      },
 
-      rejectApplication: (applicationId) => set((state) => ({
-        applications: state.applications.map((a) =>
-          a.id === applicationId ? { ...a, status: 'rejected' } : a
-        ),
-      })),
+      rejectApplication: async (taskId, applicationId) => {
+        const prev = get().applications;
+        set((state) => ({
+          applications: state.applications.map((a) =>
+            a.id === applicationId ? { ...a, status: 'rejected' } : a
+          ),
+        }));
+        try {
+          await apiPost<any>(ENDPOINTS.tasks.decideApplication(taskId, applicationId), { action: 'reject' });
+          return true;
+        } catch (error: any) {
+          set({ applications: prev });
+          const message = getApiErrorMessage(error, 'Could not reject this application.');
+          console.warn('[TaskStore] rejectApplication failed:', error?.response?.data ?? error);
+          throw new Error(message);
+        }
+      },
 
       clearError: () => set({ error: null }),
 

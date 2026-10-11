@@ -3,21 +3,25 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Pressable,
+  StyleSheet,
   TextInput,
   Image,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -28,9 +32,8 @@ export default function NewChatScreen() {
     isLoading: usersLoading,
   } = useChatStore();
   const { user, isAuthenticated } = useAuthStore();
-  const { theme, showToast } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -63,114 +66,99 @@ export default function NewChatScreen() {
     }
   };
 
-  const renderUser = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={styles.userItem}
-      onPress={() => handleStartChat(item)}
+  const renderUser = ({ item, index }: { item: any; index: number }) => (
+    <MotiView
+      from={{ opacity: 0, translateY: 12 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 340, delay: Math.min(index, 10) * 40 }}
     >
-      <View style={styles.userAvatar}>
-        {item.avatar ? (
-          <Image source={{ uri: item.avatar }} style={styles.userAvatarImage} />
-        ) : (
-          <Text style={styles.userAvatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
-        )}
-        {item.isOnline && <View style={styles.onlineIndicator} />}
-      </View>
-      <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: isDark ? '#fff' : '#000' }]}>{item.name}</Text>
-        <View style={styles.userMeta}>
-          <Text style={[styles.userMetaText, { color: isDark ? '#888' : '#666' }]}>@{item.username}</Text>
-          {item.rating && (
-            <>
-              <Text style={[styles.userMetaDivider, { color: isDark ? '#555' : '#ddd' }]}>·</Text>
-              <Feather name="star" size={12} color="#F59E0B" />
-              <Text style={[styles.userMetaText, { color: isDark ? '#fff' : '#000' }]}>{item.rating.toFixed(1)}</Text>
-            </>
+      <Pressable
+        style={({ pressed }) => [styles.userItem, pressed && { transform: [{ scale: 0.985 }] }]}
+        onPress={() => handleStartChat(item)}
+      >
+        <View style={styles.userAvatar}>
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={styles.userAvatarImage} />
+          ) : (
+            <Text style={styles.userAvatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
           )}
+          {item.isOnline ? <View style={styles.onlineIndicator} /> : null}
         </View>
-      </View>
-      <View style={styles.userActions}>
-        <Ionicons name="chatbubble-outline" size={22} color="#8B85FF" />
-      </View>
-    </TouchableOpacity>
+        <View style={styles.userInfo}>
+          <Text style={styles.userName} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.userMeta}>
+            <Text style={styles.userMetaText}>@{item.username}</Text>
+            {item.rating ? (
+              <>
+                <Text style={styles.userMetaDivider}>·</Text>
+                <Feather name="star" size={11} color={Colors.semantic.warning} />
+                <Text style={styles.userMetaRating}>{item.rating.toFixed(1)}</Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+        <View style={styles.chatChip}>
+          <Ionicons name="chatbubble-ellipses" size={16} color={Colors.brand.accent} />
+        </View>
+      </Pressable>
+    </MotiView>
   );
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>New Chat</Text>
-            <View style={{ width: 44 }} />
+      <View style={styles.container}>
+        <ScreenHeader title="New chat" onBack={() => router.back()} />
+        <View style={styles.authPrompt}>
+          <View style={styles.authIconWrap}>
+            <Ionicons name="chatbubble-ellipses" size={38} color={Colors.brand.accent} />
           </View>
-        </View>
-        <View style={[styles.authPrompt, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="chatbubble-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Sign in to Chat</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Log in to start messaging other users</Text>
+          <Text style={styles.authTitle}>Sign in to chat</Text>
+          <Text style={styles.authSubtitle}>Log in to start messaging other users</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>New Chat</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="New chat" subtitle="Pick someone to message" onBack={() => router.back()} />
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={[styles.searchWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-          <Ionicons name="search-outline" size={22} color={isDark ? '#888' : '#999'} style={styles.searchIcon} />
+      <View style={styles.searchContainer}>
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={18} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
-            style={[styles.searchInput, { color: isDark ? '#fff' : '#000' }]}
+            style={styles.searchInput}
             placeholder="Search users..."
-            placeholderTextColor={isDark ? '#888' : '#999'}
+            placeholderTextColor={Colors.text.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
           />
-          {searchQuery && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-outline" size={22} color={isDark ? '#888' : '#999'} />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={Colors.text.muted} />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
       {/* Users List */}
       {usersLoading ? (
-        <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#8B85FF" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading users...</Text>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingBadge}>
+            <Ionicons name="people" size={28} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.loadingText}>Loading users...</Text>
         </View>
       ) : filteredUsers.length === 0 ? (
-        <View style={[styles.emptyContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          {searchQuery ? (
-            <>
-              <Ionicons name="search-outline" size={64} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }]}>No users found</Text>
-              <Text style={[styles.emptySubtitle, { color: isDark ? '#888' : '#666' }]}>Try a different search term</Text>
-            </>
-          ) : (
-            <>
-              <MaterialCommunityIcons name="account-group-outline" size={64} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }]}>No users available</Text>
-              <Text style={[styles.emptySubtitle, { color: isDark ? '#888' : '#666' }]}>Check back later to start chatting</Text>
-            </>
-          )}
-        </View>
+        <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 400 }} style={styles.emptyContainer}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name={searchQuery ? 'search' : 'people-outline'} size={34} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.emptyTitle}>{searchQuery ? 'No users found' : 'No users available'}</Text>
+          <Text style={styles.emptySubtitle}>{searchQuery ? 'Try a different search term' : 'Check back later to start chatting'}</Text>
+        </MotiView>
       ) : (
         <FlatList
           data={filteredUsers}
@@ -178,13 +166,6 @@ export default function NewChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={[styles.emptyContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-              <Ionicons name="search-outline" size={64} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }]}>No users found</Text>
-              <Text style={[styles.emptySubtitle, { color: isDark ? '#888' : '#666' }]}>Try a different search term</Text>
-            </View>
-          }
         />
       )}
     </View>
@@ -192,32 +173,60 @@ export default function NewChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  searchContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 16, height: 48 },
-  searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  listContent: { padding: 16, paddingBottom: 40 },
-  userItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  userAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  searchContainer: { paddingHorizontal: Spacing[5], paddingBottom: Spacing[3] },
+  searchWrapper: {
+    flexDirection: 'row', alignItems: 'center', borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], height: 50, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  searchIcon: { marginRight: Spacing[2] },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing[4] },
+  loadingBadge: {
+    width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loadingText: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  listContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[1], paddingBottom: 40 },
+  userItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    padding: Spacing[4], marginBottom: Spacing[3],
+    borderRadius: BorderRadius.lg, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  userAvatar: {
+    width: 50, height: 50, borderRadius: 25, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden',
+  },
   userAvatarImage: { width: '100%', height: '100%' },
-  userAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
-  onlineIndicator: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, backgroundColor: '#10B981', borderWidth: 2, borderColor: '#fff' },
-  userInfo: { flex: 1, marginLeft: 12, minWidth: 0 },
-  userName: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  userMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  userMetaText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  userMetaDivider: { fontSize: 12 },
-  userActions: { marginLeft: 12 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16, textAlign: 'center' },
-  emptySubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
+  userAvatarText: { fontSize: 18, fontFamily: Typography.fontFamily.bold, color: '#fff' },
+  onlineIndicator: {
+    position: 'absolute', bottom: 0, right: 0, width: 13, height: 13, borderRadius: 7,
+    backgroundColor: Colors.semantic.success, borderWidth: 2.5, borderColor: Colors.surface.elevated,
+  },
+  userInfo: { flex: 1, minWidth: 0 },
+  userName: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  userMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 2 },
+  userMetaText: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  userMetaDivider: { fontSize: 12, color: Colors.border.medium, marginHorizontal: 4 },
+  userMetaRating: { fontSize: 12, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  chatChip: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  emptyTitle: { fontSize: 17, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, textAlign: 'center' },
+  emptySubtitle: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center' },
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  authIconWrap: {
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  authTitle: { fontSize: 25, fontFamily: Typography.fontFamily.display, marginTop: Spacing[4], textAlign: 'center', color: Colors.text.primary },
+  authSubtitle: { fontSize: 14, fontFamily: Typography.fontFamily.body, marginTop: Spacing[2], textAlign: 'center', color: Colors.text.secondary },
 });

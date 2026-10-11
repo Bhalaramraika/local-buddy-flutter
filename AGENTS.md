@@ -5,7 +5,12 @@
 
 ## Architecture (MVP)
 - **Frontend**: Expo (RN, SDK 57) + expo-router, TypeScript, NativeWind,
-  Zustand stores (persisted), Inter fonts only.
+  Zustand stores (persisted).
+  **Theme = "Soft Modern"** (soft orange #FF6B35 on warm neutrals): font stack
+  Poppins (primary UI) + Playfair Display (big headlines) + Inter (small body);
+  antique-white background #FAEBD7, cocoa #1E1209 as main accent, orange #F77051
+  CTAs/progress, soft red for destructive, success green #10B981. Every screen is
+  fully self-styled for it — see `constants/design.ts` for the single token source.
 - **Backend**: Express + TypeScript in `backend/`, single data layer =
   **Firestore** (firebase-admin). REST only under `/api/v1`. Deployed to
   **Render** via `render.yaml` + `backend/Dockerfile`.
@@ -24,13 +29,14 @@ Prisma, Supabase, cron worker (`backend/src/jobs`), Socket.IO
 `services/{supabase,location,notifications}.ts`, `types/user.ts`,
 `config/index.ts`, `jsconfig.json`, typing indicators, Razorpay references,
 old onboarding screens (`(onboarding)/{permissions,kyc,profile-setup,
-onboarding-referral}.tsx`), `(screens)/security-settings.tsx`.
+onboarding-referral}.tsx`), `(screens)/security-settings.tsx`,
+`(screens)/blocked-users.tsx` (entire block-user feature was removed).
 
 ## Onboarding (single wizard)
 - `app/(onboarding)/setup.tsx` is the ONLY setup flow (welcome → setup → home).
   Steps: role → name/photo/bio → DOB (inline mini-calendar) → language
-  (English/हिन्दी) → city/area → referral. Design: cream `#FFF7EC` bg, orange
-  `#FF6B35` CTAs, rounded cards.
+  (English/हिन्दी) → city/area → referral. Design: antique-white `#FAEBD7` bg,
+  orange `#F77051` CTAs, extra-rounded cards (Soft Modern theme).
 - Everything saves in ONE `PUT /users/me/profile` (AuthContext.updateProfile)
   with `profileCompleted: true`; photo goes through `uploadToCloudinary`.
 - Profile edits (`edit-profile.tsx`, `account-settings.tsx`) also write via

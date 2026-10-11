@@ -36,14 +36,15 @@ import { getApiErrorMessage } from '@/services/api';
 import { storage } from '@/services/storage';
 import { STORAGE_KEYS } from '@/constants/app';
 
-// ---- Wizard palette (soft cream + orange) ----
-const CREAM = '#FFF7EC';
+// ---- Wizard palette (Soft Modern: antique white + orange + cocoa) ----
+const CREAM = '#FAEBD7';
 const CREAM_CARD = '#FFFFFF';
-const ORANGE = '#FF6B35';
-const ORANGE_DEEP = '#E85A24';
-const ORANGE_SOFT = '#FFE7D9';
-const INK = '#2B2118';
-const INK_SOFT = '#8A7B6C';
+const ORANGE = '#F77051';
+const ORANGE_DEEP = '#E25A3C';
+const ORANGE_SOFT = '#FFE0D6';
+const INK = '#1E1209';
+const INK_SOFT = '#6B5443';
+const SOFT_RED = '#E5484D';
 
 const STEPS = [
   { key: 'role', title: 'How will you use Local Buddy?', sub: 'Pick one — you can always do both.' },
@@ -136,17 +137,17 @@ function DobCalendar({ value, onChange }: { value: Date | null; onChange: (d: Da
 }
 
 const calStyles = StyleSheet.create({
-  card: { backgroundColor: CREAM_CARD, borderRadius: 22, padding: 14, borderWidth: 1, borderColor: '#F3E4D2' },
+  card: { backgroundColor: CREAM_CARD, borderRadius: 24, padding: 14, borderWidth: 1, borderColor: '#F0E1CC', shadowColor: INK, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 24, elevation: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  headerText: { fontFamily: 'Inter_700Bold', fontSize: 16, color: INK },
-  navBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: ORANGE_SOFT, alignItems: 'center', justifyContent: 'center' },
+  headerText: { fontFamily: 'Poppins_600SemiBold', fontSize: 16, color: INK },
+  navBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: ORANGE_SOFT, alignItems: 'center', justifyContent: 'center' },
   weekRow: { flexDirection: 'row', marginBottom: 4 },
-  weekDay: { flex: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, color: INK_SOFT },
+  weekDay: { flex: 1, textAlign: 'center', fontFamily: 'Poppins_600SemiBold', fontSize: 11, color: INK_SOFT },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
   cellSelected: { backgroundColor: ORANGE },
   cellText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: INK },
-  cellTextSelected: { color: '#fff', fontFamily: 'Inter_700Bold' },
+  cellTextSelected: { color: '#fff', fontFamily: 'Poppins_700Bold' },
 });
 
 // ============================================================
@@ -412,44 +413,49 @@ export default function OnboardingSetup() {
 const wizStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: CREAM },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#F3E4D2', alignItems: 'center', justifyContent: 'center' },
+  backBtn: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff', borderWidth: 1, borderColor: '#F0E1CC',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#1E1209', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2,
+  },
   dotsRow: { flexDirection: 'row', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EBDCC9' },
-  dotActive: { backgroundColor: ORANGE, width: 18 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F0E1CC' },
+  dotActive: { backgroundColor: ORANGE, width: 20 },
   scroll: { paddingHorizontal: 20, paddingBottom: 120 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 26, color: INK, letterSpacing: -0.3, marginTop: 10 },
-  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, color: INK_SOFT, marginTop: 6, marginBottom: 18 },
+  title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 29, lineHeight: 37, color: INK, marginTop: 10 },
+  subtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: INK_SOFT, marginTop: 8, marginBottom: 20 },
   choiceCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: CREAM_CARD, borderRadius: 20, padding: 16,
-    borderWidth: 1, borderColor: '#F3E4D2',
+    backgroundColor: CREAM_CARD, borderRadius: 24, padding: 18,
+    borderWidth: 1.5, borderColor: '#F0E1CC',
+    shadowColor: '#1E1209', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 22, elevation: 3,
   },
-  choiceIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  choiceTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, color: INK },
+  choiceIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  choiceTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 16, color: INK },
   choiceSub: { fontFamily: 'Inter_400Regular', fontSize: 12.5, color: INK_SOFT, marginTop: 2 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: INK, marginBottom: 6 },
+  fieldLabel: { fontFamily: 'Poppins_500Medium', fontSize: 13, color: INK, marginBottom: 6, marginLeft: 4 },
   input: {
-    backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#F3E4D2',
-    paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 15, color: INK,
+    backgroundColor: '#fff', borderRadius: 24, borderWidth: 1.5, borderColor: '#F0E1CC',
+    paddingHorizontal: 16, paddingVertical: 14, fontFamily: 'Inter_400Regular', fontSize: 15, color: INK,
   },
   avatarRow: { alignItems: 'center', marginBottom: 16 },
   avatarWrap: { position: 'relative' },
   avatarImg: { width: 96, height: 96, borderRadius: 48 },
   avatarPlaceholder: { width: 96, height: 96, borderRadius: 48, backgroundColor: ORANGE_SOFT, alignItems: 'center', justifyContent: 'center' },
   avatarBadge: {
-    position: 'absolute', right: -2, bottom: -2, width: 26, height: 26, borderRadius: 13,
-    backgroundColor: ORANGE, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: CREAM,
+    position: 'absolute', right: -2, bottom: -2, width: 28, height: 28, borderRadius: 14,
+    backgroundColor: ORANGE, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: CREAM,
   },
   avatarHint: { fontFamily: 'Inter_400Regular', fontSize: 12.5, color: INK_SOFT, marginTop: 8 },
-  dobEcho: { marginTop: 12, textAlign: 'center', fontFamily: 'Inter_600SemiBold', color: ORANGE_DEEP, fontSize: 13 },
-  useLocationBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: ORANGE_SOFT, marginBottom: 12 },
-  useLocationText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: ORANGE_DEEP },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 12.5, color: '#DC2626', marginTop: 12 },
+  dobEcho: { marginTop: 12, textAlign: 'center', fontFamily: 'Poppins_600SemiBold', color: ORANGE_DEEP, fontSize: 13 },
+  useLocationBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, backgroundColor: ORANGE_SOFT, marginBottom: 14 },
+  useLocationText: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: ORANGE_DEEP },
+  errorText: { fontFamily: 'Poppins_500Medium', fontSize: 12.5, color: SOFT_RED, marginTop: 12, marginLeft: 4 },
   footer: { paddingHorizontal: 20, paddingBottom: 20, paddingTop: 6, backgroundColor: 'transparent' },
   cta: {
-    height: 54, borderRadius: 999, backgroundColor: ORANGE,
+    height: 58, borderRadius: 999, backgroundColor: ORANGE,
     alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8,
-    shadowColor: ORANGE, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 6,
+    shadowColor: ORANGE, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.35, shadowRadius: 22, elevation: 7,
   },
-  ctaText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 16 },
+  ctaText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
 });

@@ -1,7 +1,8 @@
 /**
- * Wallet Top-Up Screen (PayU only)
- * Amount input → backend signed PayU params → hosted checkout in WebView →
- * backend verifies the response hash → wallet credited server-side → we refresh.
+ * Wallet Top-Up Screen (PayU only) — Soft Modern
+ * Cocoa balance card, big rupee input, quick-amount pills,
+ * green "Pay" CTA (positive money action), hosted checkout modal.
+ * Payment flow logic unchanged.
  */
 
 import React, { useState } from 'react';
@@ -16,17 +17,19 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { buildPayUHtml, parsePayURedirect } from '@/services/payment';
 import { formatCurrency } from '@/utils/helpers';
-import { FlowScreen, FlowHeader, PrimaryButton, ErrorMessage } from '@/components/FlowUI';
-import { Colors, Spacing, BorderRadius } from '@/constants/design';
+import { SoftButton, ScreenHeader } from '@/components/ui';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 const MIN_AMOUNT = 1;
@@ -107,65 +110,71 @@ export default function WalletTopupScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.authPrompt}>
-        <Ionicons name="person-circle-outline" size={80} color={Colors.text.muted} />
-        <Text style={styles.authTitle}>Login Required</Text>
-        <Text style={styles.authSubtitle}>Please login to add money to your wallet</Text>
-        <View style={{ width: '100%', marginTop: Spacing[5] }}>
-          <PrimaryButton label="Login / Sign Up" onPress={() => router.push('/login')} />
-        </View>
+        <MotiView from={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 450 }} style={{ alignItems: 'center' }}>
+          <View style={styles.authIconWrap}>
+            <Ionicons name="wallet" size={40} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.authTitle}>Login Required</Text>
+          <Text style={styles.authSubtitle}>Please login to add money to your wallet</Text>
+          <SoftButton label="Login / Sign Up" variant="accent" fullWidth={false} icon="arrow-forward" onPress={() => router.push('/login')} style={{ paddingHorizontal: Spacing[8], marginTop: Spacing[5] }} withGlow />
+        </MotiView>
       </View>
     );
   }
 
   if (result) {
+    const ok = result === 'success';
     return (
-      <FlowScreen>
-        <FlowHeader eyebrow="PAYMENT" title={result === 'success' ? 'Payment successful' : 'Payment failed'} />
-        <View style={styles.resultCard}>
-          <Ionicons
-            name={result === 'success' ? 'checkmark-circle' : 'close-circle'}
-            size={72}
-            color={result === 'success' ? Colors.semantic.success : Colors.semantic.error}
-          />
+      <View style={styles.resultScreen}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 13, stiffness: 160 }}
+          style={styles.resultCard}
+        >
+          <View style={[styles.resultIconWrap, { backgroundColor: ok ? Colors.semantic.successSoft : Colors.semantic.errorSoft }]}>
+            <Ionicons name={ok ? 'checkmark' : 'close'} size={44} color={ok ? Colors.semantic.success : Colors.semantic.error} />
+          </View>
+          <Text style={styles.resultTitle}>{ok ? 'Payment successful' : 'Payment failed'}</Text>
           <Text style={styles.resultAmount}>{formatCurrency(parseFloat(amount) || 0)}</Text>
           <Text style={styles.resultText}>
-            {result === 'success'
+            {ok
               ? 'Amount added to your wallet.'
               : 'The payment was declined or cancelled. Your wallet was not charged.'}
           </Text>
-          <View style={{ width: '100%', marginTop: Spacing[6] }}>
-            <PrimaryButton label="Back to wallet" onPress={() => router.back()} />
-          </View>
-          {result === 'failed' ? (
-            <View style={{ width: '100%', marginTop: Spacing[3] }}>
-              <PrimaryButton
-                label="Try again"
-                variant="outline"
-                onPress={() => setResult(null)}
-              />
-            </View>
+          <SoftButton label="Back to wallet" variant="primary" onPress={() => router.back()} style={{ marginTop: Spacing[5] }} />
+          {!ok ? (
+            <SoftButton label="Try again" variant="outline" onPress={() => setResult(null)} style={{ marginTop: Spacing[3] }} />
           ) : null}
-        </View>
-      </FlowScreen>
+        </MotiView>
+      </View>
     );
   }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <FlowHeader onBack={() => router.back()} eyebrow="WALLET" title="Add money" subtitle="Securely add funds to your LocalBuddy wallet with PayU." />
-
-        {/* Current Balance (real server data via wallet store) */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Current Wallet Balance</Text>
-          <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
-        </View>
+        <ScreenHeader title="Add money" subtitle="Secure top-up via PayU" onBack={() => router.back()} />
+        {/* Cocoa balance card */}
+        <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420 }}>
+          <View style={styles.balanceCard}>
+            <View style={styles.balanceLabelRow}>
+              <View style={styles.balanceIconChip}>
+                <Ionicons name="wallet" size={14} color="#FFFFFF" />
+              </View>
+              <Text style={styles.balanceLabel}>Current Balance</Text>
+            </View>
+            <Text style={styles.balanceAmount}>{formatCurrency(currentBalance)}</Text>
+          </View>
+        </MotiView>
 
         {/* Amount Input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Enter Amount</Text>
-          <View style={styles.amountInputContainer}>
-            <Text style={styles.currencySymbol}>₹</Text>
+        <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 90 }} style={styles.section}>
+          <Text style={styles.sectionTitle}>Enter amount</Text>
+          <View style={[styles.amountInputContainer, error ? styles.amountInputError : null]}>
+            <View style={styles.rupeeChip}>
+              <Text style={styles.currencySymbol}>₹</Text>
+            </View>
             <TextInput
               style={styles.amountInput}
               value={amount}
@@ -178,22 +187,32 @@ export default function WalletTopupScreen() {
             />
           </View>
           <View style={styles.quickAmountsRow}>
-            {QUICK_AMOUNTS.map((amt) => (
-              <Text
-                key={amt}
-                onPress={() => setAmount(String(amt))}
-                style={[styles.quickAmountBtn, amount === String(amt) && styles.quickAmountBtnSelected]}
-              >
-                ₹{amt.toLocaleString('en-IN')}
-              </Text>
-            ))}
+            {QUICK_AMOUNTS.map((amt) => {
+              const active = amount === String(amt);
+              return (
+                <Pressable
+                  key={amt}
+                  onPress={() => setAmount(String(amt))}
+                  style={[styles.quickAmountBtn, active && styles.quickAmountBtnSelected]}
+                >
+                  <Text style={[styles.quickAmountText, active && styles.quickAmountTextSelected]}>
+                    ₹{amt.toLocaleString('en-IN')}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </View>
+        </MotiView>
 
-        <ErrorMessage message={error} />
+        {error ? (
+          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ type: 'timing', duration: 240 }} style={styles.errorRow}>
+            <Ionicons name="alert-circle" size={15} color={Colors.semantic.error} />
+            <Text style={styles.error}>{error}</Text>
+          </MotiView>
+        ) : null}
 
         {/* Summary */}
-        <View style={styles.summaryCard}>
+        <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 180 }} style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Amount</Text>
             <Text style={styles.summaryValue}>{formatCurrency(parseFloat(amount) || 0)}</Text>
@@ -202,14 +221,20 @@ export default function WalletTopupScreen() {
             <Text style={styles.summaryLabel}>Total payable</Text>
             <Text style={styles.summaryTotalValue}>{formatCurrency(parseFloat(amount) || 0)}</Text>
           </View>
-        </View>
+        </MotiView>
 
-        <PrimaryButton
-          label="Pay with PayU"
-          onPress={handleAddMoney}
-          loading={isProcessing}
-          disabled={!amount || parseFloat(amount) <= 0}
-        />
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 260 }}>
+          <SoftButton
+            label="Pay with PayU"
+            onPress={handleAddMoney}
+            loading={isProcessing}
+            disabled={!amount || parseFloat(amount) <= 0}
+            variant="success"
+            size="lg"
+            icon="lock-closed"
+            withGlow
+          />
+        </MotiView>
 
         <View style={styles.securityRow}>
           <Ionicons name="shield-checkmark" size={16} color={Colors.semantic.success} />
@@ -222,7 +247,12 @@ export default function WalletTopupScreen() {
         <View style={styles.webviewContainer}>
           <View style={styles.webviewHeader}>
             <Text style={styles.webviewTitle}>PayU Secure Checkout</Text>
-            <Text onPress={() => setCheckout(null)} style={styles.webviewClose}>Cancel</Text>
+            <Pressable onPress={() => setCheckout(null)} hitSlop={8}>
+              <View style={styles.webviewCloseWrap}>
+                <Ionicons name="close" size={15} color={Colors.semantic.error} />
+                <Text style={styles.webviewClose}>Cancel</Text>
+              </View>
+            </Pressable>
           </View>
           {checkout ? (
             <WebView
@@ -231,7 +261,7 @@ export default function WalletTopupScreen() {
               startInLoadingState
               renderLoading={() => (
                 <View style={styles.webviewLoading}>
-                  <ActivityIndicator size="large" color={Colors.brand.primary} />
+                  <ActivityIndicator size="large" color={Colors.brand.accent} />
                   <Text style={styles.webviewLoadingText}>Connecting to PayU…</Text>
                 </View>
               )}
@@ -245,72 +275,97 @@ export default function WalletTopupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface.primary },
-  scrollContent: { padding: Spacing[6], paddingBottom: Spacing[12] },
-  authPrompt: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing[8] },
-  authTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary, marginTop: Spacing[4] },
-  authSubtitle: { fontSize: 14, color: Colors.text.secondary, textAlign: 'center', marginTop: Spacing[2] },
+  scrollContent: { padding: Spacing[5], paddingBottom: Spacing[12] },
+
+  authPrompt: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing[8], backgroundColor: Colors.surface.primary },
+  authIconWrap: {
+    width: 92, height: 92, borderRadius: 46, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4], ...Shadows.card,
+  },
+  authTitle: { fontSize: 25, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  authSubtitle: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center', marginTop: Spacing[2] },
+
   balanceCard: {
-    backgroundColor: Colors.brand.primary,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing[6],
-    marginBottom: Spacing[6],
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.xl,
+    padding: Spacing[5], marginBottom: Spacing[6], ...Shadows.button,
   },
-  balanceLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '500' },
-  balanceAmount: { color: '#fff', fontSize: 32, fontWeight: '700', marginTop: Spacing[2] },
-  section: { marginBottom: Spacing[6] },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: Colors.text.primary, marginBottom: Spacing[3] },
+  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  balanceIconChip: {
+    width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  balanceLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11.5, fontFamily: Typography.fontFamily.medium, textTransform: 'uppercase', letterSpacing: 1 },
+  balanceAmount: { color: '#FFFFFF', fontSize: 34, fontFamily: Typography.fontFamily.bold, marginTop: Spacing[2], letterSpacing: 0.3 },
+
+  section: { marginBottom: Spacing[5] },
+  sectionTitle: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: Spacing[3], marginLeft: Spacing[1] },
   amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.border.light,
-    paddingHorizontal: Spacing[4],
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, borderColor: Colors.border.light, paddingLeft: Spacing[3], ...Shadows.card,
   },
-  currencySymbol: { fontSize: 22, fontWeight: '700', color: Colors.text.primary, marginRight: Spacing[2] },
-  amountInput: { flex: 1, fontSize: 22, fontWeight: '700', color: Colors.text.primary, paddingVertical: Spacing[4] },
+  amountInputError: { borderColor: Colors.semantic.error },
+  rupeeChip: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  currencySymbol: { fontSize: 20, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accentPressed },
+  amountInput: {
+    flex: 1, fontSize: 24, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary,
+    paddingVertical: Spacing[4], paddingHorizontal: Spacing[3],
+  },
   quickAmountsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2], marginTop: Spacing[3] },
   quickAmountBtn: {
-    paddingHorizontal: Spacing[4],
-    paddingVertical: Spacing[2],
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface.elevated,
-    color: Colors.text.primary,
-    fontSize: 14,
-    fontWeight: '600',
-    overflow: 'hidden',
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2] + 2,
+    borderRadius: BorderRadius.pill, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1.5, borderColor: Colors.border.light,
   },
-  quickAmountBtnSelected: { backgroundColor: Colors.brand.primary, color: '#fff' },
+  quickAmountBtnSelected: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary, ...Shadows.button },
+  quickAmountText: { color: Colors.text.primary, fontSize: 13.5, fontFamily: Typography.fontFamily.semiBold },
+  quickAmountTextSelected: { color: '#FFFFFF' },
+
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing[4], marginLeft: Spacing[1] },
+  error: { color: Colors.semantic.error, fontSize: 13, fontFamily: Typography.fontFamily.medium, flex: 1 },
+
   summaryCard: {
-    backgroundColor: Colors.surface.secondary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing[5],
-    marginBottom: Spacing[6],
-    borderWidth: 1,
-    borderColor: Colors.border.light,
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    padding: Spacing[5], marginBottom: Spacing[6],
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing[2] },
-  summaryLabel: { color: Colors.text.secondary, fontSize: 14 },
-  summaryValue: { color: Colors.text.primary, fontSize: 14, fontWeight: '600' },
+  summaryLabel: { color: Colors.text.secondary, fontSize: 13.5, fontFamily: Typography.fontFamily.body },
+  summaryValue: { color: Colors.text.primary, fontSize: 14, fontFamily: Typography.fontFamily.semiBold },
   summaryTotal: { borderTopWidth: 1, borderTopColor: Colors.border.light, marginTop: Spacing[2], paddingTop: Spacing[3] },
-  summaryTotalValue: { color: Colors.text.primary, fontSize: 18, fontWeight: '700' },
+  summaryTotalValue: { color: Colors.brand.primary, fontSize: 19, fontFamily: Typography.fontFamily.bold },
+
   securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing[5], gap: Spacing[1] },
-  securityText: { color: Colors.text.muted, fontSize: 12 },
-  resultCard: { alignItems: 'center', padding: Spacing[6], gap: Spacing[3] },
-  resultAmount: { fontSize: 28, fontWeight: '700', color: Colors.text.primary, marginTop: Spacing[2] },
-  resultText: { fontSize: 14, color: Colors.text.secondary, textAlign: 'center' },
-  webviewContainer: { flex: 1, backgroundColor: '#fff' },
-  webviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+  securityText: { color: Colors.text.muted, fontSize: 12, fontFamily: Typography.fontFamily.body },
+
+  resultScreen: { flex: 1, backgroundColor: Colors.surface.primary, alignItems: 'center', justifyContent: 'center', padding: Spacing[6] },
+  resultCard: {
+    alignItems: 'center', backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius['2xl'],
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[7], width: '100%', ...Shadows.elevated,
   },
-  webviewTitle: { fontSize: 16, fontWeight: '700', color: Colors.text.primary },
-  webviewClose: { color: Colors.brand.primary, fontSize: 14, fontWeight: '600' },
+  resultIconWrap: {
+    width: 92, height: 92, borderRadius: 46, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  resultTitle: { fontSize: 24, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, textAlign: 'center' },
+  resultAmount: { fontSize: 32, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary, marginTop: Spacing[2] },
+  resultText: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center', marginTop: Spacing[2], lineHeight: 20 },
+
+  webviewContainer: { flex: 1, backgroundColor: Colors.surface.primary },
+  webviewHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: Spacing[4], borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+    backgroundColor: Colors.surface.elevated,
+  },
+  webviewTitle: { fontSize: 16, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  webviewCloseWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.semantic.errorSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 6,
+  },
+  webviewClose: { color: Colors.semantic.error, fontSize: 13, fontFamily: Typography.fontFamily.semiBold },
   webviewLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  webviewLoadingText: { marginTop: Spacing[3], color: Colors.text.secondary },
+  webviewLoadingText: { marginTop: Spacing[3], color: Colors.text.secondary, fontFamily: Typography.fontFamily.body },
 });

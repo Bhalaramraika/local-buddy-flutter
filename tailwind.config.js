@@ -11,128 +11,64 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand Colors from Design.md
+        // Soft Modern — Warm & Professional
         brand: {
-          primary: '#4F46E5',    // Indigo-600
-          secondary: '#06B6D4',  // Cyan-500
+          primary: '#1E1209',    // Main accent (dark cocoa) — buttons, headings, active icons
+          accent: '#F77051',     // Accent orange — CTA, progress, nav bar, main cards
+          accentSoft: '#FFE0D6',
+          accentPressed: '#E25A3C',
         },
-        // Surface Colors
+        // Surface Colors — antique white + cream
         surface: {
-          primary: '#F8FAFC',    // Slate-50
-          secondary: '#FFFFFF',  // White
-          elevated: '#F1F5F9',   // Slate-100
+          primary: '#FAEBD7',    // App background (antique white)
+          secondary: '#FFFFFF',  // White cards
+          tertiary: '#F5E3CB',   // Deep cream chips
+          elevated: '#FFFFFF',
+          cream: '#FDF3E3',
         },
         // Semantic Colors
         semantic: {
-          success: '#10B981',    // Emerald-500
-          warning: '#F59E0B',    // Amber-500
-          error: '#EF4444',      // Red-500
-          info: '#3B82F6',       // Blue-500
+          success: '#10B981',    // Green — done, paid, approved
+          warning: '#E8963C',
+          error: '#E5484D',      // Soft red — alerts, logout, delete, cancel
+          info: '#3D7BD9',
         },
-        // Text Colors
+        // Text Colors — warm family
         text: {
-          primary: '#0F172A',    // Slate-900
-          secondary: '#475569',  // Slate-600
-          muted: '#94A3B8',      // Slate-400
-          inverse: '#FFFFFF',    // White
+          primary: '#1E1209',
+          secondary: '#6B5443',
+          muted: '#A08A77',
+          inverse: '#FFFFFF',
+          accent: '#F77051',
         },
         // Border Colors
         border: {
-          light: '#E2E8F0',      // Slate-200
-          medium: '#CBD5E1',     // Slate-300
-          dark: '#94A3B8',       // Slate-400
+          light: '#F0E1CC',
+          medium: '#E3CCA9',
         },
-        // Overlay
-        overlay: 'rgba(15, 23, 42, 0.5)', // Slate-900/50
+        overlay: 'rgba(30, 18, 9, 0.45)',
       },
       fontFamily: {
-        sans: ['Inter-Regular', 'Inter-Medium', 'Inter-SemiBold', 'Inter-Bold'],
-        heading: ['Inter-Regular', 'Inter-Medium', 'Inter-SemiBold', 'Inter-Bold'],
-      },
-      fontSize: {
-        'display-lg': ['48px', { lineHeight: '56px', fontWeight: '700', letterSpacing: '-0.02em' }],
-        'display-md': ['36px', { lineHeight: '44px', fontWeight: '700', letterSpacing: '-0.02em' }],
-        'display-sm': ['28px', { lineHeight: '36px', fontWeight: '600', letterSpacing: '-0.01em' }],
-        'heading-lg': ['24px', { lineHeight: '32px', fontWeight: '600' }],
-        'heading-md': ['20px', { lineHeight: '28px', fontWeight: '600' }],
-        'heading-sm': ['18px', { lineHeight: '24px', fontWeight: '600' }],
-        'body-lg': ['16px', { lineHeight: '24px', fontWeight: '400' }],
-        'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
-        'body-sm': ['12px', { lineHeight: '16px', fontWeight: '400' }],
-        'label-lg': ['14px', { lineHeight: '20px', fontWeight: '500' }],
-        'label-md': ['12px', { lineHeight: '16px', fontWeight: '500' }],
-        'caption': ['11px', { lineHeight: '14px', fontWeight: '400' }],
-      },
-      spacing: {
-        '0': '0px',
-        '1': '4px',
-        '2': '8px',
-        '3': '12px',
-        '4': '16px',
-        '5': '20px',
-        '6': '24px',
-        '7': '28px',
-        '8': '32px',
-        '10': '40px',
-        '12': '48px',
-        '16': '64px',
-        '20': '80px',
-        '24': '96px',
+        sans: ['Poppins_400Regular', 'Poppins_500Medium', 'Poppins_600SemiBold', 'Poppins_700Bold'],
+        heading: ['PlayfairDisplay_700Bold', 'PlayfairDisplay_600SemiBold'],
+        body: ['Inter_400Regular', 'Inter_500Medium'],
       },
       borderRadius: {
         'none': '0px',
-        'sm': '4px',
-        'md': '8px',
-        'lg': '12px',
-        'xl': '16px',
-        '2xl': '24px',
+        'sm': '12px',
+        'md': '18px',
+        'lg': '24px',
+        'xl': '32px',
+        '2xl': '40px',
+        '3xl': '48px',
         'full': '9999px',
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08)',
-        'card-hover': '0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.1)',
-        'elevated': '0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.1)',
-        'modal': '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-      },
-      animation: {
-        'fade-in': 'fadeIn 200ms ease-out',
-        'fade-out': 'fadeOut 150ms ease-in',
-        'slide-up': 'slideUp 300ms ease-out',
-        'slide-down': 'slideDown 200ms ease-out',
-        'scale-in': 'scaleIn 200ms ease-out',
-        'scale-out': 'scaleOut 150ms ease-in',
-        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
-        'spin-slow': 'spin 3s linear infinite',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        fadeOut: {
-          '0%': { opacity: '1' },
-          '100%': { opacity: '0' },
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-        scaleOut: {
-          '0%': { transform: 'scale(1)', opacity: '1' },
-          '100%': { transform: 'scale(0.95)', opacity: '0' },
-        },
-        pulseSoft: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
-        },
+        'card': '0 10px 30px 0 rgba(30, 18, 9, 0.08)',
+        'elevated': '0 14px 34px 0 rgba(30, 18, 9, 0.12)',
+        'button': '0 8px 18px 0 rgba(30, 18, 9, 0.22)',
+        'button-orange': '0 10px 22px 0 rgba(247, 112, 81, 0.35)',
+        'floating': '0 16px 36px 0 rgba(30, 18, 9, 0.16)',
       },
     },
   },

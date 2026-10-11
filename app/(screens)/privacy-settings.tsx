@@ -1,26 +1,27 @@
 /**
- * Privacy Settings Screen - Privacy and data management settings
+ * Privacy Settings — Soft Modern
+ * Segmented privacy choices as rounded option cards, pill switch rows,
+ * data actions with soft-red destructive styling.
  */
 
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Alert,
   Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { ScreenHeader } from '@/components/ui';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
 export default function PrivacySettingsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
   const [profileVisibility, setProfileVisibility] = React.useState<'public' | 'friends' | 'private'>('public');
   const [showOnlineStatus, setShowOnlineStatus] = React.useState(true);
   const [showActivity, setShowActivity] = React.useState(true);
@@ -45,212 +46,48 @@ export default function PrivacySettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Privacy Settings</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Privacy" subtitle="Who sees you, your activity and messages" onBack={() => router.back()} />
         {/* Profile Visibility */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Profile Visibility</Text>
-          
-          <PrivacyOption
-            title="Public"
-            description="Anyone can see your profile and activity"
-            icon="globe-outline"
-            color="#10B981"
-            selected={profileVisibility === 'public'}
-            onPress={() => setProfileVisibility('public')}
-            isDark={isDark}
-          />
-          
-          <PrivacyOption
-            title="Friends Only"
-            description="Only your connections can see your profile"
-            icon="people-outline"
-            color="#8B85FF"
-            selected={profileVisibility === 'friends'}
-            onPress={() => setProfileVisibility('friends')}
-            isDark={isDark}
-          />
-          
-          <PrivacyOption
-            title="Private"
-            description="Only you can see your profile"
-            icon="lock-closed-outline"
-            color="#EF4444"
-            selected={profileVisibility === 'private'}
-            onPress={() => setProfileVisibility('private')}
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={0} title="Profile visibility" subtitle="Who can see you on Local Buddy">
+          <PrivacyOption title="Public" description="Anyone can see your profile and activity" icon="globe-outline" selected={profileVisibility === 'public'} onPress={() => setProfileVisibility('public')} />
+          <PrivacyOption title="Friends only" description="Only your connections can see your profile" icon="people-outline" selected={profileVisibility === 'friends'} onPress={() => setProfileVisibility('friends')} />
+          <PrivacyOption title="Private" description="Only you can see your profile" icon="lock-closed-outline" selected={profileVisibility === 'private'} onPress={() => setProfileVisibility('private')} last />
+        </MotableSection>
 
         {/* Activity Visibility */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Activity Visibility</Text>
-          
-          <SettingToggle
-            title="Show Online Status"
-            description="Let others see when you're online"
-            value={showOnlineStatus}
-            onChange={setShowOnlineStatus}
-            icon="person-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Show Activity"
-            description="Let others see your recent activity"
-            icon="time-outline"
-            color="#10B981"
-            value={showActivity}
-            onChange={setShowActivity}
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={1} title="Activity visibility" subtitle="What others see live">
+          <SettingToggle title="Show Online Status" description="Let others see when you're online" value={showOnlineStatus} onChange={setShowOnlineStatus} icon="person-outline" />
+          <SettingToggle title="Show Activity" description="Let others see your recent activity" icon="time-outline" value={showActivity} onChange={setShowActivity} last />
+        </MotableSection>
 
         {/* Message Permissions */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Message Permissions</Text>
-          
-          <PrivacyOption
-            title="Everyone"
-            description="Anyone can send you messages"
-            icon="chatbubble-outline"
-            color="#10B981"
-            selected={allowMessages === 'everyone'}
-            onPress={() => setAllowMessages('everyone')}
-            isDark={isDark}
-          />
-          
-          <PrivacyOption
-            title="Friends Only"
-            description="Only your connections can message you"
-            icon="people-outline"
-            color="#8B85FF"
-            selected={allowMessages === 'friends'}
-            onPress={() => setAllowMessages('friends')}
-            isDark={isDark}
-          />
-          
-          <PrivacyOption
-            title="No One"
-            description="Nobody can send you direct messages"
-            icon="chatbubble-ellipses-outline"
-            color="#EF4444"
-            selected={allowMessages === 'none'}
-            onPress={() => setAllowMessages('none')}
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={2} title="Message permissions" subtitle="Who can start a chat with you">
+          <PrivacyOption title="Everyone" description="Anyone can send you messages" icon="chatbubble-outline" selected={allowMessages === 'everyone'} onPress={() => setAllowMessages('everyone')} />
+          <PrivacyOption title="Friends only" description="Only connections can message you" icon="people-outline" selected={allowMessages === 'friends'} onPress={() => setAllowMessages('friends')} />
+          <PrivacyOption title="No one" description="Nobody can message you directly" icon="chatbubble-ellipses-outline" selected={allowMessages === 'none'} onPress={() => setAllowMessages('none')} last />
+        </MotableSection>
 
         {/* Data & Analytics */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Data & Analytics</Text>
-          
-          <SettingToggle
-            title="Data Collection"
-            description="Allow collection of usage data to improve the app"
-            value={dataCollection}
-            onChange={setDataCollection}
-            icon="analytics-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Analytics"
-            description="Help us understand how you use the app"
-            value={analytics}
-            onChange={setAnalytics}
-            icon="bar-chart-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Personalized Ads"
-            description="Show ads based on your interests and activity"
-            value={personalizedAds}
-            onChange={setPersonalizedAds}
-            icon="megaphone-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={3} title="Data & analytics" subtitle="How your usage improves the app">
+          <SettingToggle title="Data Collection" description="Allow usage data to improve the app" value={dataCollection} onChange={setDataCollection} icon="analytics-outline" />
+          <SettingToggle title="Analytics" description="Help us understand app usage" value={analytics} onChange={setAnalytics} icon="bar-chart-outline" />
+          <SettingToggle title="Personalized Ads" description="Ads based on your interests" value={personalizedAds} onChange={setPersonalizedAds} icon="megaphone-outline" last />
+        </MotableSection>
 
         {/* Data Management */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Data Management</Text>
-          
-          <SettingItem
-            title="Download My Data"
-            description="Get a copy of all your data"
-            icon="download-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={handleDownloadData}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Delete My Data"
-            description="Permanently delete all personal data"
-            icon="trash-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={handleDeleteData}
-            showArrow
-            destructive
-          />
-        </View>
+        <MotableSection index={4} title="Your data" subtitle="Export or erase what's yours">
+          <ActionRow title="Download My Data" description="Get a copy of all your data" icon="download-outline" onPress={handleDownloadData} />
+          <ActionRow title="Delete My Data" description="Permanently delete all personal data" icon="trash-outline" onPress={handleDeleteData} destructive last />
+        </MotableSection>
 
         {/* Legal Links */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Legal</Text>
-          
-          <SettingItem
-            title="Privacy Policy"
-            description="Read our privacy policy"
-            icon="document-text-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={() => router.push('/privacy')}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Terms of Service"
-            description="Read our terms of service"
-            icon="document-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/terms')}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Cookie Policy"
-            description="Learn about our cookie usage"
-            icon="cookie-outline"
-            color="#F59E0B"
-            isDark={isDark}
-            onPress={() => router.push('/(screens)/privacy')}
-            showArrow
-          />
-        </View>
+        <MotableSection index={5} title="Legal" subtitle="Policies that protect you">
+          <ActionRow title="Privacy Policy" description="How we handle your data" icon="document-text-outline" onPress={() => router.push('/privacy')} />
+          <ActionRow title="Terms of Service" description="Rules of the platform" icon="document-outline" onPress={() => router.push('/terms')} />
+          <ActionRow title="Cookie Policy" description="How cookies are used" icon="cookie-outline" onPress={() => router.push('/(screens)/privacy')} last />
+        </MotableSection>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -258,124 +95,123 @@ export default function PrivacySettingsScreen() {
   );
 }
 
-const PrivacyOption = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  selected, 
-  onPress, 
-  isDark 
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.privacyOption, { backgroundColor: isDark ? '#2a2a2a' : '#fff', borderColor: selected ? color : '#eee', borderWidth: selected ? 2 : 1 }]}
+function MotableSection({ index, title, subtitle, children }: { index: number; title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 80 }}
+      style={styles.section}
+    >
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.sectionSub}>{subtitle}</Text> : null}
+      {children}
+    </MotiView>
+  );
+}
+
+const PrivacyOption = ({ title, description, icon, selected, onPress, last }: any) => (
+  <Pressable
+    style={({ pressed }) => [
+      styles.privacyOption,
+      last && { marginBottom: 0 },
+      selected && styles.privacyOptionSelected,
+      pressed && { transform: [{ scale: 0.985 }] },
+    ]}
     onPress={onPress}
   >
-    <View style={[styles.privacyIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+    <View style={[styles.privacyIcon, selected && styles.privacyIconSelected]}>
+      <Ionicons name={icon} size={19} color={selected ? '#FFFFFF' : Colors.brand.accent} />
     </View>
     <View style={styles.privacyContent}>
-      <Text style={[styles.privacyTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.privacyDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+      <Text style={[styles.privacyTitle, selected && { color: Colors.brand.accentPressed }]}>{title}</Text>
+      <Text style={styles.privacyDescription}>{description}</Text>
     </View>
-    {selected && <Ionicons name="checkmark-circle" size={24} color={color} />}
-  </TouchableOpacity>
+    <View style={[styles.privacyRadio, selected && styles.privacyRadioSelected]}>
+      {selected ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
+    </View>
+  </Pressable>
 );
 
-const SettingItem = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  onPress, 
-  showArrow = false, 
-  destructive = false 
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+const ActionRow = ({ title, description, icon, onPress, destructive, last }: any) => (
+  <Pressable
+    style={({ pressed }) => [
+      styles.settingItem,
+      last && { borderBottomWidth: 0 },
+      pressed && { backgroundColor: Colors.surface.creamSoft, borderRadius: BorderRadius.sm },
+    ]}
     onPress={onPress}
   >
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+    <View style={[styles.settingIcon, destructive ? styles.settingIconError : styles.settingIconAccent]}>
+      <Ionicons name={icon} size={19} color={destructive ? Colors.semantic.error : Colors.brand.accent} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: destructive ? '#EF4444' : (isDark ? '#fff' : '#000') }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+      <Text style={[styles.settingTitle, destructive && { color: Colors.semantic.error }]}>{title}</Text>
+      <Text style={styles.settingDescription}>{description}</Text>
     </View>
-    {showArrow && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#999'} />}
-  </TouchableOpacity>
+    <Ionicons name="chevron-forward" size={17} color={destructive ? Colors.semantic.error : Colors.text.muted} />
+  </Pressable>
 );
 
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange 
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+const SettingToggle = ({ title, description, icon, value, onChange, last }: any) => (
+  <View style={[styles.settingItem, last && { borderBottomWidth: 0 }]}>
+    <View style={[styles.settingIcon, value ? styles.settingIconOn : styles.settingIconAccent]}>
+      <Ionicons name={icon} size={19} color={value ? '#FFFFFF' : Colors.brand.accent} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+      <Text style={styles.settingTitle}>{title}</Text>
+      <Text style={styles.settingDescription}>{description}</Text>
     </View>
     <Switch
       value={value}
       onValueChange={onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
+      trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+      thumbColor="#FFFFFF"
     />
-  </TouchableOpacity>
+  </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  privacyOption: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 16, 
-    borderRadius: 12, 
-    marginBottom: 12,
-    borderWidth: 1,
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[5], paddingBottom: 40 },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
   },
-  privacyIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  sectionSub: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 3, marginBottom: Spacing[4] },
+
+  privacyOption: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    padding: Spacing[3] + 2, borderRadius: BorderRadius.md, marginBottom: Spacing[3],
+    backgroundColor: Colors.surface.primary, borderWidth: 1.5, borderColor: Colors.border.light,
   },
+  privacyOptionSelected: { backgroundColor: Colors.brand.accentSoft, borderColor: Colors.brand.accent, ...Shadows.cardPressed },
+  privacyIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  privacyIconSelected: { backgroundColor: Colors.brand.accent },
   privacyContent: { flex: 1 },
-  privacyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  privacyDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+  privacyTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  privacyDescription: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  privacyRadio: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.border.medium,
+    alignItems: 'center', justifyContent: 'center',
   },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  privacyRadioSelected: { backgroundColor: Colors.brand.accent, borderColor: Colors.brand.accent },
+
+  settingItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
+  settingIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  settingIconAccent: { backgroundColor: Colors.brand.accentSoft },
+  settingIconOn: { backgroundColor: Colors.brand.accent },
+  settingIconError: { backgroundColor: Colors.semantic.errorSoft },
   settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  settingTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  settingDescription: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
 });

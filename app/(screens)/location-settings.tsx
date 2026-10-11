@@ -1,9 +1,7 @@
 /**
- * Location Settings — real, functional controls.
- *
- * - Location access: reads the REAL OS permission state and requests it.
- * - Foreground tracking: actually starts/stops the watcher.
- * - Nearby visibility: persisted server-side (users/{uid}.preferences.location).
+ * Location Settings — Soft Modern
+ * Real, functional controls (permission / foreground tracking / nearby
+ * visibility) rendered as soft white rows with status chips.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -11,26 +9,26 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Switch,
   Linking,
   Platform,
-  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLocation } from '@/contexts/LocationContext';
 import { useLocationStore } from '@/store/locationStore';
 import { apiPut, getApiErrorMessage } from '@/services/api';
+import { ScreenHeader } from '@/components/ui';
 
 export default function LocationSettingsScreen() {
   const router = useRouter();
-  const { theme, showToast } = useUIStore();
-  const systemScheme = useColorScheme();
-  const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
+  const { showToast } = useUIStore();
 
   const { requestPermission, startTracking, stopTracking } = useLocation();
   const permissionStatus = useLocationStore((s) => s.permissionStatus);
@@ -103,20 +101,18 @@ export default function LocationSettingsScreen() {
   const rows = [
     {
       key: 'permission',
-      icon: 'shield-outline',
-      color: '#8B85FF',
+      icon: 'shield-checkmark' as const,
       title: 'Location Access',
       description: permissionGranted
         ? 'Allowed — tap to open system settings'
         : 'Not allowed — tap to grant access',
       value: permissionGranted,
       onToggle: handlePermissionPress,
-      trackColor: '#8B85FF',
+      stateChip: permissionGranted ? { label: 'Allowed', color: Colors.semantic.success, bg: Colors.semantic.successSoft } : { label: 'Off', color: Colors.semantic.error, bg: Colors.semantic.errorSoft },
     },
     {
       key: 'tracking',
-      icon: 'navigate-outline',
-      color: '#10B981',
+      icon: 'navigate' as const,
       title: 'Live Location (foreground)',
       description: isTracking
         ? `On${currentLocation?.address ? ` — ${currentLocation.address}` : ''}`
@@ -124,89 +120,172 @@ export default function LocationSettingsScreen() {
       value: isTracking,
       onToggle: handleTrackingToggle,
       disabled: trackingBusy,
-      trackColor: '#10B981',
+      stateChip: isTracking ? { label: 'Live', color: Colors.semantic.success, bg: Colors.semantic.successSoft } : undefined,
     },
     {
       key: 'nearby',
-      icon: 'people-outline',
-      color: '#F59E0B',
+      icon: 'people' as const,
       title: 'Show in Nearby Buddies',
       description: 'Others near you can discover your profile',
       value: nearbyVisible,
       onToggle: handleNearbyToggle,
       disabled: savingNearby,
-      trackColor: '#F59E0B',
     },
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Location Settings</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.hint, { color: isDark ? '#888' : '#666' }]}>
-          These controls are live — changes apply immediately.
-        </Text>
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <ScreenHeader title="Location" subtitle="Permissions, tracking and who sees you" onBack={() => router.back()} />
+        {/* Map flair card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroIconWrap}>
+            <Ionicons name="location" size={30} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>Location powers matches</Text>
+            <Text style={styles.heroSub}>These controls are live — changes apply immediately across nearby tasks and buddies.</Text>
+          </View>
+        </MotiView>
+
+        <View style={styles.section}>
           {rows.map((row, idx) => (
-            <TouchableOpacity
+            <MotiView
               key={row.key}
-              activeOpacity={0.8}
-              onPress={row.onToggle}
-              disabled={row.disabled}
-              style={[
-                styles.row,
-                idx < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#f0f0f0' },
-              ]}
+              from={{ opacity: 0, translateY: 12 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 360, delay: 100 + idx * 70 }}
             >
-              <View style={[styles.iconWrap, { backgroundColor: `${row.color}15` }]}>
-                <Ionicons name={row.icon as any} size={20} color={row.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowTitle, { color: isDark ? '#fff' : '#000' }]}>{row.title}</Text>
-                <Text style={[styles.rowDesc, { color: isDark ? '#888' : '#666' }]} numberOfLines={2}>
-                  {row.description}
-                </Text>
-              </View>
-              <Switch
-                value={row.value}
-                onValueChange={row.onToggle}
+              <Pressable
+                onPress={row.onToggle}
                 disabled={row.disabled}
-                trackColor={{ false: isDark ? '#444' : '#ddd', true: row.trackColor }}
-                thumbColor="#fff"
-              />
-            </TouchableOpacity>
+                style={({ pressed }) => [
+                  styles.row,
+                  idx < rows.length - 1 && styles.rowDivider,
+                  pressed && { backgroundColor: Colors.surface.creamSoft },
+                  row.disabled && { opacity: 0.7 },
+                ]}
+              >
+                <View style={[styles.iconWrap, row.value ? styles.iconWrapOn : styles.iconWrapOff]}>
+                  <Ionicons name={row.icon} size={19} color={row.value ? '#FFFFFF' : Colors.brand.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.rowTitleRow}>
+                    <Text style={styles.rowTitle}>{row.title}</Text>
+                    {row.stateChip ? (
+                      <View style={[styles.stateChip, { backgroundColor: row.stateChip.bg }]}>
+                        <View style={[styles.stateDot, { backgroundColor: row.stateChip.color }]} />
+                        <Text style={[styles.stateChipText, { color: row.stateChip.color }]}>{row.stateChip.label}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.rowDesc} numberOfLines={2}>
+                    {row.description}
+                  </Text>
+                </View>
+                <Switch
+                  value={row.value}
+                  onValueChange={row.onToggle}
+                  disabled={row.disabled}
+                  trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+                  thumbColor="#FFFFFF"
+                />
+              </Pressable>
+            </MotiView>
           ))}
         </View>
 
-        <Text style={[styles.footerNote, { color: isDark ? '#666' : '#999' }]}>
-          Location is used to match you with nearby tasks and buddies. You can pause sharing anytime.
-        </Text>
+        {/* Live sharing / geofence management */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 360, delay: 320 }}
+        >
+          <Pressable
+            style={({ pressed }) => [styles.navCard, pressed && { backgroundColor: Colors.surface.creamSoft }]}
+            onPress={() => router.push('/(screens)/location-sharing')}
+          >
+            <View style={[styles.iconWrap, styles.iconWrapOff]}>
+              <Ionicons name="share-social-outline" size={19} color={Colors.brand.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Location Sharing</Text>
+              <Text style={styles.rowDesc} numberOfLines={2}>
+                Manage who sees your live location and geofence alerts
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
+          </Pressable>
+        </MotiView>
+
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 400, delay: 380 }}
+          style={styles.noteCard}
+        >
+          <Ionicons name="lock-closed" size={16} color={Colors.brand.accent} />
+          <Text style={styles.noteText}>
+            Location is only used to match you with nearby tasks and buddies. Pause sharing anytime.
+          </Text>
+        </MotiView>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12 },
-  section: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 4, borderWidth: 1, borderColor: '#eee' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  rowDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  footerNote: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center', marginTop: 20, lineHeight: 18 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[4],
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.lg,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.button,
+  },
+  heroIconWrap: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 16, color: '#FFFFFF', marginBottom: 3 },
+  heroSub: { fontFamily: Typography.fontFamily.body, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 17 },
+
+  section: {
+    borderRadius: BorderRadius.lg, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4], ...Shadows.card,
+  },
+  navCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    borderRadius: BorderRadius.lg, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[4], marginTop: Spacing[3], ...Shadows.card,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingVertical: Spacing[4], borderRadius: BorderRadius.sm },
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  iconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  iconWrapOn: { backgroundColor: Colors.brand.accent },
+  iconWrapOff: { backgroundColor: Colors.brand.accentSoft },
+  rowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  rowTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  rowDesc: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2, lineHeight: 16 },
+  stateChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: BorderRadius.pill, paddingHorizontal: Spacing[2], paddingVertical: 2,
+  },
+  stateDot: { width: 5, height: 5, borderRadius: 3 },
+  stateChipText: { fontSize: 10, fontFamily: Typography.fontFamily.semiBold },
+
+  noteCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    marginTop: Spacing[5], padding: Spacing[4],
+    backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.brand.accent + '2E',
+  },
+  noteText: { flex: 1, fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.brand.accentPressed, lineHeight: 17 },
 });

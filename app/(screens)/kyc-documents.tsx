@@ -14,12 +14,15 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { apiGet, apiPost } from '@/services/api';
 import { uploadToCloudinary } from '@/services/upload';
 import * as ImagePicker from 'expo-image-picker';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 // Mint new document ids outside the component so render stays pure
 const mintDocId = (): string => `doc_${Date.now()}`;
@@ -28,9 +31,8 @@ const mintDocId = (): string => `doc_${Date.now()}`;
 export default function KYCDocumentsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { theme, showToast } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -110,13 +112,13 @@ export default function KYCDocumentsScreen() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'approved':
-        return { label: 'Approved', color: '#10B981', bg: '#10B98115', icon: 'check-circle-outline' };
+        return { label: 'Approved', color: Colors.semantic.success, bg: Colors.semantic.successSoft, icon: 'checkmark-circle' };
       case 'pending':
-        return { label: 'Under Review', color: '#F59E0B', bg: '#F59E0B15', icon: 'time-outline' };
+        return { label: 'Under Review', color: Colors.semantic.warning, bg: Colors.semantic.warningSoft, icon: 'time' };
       case 'rejected':
-        return { label: 'Rejected', color: '#EF4444', bg: '#EF444415', icon: 'close-circle-outline' };
+        return { label: 'Rejected', color: Colors.semantic.error, bg: Colors.semantic.errorSoft, icon: 'close-circle' };
       default:
-        return { label: 'Not Submitted', color: '#9CA3AF', bg: '#9CA3AF15', icon: 'circle-outline' };
+        return { label: 'Not Submitted', color: Colors.text.muted, bg: Colors.surface.tertiary, icon: 'ellipse-outline' };
     }
   };
 
@@ -274,66 +276,57 @@ export default function KYCDocumentsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>KYC Documents</Text>
-            <View style={{ width: 44 }} />
-          </View>
+      <View style={styles.container}>
+        <View style={styles.headerBar}>
+          <ScreenHeader title="KYC Documents" subtitle="Identity verification" onBack={() => router.back()} />
         </View>
-        <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name="refresh" size={32} color="#8B85FF" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading documents...</Text>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingBadge}>
+            <Ionicons name="document" size={28} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.loadingText}>Loading documents...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>KYC Documents</Text>
-          <View style={{ width: 44 }} />
-        </View>
+    <View style={styles.container}>
+      <View style={styles.headerBar}>
+        <ScreenHeader title="KYC Documents" subtitle="Upload identity proofs for verification" onBack={() => router.back()} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Progress Indicator */}
-        <View style={[styles.progressCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400 }} style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: isDark ? '#fff' : '#000' }]}>Verification Progress</Text>
-            <Text style={[styles.progressPercent, { color: '#8B85FF' }]}>{Math.round((documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100)}%</Text>
+            <View>
+              <Text style={styles.progressEyebrow}>VERIFICATION</Text>
+              <Text style={styles.progressTitle}>Documents progress</Text>
+            </View>
+            <View style={styles.progressBadge}>
+              <Text style={styles.progressPercent}>{Math.round((documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100)}%</Text>
+            </View>
           </View>
           <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: '#8B85FF',
-                  width: `${(documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100}%`
-                }
-              ]} 
+            <MotiView
+              from={{ width: '0%' }}
+              animate={{ width: `${(documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length / documentTypes.length) * 100}%` }}
+              transition={{ type: 'timing', duration: 700, delay: 250 }}
+              style={styles.progressFill}
             />
           </View>
-          <Text style={[styles.progressText, { color: isDark ? '#888' : '#666' }]}>
-            {documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length} of {documentTypes.length} documents submitted
+          <Text style={styles.progressText}>
+            {documentTypes.filter(d => getDocumentStatus(d.id) !== 'not_submitted').length} of {documentTypes.length} document types submitted
           </Text>
-        </View>
+        </MotiView>
 
         {/* Document List */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Required Documents</Text>
+        <View style={[styles.section, { marginTop: Spacing[4] }]}>
+          <Text style={styles.sectionTitle}>Required documents</Text>
           {documentTypes.map((docType) => {
             const status = getDocumentStatus(docType.id);
             const statusConfig = getStatusConfig(status);
@@ -341,109 +334,115 @@ export default function KYCDocumentsScreen() {
             const backDoc = docType.id === 'government_id' ? documents.find(d => d.type === docType.id && d.side === 'back') : null;
 
             return (
-              <View key={docType.id} style={styles.documentCard}>
+              <MotiView
+                key={docType.id}
+                from={{ opacity: 0, translateY: 12 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 360 }}
+                style={styles.documentCard}
+              >
                 <View style={styles.documentHeader}>
-                  <View style={[styles.documentIcon, { backgroundColor: '#8B85FF15' }]}>
-                    <Ionicons name={docType.icon as any} size={24} color="#8B85FF" />
+                  <View style={styles.documentIcon}>
+                    <Ionicons name={docType.icon as any} size={20} color={Colors.brand.accent} />
                   </View>
                   <View style={styles.documentInfo}>
                     <View style={styles.documentTitleRow}>
-                      <Text style={[styles.documentTitle, { color: isDark ? '#fff' : '#000' }]}>{docType.title}</Text>
-                      {docType.required && <Text style={styles.requiredBadge}>Required</Text>}
+                      <Text style={styles.documentTitle}>{docType.title}</Text>
+                      {docType.required ? <Text style={styles.requiredBadge}>Required</Text> : null}
                     </View>
-                    <Text style={[styles.documentSubtitle, { color: isDark ? '#888' : '#666' }]}>{docType.subtitle}</Text>
+                    <Text style={styles.documentSubtitle}>{docType.subtitle}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                    <Ionicons name={statusConfig.icon as any} size={16} color={statusConfig.color} style={{ marginRight: 4 }} />
+                    <Ionicons name={statusConfig.icon as any} size={13} color={statusConfig.color} style={{ marginRight: 4 }} />
                     <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
                   </View>
                 </View>
 
-                <Text style={[styles.documentDesc, { color: isDark ? '#888' : '#666' }]}>{docType.description}</Text>
+                <Text style={styles.documentDesc}>{docType.description}</Text>
 
                 {/* Upload Buttons */}
                 <View style={styles.uploadButtons}>
                   {docType.id === 'government_id' ? (
                     <>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[styles.uploadButton, uploading === docType.id + '_front' && styles.uploadButtonLoading]}
                         onPress={() => showUploadOptions(docType)}
                         disabled={uploading !== null}
                       >
-                        <Ionicons name={existingDoc && existingDoc.side === 'front' ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
+                        <Ionicons name={existingDoc && existingDoc.side === 'front' ? 'image' : 'camera'} size={17} color={Colors.brand.accent} style={{ marginRight: 7 }} />
                         <Text style={styles.uploadButtonText}>Front Side</Text>
-                        {existingDoc && existingDoc.side === 'front' && (
-                          <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
-                        )}
+                        {existingDoc && existingDoc.side === 'front' ? (
+                          <Ionicons name="checkmark-circle" size={17} color={Colors.semantic.success} />
+                        ) : null}
                       </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.uploadButton, uploading === docType.id + '_back' && styles.uploadButtonLoading, { borderColor: '#8B85FF' }]}
+                      <TouchableOpacity
+                        style={[styles.uploadButton, uploading === docType.id + '_back' && styles.uploadButtonLoading]}
                         onPress={() => showUploadOptions(docType)}
                         disabled={uploading !== null}
                       >
-                        <Ionicons name={backDoc ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
+                        <Ionicons name={backDoc ? 'image' : 'camera'} size={17} color={Colors.brand.accent} style={{ marginRight: 7 }} />
                         <Text style={styles.uploadButtonText}>Back Side</Text>
-                        {backDoc && (
-                          <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
-                        )}
+                        {backDoc ? (
+                          <Ionicons name="checkmark-circle" size={17} color={Colors.semantic.success} />
+                        ) : null}
                       </TouchableOpacity>
                     </>
                   ) : (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.uploadButton, uploading === docType.id && styles.uploadButtonLoading, { flex: 1 }]}
                       onPress={() => showUploadOptions(docType)}
                       disabled={uploading !== null}
                     >
-                      <Ionicons name={existingDoc ? 'image-outline' : 'camera-outline'} size={20} color="#8B85FF" style={{ marginRight: 8 }} />
+                      <Ionicons name={existingDoc ? 'image' : 'camera'} size={17} color={Colors.brand.accent} style={{ marginRight: 7 }} />
                       <Text style={styles.uploadButtonText}>{existingDoc ? 'Replace' : 'Upload'}</Text>
-                      {existingDoc && (
-                        <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
-                      )}
+                      {existingDoc ? (
+                        <Ionicons name="checkmark-circle" size={17} color={Colors.semantic.success} />
+                      ) : null}
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {/* Uploaded Documents */}
-                {(existingDoc || backDoc) && (
+                {(existingDoc || backDoc) ? (
                   <View style={styles.uploadedDocs}>
-                    {existingDoc && (
-                      <TouchableOpacity style={styles.uploadedDoc} onPress={() => viewDocument(existingDoc)}>
+                    {existingDoc ? (
+                      <View style={styles.uploadedDoc} onTouchEnd={() => viewDocument(existingDoc)}>
                         <View style={[styles.uploadedDocIcon, { backgroundColor: getStatusConfig(existingDoc.status).bg }]}>
-                          <Ionicons name={getStatusConfig(existingDoc.status).icon as any} size={20} color={getStatusConfig(existingDoc.status).color} />
+                          <Ionicons name={getStatusConfig(existingDoc.status).icon as any} size={17} color={getStatusConfig(existingDoc.status).color} />
                         </View>
                         <View style={styles.uploadedDocInfo}>
-                          <Text style={[styles.uploadedDocName, { color: isDark ? '#fff' : '#000' }]}>{docType.title} - Front</Text>
+                          <Text style={styles.uploadedDocName}>{docType.title} - Front</Text>
                           <Text style={[styles.uploadedDocStatus, { color: getStatusConfig(existingDoc.status).color }]}>{getStatusConfig(existingDoc.status).label}</Text>
                         </View>
-                        <TouchableOpacity onPress={() => removeDocument(existingDoc)}>
-                          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                        <TouchableOpacity onPress={() => removeDocument(existingDoc)} style={styles.docDeleteBtn} hitSlop={8}>
+                          <Ionicons name="trash" size={16} color={Colors.semantic.error} />
                         </TouchableOpacity>
-                      </TouchableOpacity>
-                    )}
-                    {backDoc && (
-                      <TouchableOpacity style={styles.uploadedDoc} onPress={() => viewDocument(backDoc)}>
+                      </View>
+                    ) : null}
+                    {backDoc ? (
+                      <View style={styles.uploadedDoc} onTouchEnd={() => viewDocument(backDoc)}>
                         <View style={[styles.uploadedDocIcon, { backgroundColor: getStatusConfig(backDoc.status).bg }]}>
-                          <Ionicons name={getStatusConfig(backDoc.status).icon as any} size={20} color={getStatusConfig(backDoc.status).color} />
+                          <Ionicons name={getStatusConfig(backDoc.status).icon as any} size={17} color={getStatusConfig(backDoc.status).color} />
                         </View>
                         <View style={styles.uploadedDocInfo}>
-                          <Text style={[styles.uploadedDocName, { color: isDark ? '#fff' : '#000' }]}>{docType.title} - Back</Text>
+                          <Text style={styles.uploadedDocName}>{docType.title} - Back</Text>
                           <Text style={[styles.uploadedDocStatus, { color: getStatusConfig(backDoc.status).color }]}>{getStatusConfig(backDoc.status).label}</Text>
                         </View>
-                        <TouchableOpacity onPress={() => removeDocument(backDoc)}>
-                          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                        <TouchableOpacity onPress={() => removeDocument(backDoc)} style={styles.docDeleteBtn} hitSlop={8}>
+                          <Ionicons name="trash" size={16} color={Colors.semantic.error} />
                         </TouchableOpacity>
-                      </TouchableOpacity>
-                    )}
+                      </View>
+                    ) : null}
                   </View>
-                )}
-              </View>
+                ) : null}
+              </MotiView>
             );
           })}
         </View>
 
         {/* Guidelines */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 16, marginBottom: 40 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Guidelines</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 180 }} style={[styles.section, { marginTop: Spacing[4], marginBottom: 40 }]}>
+          <Text style={styles.sectionTitle}>Guidelines</Text>
           <View style={styles.guidelinesList}>
             {[
               'All documents must be clear, legible, and in color',
@@ -455,56 +454,92 @@ export default function KYCDocumentsScreen() {
             ].map((guideline, index) => (
               <View key={index} style={styles.guidelineItem}>
                 <View style={styles.guidelineBullet} />
-                <Text style={[styles.guidelineText, { color: isDark ? '#ddd' : '#444' }]}>{guideline}</Text>
+                <Text style={styles.guidelineText}>{guideline}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </MotiView>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  progressCard: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  progressTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  progressPercent: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  progressBar: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4 },
-  progressText: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8 },
-  section: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  documentCard: { marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  documentHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  documentIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  headerBar: { paddingHorizontal: Spacing[5], paddingTop: Spacing[5], paddingBottom: Spacing[3] },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing[4] },
+  loadingBadge: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  loadingText: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+  progressCard: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5],
+    backgroundColor: Colors.brand.primary, ...Shadows.button,
+  },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing[3] },
+  progressEyebrow: { fontSize: 10, fontFamily: Typography.fontFamily.bold, letterSpacing: 1.6, color: 'rgba(255,255,255,0.6)', marginBottom: 3 },
+  progressTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: '#FFFFFF' },
+  progressBadge: {
+    minWidth: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10,
+  },
+  progressPercent: { fontSize: 17, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accent },
+  progressBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.16)', overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: Colors.brand.accent },
+  progressText: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.72)', marginTop: Spacing[2] },
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[4] },
+  documentCard: {
+    marginBottom: Spacing[4], padding: Spacing[4], borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: Colors.border.light, backgroundColor: Colors.surface.primary,
+  },
+  documentHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[2] },
+  documentIcon: {
+    width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.brand.accentSoft,
+  },
   documentInfo: { flex: 1 },
-  documentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  documentTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  requiredBadge: { fontSize: 10, fontFamily: 'Inter_600SemiBold', color: '#EF4444', backgroundColor: '#EF444415', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  documentSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  documentDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18, marginBottom: 12 },
-  uploadButtons: { flexDirection: 'row', gap: 10 },
-  uploadButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 18, borderWidth: 1, borderColor: '#8B85FF', backgroundColor: '#8B85FF15' },
-  uploadButtonLoading: { opacity: 0.7 },
-  uploadButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#8B85FF' },
-  uploadedDocs: { marginTop: 12, gap: 8 },
-  uploadedDoc: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: '#eee' },
-  uploadedDocIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  documentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  documentTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  requiredBadge: {
+    fontSize: 9, fontFamily: Typography.fontFamily.bold, color: Colors.semantic.error,
+    backgroundColor: Colors.semantic.errorSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: BorderRadius.pill,
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  documentSubtitle: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing[2] + 1, paddingVertical: 4, borderRadius: BorderRadius.pill, flexShrink: 0 },
+  statusBadgeText: { fontSize: 10.5, fontFamily: Typography.fontFamily.bold },
+  documentDesc: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, lineHeight: 17, marginBottom: Spacing[3] },
+  uploadButtons: { flexDirection: 'row', gap: Spacing[2] },
+  uploadButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: Spacing[3], borderRadius: BorderRadius.pill,
+    borderWidth: 1.5, borderColor: Colors.brand.accent, backgroundColor: Colors.brand.accentSoft,
+  },
+  uploadButtonLoading: { opacity: 0.6 },
+  uploadButtonText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed },
+  uploadedDocs: { marginTop: Spacing[3], gap: Spacing[2] },
+  uploadedDoc: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3], padding: Spacing[3],
+    borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.border.light,
+    backgroundColor: Colors.surface.elevated,
+  },
+  uploadedDocIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
   uploadedDocInfo: { flex: 1 },
-  uploadedDocName: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  uploadedDocStatus: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  guidelinesList: { gap: 10 },
-  guidelineItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  guidelineBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#8B85FF', marginTop: 6, flexShrink: 0 },
-  guidelineText: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18, flex: 1 },
+  uploadedDocName: { fontSize: 13, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  uploadedDocStatus: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, marginTop: 1 },
+  docDeleteBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.semantic.errorSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  guidelinesList: { gap: Spacing[3] },
+  guidelineItem: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[2] + 2 },
+  guidelineBullet: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.brand.accent, marginTop: 5, flexShrink: 0 },
+  guidelineText: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, lineHeight: 19, color: Colors.text.secondary, flex: 1 },
 });

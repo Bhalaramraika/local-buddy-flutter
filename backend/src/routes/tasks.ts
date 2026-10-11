@@ -217,12 +217,14 @@ router.get(
 
     const task = taskDoc.data() as TaskDocument;
 
-    // Check access: poster, assigned buddy, or admin
+    // Check access: poster, assigned buddy, admin — or anyone signed in for
+    // open tasks (it's a public marketplace; buddies must see details to
+    // apply). Non-open tasks stay restricted to poster/buddy/admin.
     const isPoster = task.posterId === req.user!.uid;
     const isBuddy = task.buddyId === req.user!.uid;
     const isAdmin = req.user!.role === 'admin';
 
-    if (!isPoster && !isBuddy && !isAdmin) {
+    if (!isPoster && !isBuddy && !isAdmin && task.status !== 'open') {
       throw new ForbiddenError('Not authorized to view this task');
     }
 
@@ -354,7 +356,43 @@ router.get(
     }
 
     const appsSnap = await collections.tasks.doc(id).collection('applications').orderBy('createdAt', 'desc').get();
-    const applications = appsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+
+    // Enrich each application with the applicant's public profile so the
+    // poster can make a decision (name, avatar, rating, track record).
+    const applications = await Promise.all(
+      appsSnap.docs.map(async (d: any) => {
+        const app = d.data();
+        const buddyId = app.buddyId || d.id;
+        let buddy: Record<string, any> | null = null;
+        try {
+          const buddyDoc = await collections.users.doc(buddyId).get();
+          if (buddyDoc.exists) {
+            const u = buddyDoc.data() as any;
+            buddy = {
+              name: u.name || 'Buddy',
+              avatar: u.avatar || null,
+              rating: u.rating?.average ?? 0,
+              reviewCount: u.rating?.count ?? 0,
+              completedTasks: u.stats?.tasksCompleted ?? 0,
+              city: u.city || '',
+            };
+          }
+        } catch (err) {
+          console.warn('[Tasks] applicant enrichment failed for', buddyId, err);
+        }
+        return {
+          id: d.id,
+          taskId: id,
+          buddyId,
+          message: app.message || '',
+          proposedAmount: app.proposedAmount,
+          status: app.status || 'pending',
+          createdAt: app.createdAt || '',
+          updatedAt: app.updatedAt || '',
+          buddy,
+        };
+      })
+    );
     res.json({ success: true, applications });
   }
 );
@@ -366,7 +404,9 @@ router.get(
 router.post(
   '/:id/applications/:buddyId/decide',
   requireAuth,
-  requireRole('customer'),
+  requireKYC,
+  // Both roles can post tasks (see POST /), so both can decide applications.
+  requireRole('customer', 'buddy'),
   validateParams(z.object({ id: z.string().min(1), buddyId: z.string().min(1) })),
   validateBody(z.object({ action: z.enum(['accept', 'reject']) })),
   async (req: Request, res: Response) => {
@@ -448,7 +488,8 @@ router.post(
   '/:id/assign',
   requireAuth,
   requireKYC,
-  requireRole('customer'),
+  // Both roles can post tasks, so both can assign their own task.
+  requireRole('customer', 'buddy'),
   validateParams(z.object({ id: z.string().min(1) })),
   validateBody(assignTaskSchema),
   async (req: Request, res: Response) => {

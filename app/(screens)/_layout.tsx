@@ -7,6 +7,7 @@ import React from 'react';
 import { Redirect, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
+import { Colors } from '@/constants/design';
 
 export default function ScreensLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -19,14 +20,7 @@ export default function ScreensLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: 'transparent',
-        },
-        headerTitleStyle: {
-          fontFamily: 'Inter_600SemiBold',
-          fontSize: 18,
-        },
-        headerTintColor: '#000',
+        headerShown: false, // no native header bar on any page — every screen renders its own soft header
         contentStyle: styles.card,
         gestureEnabled: true,
       }}
@@ -49,7 +43,6 @@ export default function ScreensLayout() {
       <Stack.Screen name="location-settings" options={{ title: 'Location' }} />
       <Stack.Screen name="appearance-settings" options={{ title: 'Appearance' }} />
       <Stack.Screen name="language-settings" options={{ title: 'Language' }} />
-      <Stack.Screen name="blocked-users" options={{ title: 'Blocked Users' }} />
       <Stack.Screen name="data-usage" options={{ title: 'Data Usage' }} />
       <Stack.Screen name="about" options={{ title: 'About' }} />
       
@@ -96,6 +89,6 @@ export default function ScreensLayout() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface.primary, // antique white canvas for every screen
   },
 });

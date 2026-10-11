@@ -3,25 +3,24 @@
  */
 
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
-import { Colors } from '@/constants/design';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function HelpScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
 
   const helpCategories = [
     {
@@ -90,31 +89,35 @@ export default function HelpScreen() {
 
   const quickActions = [
     {
-      icon: 'chatbubble-ellipses-outline',
+      icon: 'chatbubble-ellipses',
       title: 'Contact Support',
       subtitle: 'Chat with our support team',
-      color: Colors.brand.primary,
+      color: Colors.brand.accent,
+      soft: Colors.brand.accentSoft,
       onPress: () => router.push('/(screens)/contact-support'),
     },
     {
-      icon: 'document-text-outline',
+      icon: 'document-text',
       title: 'FAQ',
       subtitle: 'Browse frequently asked questions',
-      color: '#10B981',
+      color: Colors.semantic.success,
+      soft: Colors.semantic.successSoft,
       onPress: () => router.push('/(screens)/faq'),
     },
     {
-      icon: 'flag-outline',
+      icon: 'flag',
       title: 'Report a Problem',
       subtitle: 'Report bugs or issues',
-      color: '#F59E0B',
+      color: Colors.semantic.warning,
+      soft: Colors.semantic.warningSoft,
       onPress: () => router.push('/(screens)/contact-support?type=bug'),
     },
     {
-      icon: 'bulb-outline',
+      icon: 'bulb',
       title: 'Suggest a Feature',
       subtitle: 'Share your ideas with us',
-      color: '#8B5CF6',
+      color: Colors.brand.primary,
+      soft: '#1E120912',
       onPress: () => router.push('/(screens)/contact-support?type=feature'),
     },
   ];
@@ -141,147 +144,173 @@ export default function HelpScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Help & Support</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
+    <View style={styles.container}>
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={[styles.searchWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-            <Ionicons name="search-outline" size={22} color={isDark ? '#888' : '#999'} style={styles.searchIcon} />
-            <Text style={styles.searchPlaceholder}>Search help articles...</Text>
-          </View>
-        </View>
+        <ScreenHeader title="Help & support" subtitle="Guides, contact and fixes" onBack={() => router.back()} />
 
         {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400 }} style={styles.section}>
+          <Text style={styles.sectionEyebrow}>QUICK ACTIONS</Text>
           <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity 
+            {quickActions.map((action, i) => (
+              <MotiView
                 key={action.title}
-                style={[styles.quickActionCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-                onPress={action.onPress}
+                from={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'timing', duration: 380, delay: 60 + i * 70 }}
+                style={{ width: '48.2%' }}
               >
-                <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
-                  <Ionicons name={action.icon as any} size={24} color={action.color} />
-                </View>
-                <Text style={[styles.quickActionTitle, { color: isDark ? '#fff' : '#000' }]}>{action.title}</Text>
-                <Text style={[styles.quickActionSubtitle, { color: isDark ? '#888' : '#666' }]}>{action.subtitle}</Text>
-              </TouchableOpacity>
+                <Pressable style={({ pressed }) => [styles.quickActionCard, pressed && { transform: [{ scale: 0.97 }] }]} onPress={action.onPress}>
+                  <View style={[styles.quickActionIcon, { backgroundColor: action.soft }]}>
+                    <Ionicons name={action.icon as any} size={20} color={action.color} />
+                  </View>
+                  <Text style={styles.quickActionTitle}>{action.title}</Text>
+                  <Text style={styles.quickActionSubtitle}>{action.subtitle}</Text>
+                </Pressable>
+              </MotiView>
             ))}
           </View>
-        </View>
+        </MotiView>
 
         {/* Help Categories */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Help Topics</Text>
-          {helpCategories.map((category) => (
-            <View key={category.title} style={[styles.categoryCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }, { marginTop: 12 }]}>
-              <TouchableOpacity style={styles.categoryHeader}>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 220 }} style={styles.section}>
+          <Text style={styles.sectionEyebrow}>HELP TOPICS</Text>
+          {helpCategories.map((category, ci) => (
+            <View key={category.title} style={styles.categoryCard}>
+              <View style={styles.categoryHeader}>
                 <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon as any} size={22} color="#8B85FF" />
+                  <Ionicons name={category.icon as any} size={19} color={Colors.brand.accent} />
                 </View>
-                <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>{category.title}</Text>
-                <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#555' : '#999'} />
-              </TouchableOpacity>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <View style={styles.categoryCount}>
+                  <Text style={styles.categoryCountText}>{category.items.length}</Text>
+                </View>
+              </View>
               <View style={styles.categoryItems}>
-                {category.items.map((item) => (
-                  <TouchableOpacity 
+                {category.items.map((item, ii) => (
+                  <TouchableOpacity
                     key={item.title}
-                    style={styles.categoryItem}
-                    onPress={() => router.push(item.route)}
+                    style={[styles.categoryItem, ii === category.items.length - 1 && { borderBottomWidth: 0 }]}
+                    onPress={() => router.push(item.route as any)}
                   >
-                    <Text style={[styles.categoryItemText, { color: isDark ? '#ddd' : '#444' }]}>{item.title}</Text>
-                    <Ionicons name="chevron-forward-outline" size={18} color={isDark ? '#555' : '#999'} />
+                    <Text style={styles.categoryItemText}>{item.title}</Text>
+                    <Ionicons name="chevron-forward" size={15} color={Colors.text.muted} />
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
           ))}
-        </View>
+        </MotiView>
 
         {/* Contact Options */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Contact Us</Text>
-          {contactOptions.map((option) => (
-            <TouchableOpacity 
-              key={option.title}
-              style={[styles.contactItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-              onPress={option.onPress}
-            >
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 340 }} style={styles.section}>
+          <Text style={styles.sectionEyebrow}>CONTACT US</Text>
+          {contactOptions.map((option, i) => (
+            <View key={option.title} style={[styles.contactItem, i < contactOptions.length - 1 && { marginBottom: Spacing[3] }]}>
               <View style={styles.contactIcon}>
-                <Ionicons name={option.icon as any} size={22} color="#8B85FF" />
+                <Ionicons name={option.icon as any} size={18} color={Colors.brand.accent} />
               </View>
               <View style={styles.contactInfo}>
-                <Text style={[styles.contactTitle, { color: isDark ? '#fff' : '#000' }]}>{option.title}</Text>
-                <Text style={[styles.contactSubtitle, { color: isDark ? '#888' : '#666' }]}>{option.subtitle}</Text>
+                <Text style={styles.contactTitle}>{option.title}</Text>
+                <Text style={styles.contactSubtitle}>{option.subtitle}</Text>
               </View>
-              <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#555' : '#999'} />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={option.onPress} style={styles.contactGoBtn} hitSlop={8}>
+                <Ionicons name="arrow-forward" size={15} color="#fff" />
+              </TouchableOpacity>
+            </View>
           ))}
-        </View>
+        </MotiView>
 
         {/* App Info */}
-        <View style={[styles.section, { marginBottom: 40 }]}>
-          <View style={[styles.appInfo, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 420, delay: 460 }} style={{ marginBottom: 40 }}>
+          <View style={styles.appInfo}>
             <View style={styles.appIcon}>
-              <Ionicons name={"logo-localbuddy" as any} size={48} color="#8B85FF" />
+              <Ionicons name="people" size={30} color="#FFFFFF" />
             </View>
-            <Text style={[styles.appName, { color: isDark ? '#fff' : '#000' }]}>LocalBuddy</Text>
-            <Text style={[styles.appVersion, { color: isDark ? '#888' : '#666' }]}>Version 1.0.0</Text>
-            <Text style={[styles.appDescription, { color: isDark ? '#888' : '#666' }]}>Your local task marketplace</Text>
+            <Text style={styles.appName}>LocalBuddy</Text>
+            <View style={styles.appVersionPill}>
+              <Text style={styles.appVersion}>Version 1.0.0</Text>
+            </View>
+            <Text style={styles.appDescription}>Your local task marketplace</Text>
           </View>
-        </View>
+        </MotiView>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  searchContainer: { marginBottom: 24 },
-  searchWrapper: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 32, borderWidth: 1, borderColor: '#eee' },
-  searchIcon: { marginRight: 10 },
-  searchPlaceholder: { fontSize: 16, fontFamily: 'Inter_400Regular', color: '#999', flex: 1 },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  quickActionCard: { flex: 1, minWidth: '45%', maxWidth: '50%', padding: 16, borderRadius: 28, borderWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  quickActionIcon: { width: 48, height: 48, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  quickActionTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', textAlign: 'center', marginBottom: 4 },
-  quickActionSubtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center' },
-  categoryCard: { borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
-  categoryHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  categoryIcon: { width: 40, height: 40, borderRadius: 32, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center' },
-  categoryTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', flex: 1 },
-  categoryItems: { paddingHorizontal: 16, paddingBottom: 16 },
-  categoryItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  categoryItemText: { fontSize: 15, fontFamily: 'Inter_400Regular', flex: 1, marginRight: 8 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 32, marginBottom: 12, borderWidth: 1, borderColor: '#eee' },
-  contactIcon: { width: 40, height: 40, borderRadius: 32, backgroundColor: '#8B85FF15', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[1], paddingBottom: 40 },
+
+  section: { marginBottom: Spacing[5], marginTop: Spacing[4] },
+  sectionEyebrow: {
+    fontSize: 11, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accentPressed,
+    letterSpacing: 1.4, marginBottom: Spacing[3],
+  },
+
+  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[3], justifyContent: 'space-between' },
+  quickActionCard: {
+    width: '100%', padding: Spacing[4], borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.border.light,
+    backgroundColor: Colors.surface.elevated, ...Shadows.card,
+  },
+  quickActionIcon: {
+    width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing[3],
+  },
+  quickActionTitle: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: 3 },
+  quickActionSubtitle: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 16 },
+
+  categoryCard: {
+    borderRadius: BorderRadius.lg, overflow: 'hidden', borderWidth: 1, borderColor: Colors.border.light,
+    backgroundColor: Colors.surface.elevated, marginTop: Spacing[3], ...Shadows.card,
+  },
+  categoryHeader: {
+    flexDirection: 'row', alignItems: 'center', padding: Spacing[4], gap: Spacing[3],
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light, backgroundColor: Colors.surface.creamSoft,
+  },
+  categoryIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.brand.accentSoft, justifyContent: 'center', alignItems: 'center' },
+  categoryTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, flex: 1 },
+  categoryCount: {
+    minWidth: 24, height: 24, borderRadius: 12, backgroundColor: Colors.brand.accent,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
+  },
+  categoryCountText: { fontSize: 11, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
+  categoryItems: { paddingHorizontal: Spacing[4] },
+  categoryItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  categoryItemText: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, flex: 1, marginRight: 8 },
+
+  contactItem: {
+    flexDirection: 'row', alignItems: 'center', padding: Spacing[4], borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  contactIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft, justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3] },
   contactInfo: { flex: 1 },
-  contactTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  contactSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  appInfo: { alignItems: 'center', padding: 32, borderRadius: 28, borderWidth: 1, borderColor: '#eee' },
-  appIcon: { marginBottom: 12 },
-  appName: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  appVersion: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 4 },
-  appDescription: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8 },
+  contactTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  contactSubtitle: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  contactGoBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.brand.primary,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.button,
+  },
+
+  appInfo: {
+    alignItems: 'center', padding: Spacing[6], borderRadius: BorderRadius['2xl'],
+    backgroundColor: Colors.brand.primary, ...Shadows.button,
+  },
+  appIcon: {
+    width: 64, height: 64, borderRadius: 20, backgroundColor: Colors.brand.accent,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3], ...Shadows.buttonOrange,
+  },
+  appName: { fontSize: 21, fontFamily: Typography.fontFamily.display, color: '#FFFFFF' },
+  appVersionPill: {
+    marginTop: Spacing[2], backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: 3,
+  },
+  appVersion: { fontSize: 11, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.9)' },
+  appDescription: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.7)', marginTop: Spacing[2] },
 });

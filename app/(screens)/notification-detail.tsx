@@ -14,17 +14,16 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { MotiView } from 'moti';
 import { useNotificationStore } from '@/store/notificationStore';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function NotificationDetailScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
   const { notifications, markAsRead } = useNotificationStore();
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-
-  const isDark = theme === 'dark';
 
   const getMockNotification = (id: string) => ({
     id,
@@ -37,7 +36,26 @@ export default function NotificationDetailScreen() {
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
   });
 
-  const notification: any = notifications.find(n => n.id === id) || getMockNotification(id);
+  // Resolution order: realtime/store copy → params passed by the
+  // notifications list → (last resort) placeholder.
+  const fromStore: any = notifications.find(n => n.id === id);
+  const notification: any = fromStore
+    ? {
+        ...fromStore,
+        read: fromStore.read ?? fromStore.isRead ?? false,
+        message: fromStore.message ?? fromStore.body ?? '',
+        time: fromStore.time ?? fromStore.createdAt ?? '',
+      }
+    : params.title
+      ? {
+          id,
+          type: String(params.type || 'system'),
+          title: String(params.title),
+          message: String(params.message || ''),
+          time: String(params.time || ''),
+          read: params.read === '1',
+        }
+      : getMockNotification(id);
 
   React.useEffect(() => {
     if (notification && !notification.read) {
@@ -47,12 +65,12 @@ export default function NotificationDetailScreen() {
 
   const getTypeConfig = (type: string) => {
     const configs: Record<string, { icon: string; color: string; bgColor: string }> = {
-      task: { icon: 'clipboard-outline', color: '#8B85FF', bgColor: '#8B85FF15' },
-      message: { icon: 'chatbubbles-outline', color: '#10B981', bgColor: '#10B98115' },
-      payment: { icon: 'card-outline', color: '#F59E0B', bgColor: '#F59E0B15' },
-      system: { icon: 'information-circle-outline', color: '#6B7280', bgColor: '#6B728015' },
-      promo: { icon: 'gift-outline', color: '#EC4899', bgColor: '#EC489915' },
-      security: { icon: 'shield-outline', color: '#EF4444', bgColor: '#EF444415' },
+      task: { icon: 'clipboard', color: Colors.brand.accent, bgColor: Colors.brand.accentSoft },
+      message: { icon: 'chatbubbles', color: Colors.semantic.info, bgColor: Colors.semantic.infoSoft },
+      payment: { icon: 'card', color: Colors.semantic.success, bgColor: Colors.semantic.successSoft },
+      system: { icon: 'information-circle', color: Colors.brand.primary, bgColor: '#1E120912' },
+      promo: { icon: 'gift', color: Colors.semantic.error, bgColor: Colors.semantic.errorSoft },
+      security: { icon: 'shield', color: Colors.semantic.error, bgColor: Colors.semantic.errorSoft },
     };
     return configs[type] || configs.system;
   };
@@ -70,121 +88,121 @@ export default function NotificationDetailScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notification</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Notification" subtitle={notification.title} onBack={() => router.back()} />
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Notification Card */}
-        <View style={[styles.notificationCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420 }}
+          style={styles.notificationCard}
+        >
           {/* Type Badge */}
           <View style={[styles.typeBadge, { backgroundColor: typeConfig.bgColor }]}>
-            <Ionicons name={typeConfig.icon as any} size={20} color={typeConfig.color} />
+            <Ionicons name={typeConfig.icon as any} size={22} color={typeConfig.color} />
           </View>
 
           {/* Title */}
-          <Text style={[styles.notificationTitle, { color: isDark ? '#fff' : '#000' }]}>
+          <Text style={styles.notificationTitle}>
             {notification.title}
           </Text>
 
           {/* Time */}
-          <Text style={[styles.notificationTime, { color: isDark ? '#888' : '#666' }]}>
-            {notification.time}
-          </Text>
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={12} color={Colors.text.muted} />
+            <Text style={styles.notificationTime}>{notification.time}</Text>
+          </View>
 
           {/* Message */}
-          <Text style={[styles.notificationMessage, { color: isDark ? '#ccc' : '#333' }]}>
+          <Text style={styles.notificationMessage}>
             {notification.message}
           </Text>
 
           {/* Sender Info (if applicable) */}
-          {notification.avatar && (
+          {notification.avatar ? (
             <View style={styles.senderInfo}>
-              <Image 
-                source={{ uri: notification.avatar }} 
-                style={styles.senderAvatar} 
-              />
+              <Image source={{ uri: notification.avatar }} style={styles.senderAvatar} />
               <View style={styles.senderDetails}>
-                <Text style={[styles.senderName, { color: isDark ? '#fff' : '#000' }]}>
+                <Text style={styles.senderName}>
                   {notification.data?.userName || 'LocalBuddy Team'}
                 </Text>
-                <Text style={[styles.senderRole, { color: isDark ? '#888' : '#666' }]}>
-                  {notification.type === 'task' ? 'Task Applicant' : 
+                <Text style={styles.senderRole}>
+                  {notification.type === 'task' ? 'Task Applicant' :
                    notification.type === 'message' ? 'Message from' : 'System Notification'}
                 </Text>
               </View>
             </View>
-          )}
+          ) : null}
 
           {/* Action Button */}
-          {notification.data && (
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: typeConfig.color }]}
+          {notification.data ? (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: typeConfig.color === Colors.brand.primary ? Colors.brand.primary : typeConfig.color }]}
               onPress={handleAction}
             >
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
               <Text style={styles.actionButtonText}>
-                {notification.type === 'task' ? 'View Task' : 
-                 notification.type === 'message' ? 'Open Chat' : 
+                {notification.type === 'task' ? 'View Task' :
+                 notification.type === 'message' ? 'Open Chat' :
                  notification.type === 'payment' ? 'View Transaction' : 'View Details'}
               </Text>
             </TouchableOpacity>
-          )}
+          ) : null}
 
           {/* Additional Details */}
           <View style={styles.detailsSection}>
-            <Text style={[styles.detailsTitle, { color: isDark ? '#fff' : '#000' }]}>Details</Text>
+            <Text style={styles.detailsTitle}>Details</Text>
             <View style={styles.detailsList}>
-              <DetailRow label="Notification ID" value={notification.id} isDark={isDark} />
-              <DetailRow label="Type" value={notification.type.charAt(0).toUpperCase() + notification.type.slice(1)} isDark={isDark} />
-              <DetailRow label="Status" value={notification.read ? 'Read' : 'Unread'} isDark={isDark} />
-              <DetailRow label="Received" value={notification.time} isDark={isDark} />
+              <DetailRow label="Notification ID" value={String(notification.id).slice(0, 10) + '…'} />
+              <DetailRow label="Type" value={notification.type.charAt(0).toUpperCase() + notification.type.slice(1)} />
+              <DetailRow label="Status" value={notification.read ? 'Read' : 'Unread'} valueColor={notification.read ? Colors.semantic.success : Colors.semantic.warning} />
+              <DetailRow label="Received" value={notification.time} last />
             </View>
           </View>
-        </View>
+        </MotiView>
 
         {/* Related Actions */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Actions</Text>
-          
-          <TouchableOpacity 
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420, delay: 120 }}
+          style={[styles.notificationCard, { marginTop: Spacing[3] }]}
+        >
+          <Text style={styles.detailsTitle}>Actions</Text>
+
+          <TouchableOpacity
             style={styles.actionItem}
             onPress={() => {
               markAsRead(notification.id);
               Alert.alert('Marked as read');
             }}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#10B98115' }]}>
-              <Ionicons name="checkmark-outline" size={22} color="#10B981" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.semantic.successSoft }]}>
+              <Ionicons name="checkmark-done" size={17} color={Colors.semantic.success} />
             </View>
-            <Text style={[styles.actionText, { color: isDark ? '#fff' : '#000' }]}>Mark as Read</Text>
-            <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
+            <Text style={styles.actionText}>Mark as read</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.text.muted} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionItem}
             onPress={() => Alert.alert('Delete', 'Remove this notification?', [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Delete', style: 'destructive', onPress: () => router.back() }
             ])}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#EF444415' }]}>
-              <Ionicons name="trash-outline" size={22} color="#EF4444" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.semantic.errorSoft }]}>
+              <Ionicons name="trash-outline" size={17} color={Colors.semantic.error} />
             </View>
-            <Text style={[styles.actionText, { color: isDark ? '#fff' : '#000' }]}>Delete Notification</Text>
-            <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
+            <Text style={[styles.actionText, { color: Colors.semantic.error }]}>Delete notification</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.semantic.error} />
           </TouchableOpacity>
-        </View>
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -192,48 +210,54 @@ export default function NotificationDetailScreen() {
   );
 }
 
-const DetailRow = ({ label, value, isDark }: any) => (
-  <View style={styles.detailRow}>
-    <Text style={[styles.detailLabel, { color: isDark ? '#888' : '#666' }]}>{label}</Text>
-    <Text style={[styles.detailValue, { color: isDark ? '#fff' : '#000' }]}>{value}</Text>
+const DetailRow = ({ label, value, valueColor, last }: any) => (
+  <View style={[styles.detailRow, last && { borderBottomWidth: 0 }]}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={[styles.detailValue, valueColor && { color: valueColor }]} numberOfLines={1}>{value}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  notificationCard: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  typeBadge: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 24, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    alignSelf: 'flex-start',
-    marginBottom: 16 
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+  notificationCard: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
   },
-  notificationTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginBottom: 8 },
-  notificationTime: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 16 },
-  notificationMessage: { fontSize: 16, fontFamily: 'Inter_400Regular', lineHeight: 24, marginBottom: 16 },
-  senderInfo: { flexDirection: 'row', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: '#eee', marginBottom: 16 },
-  senderAvatar: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
+  typeBadge: {
+    width: 54, height: 54, borderRadius: 27,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing[4],
+  },
+  notificationTitle: { fontSize: 22, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[1], lineHeight: 28 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing[3] },
+  notificationTime: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  notificationMessage: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 22, marginBottom: Spacing[4] },
+  senderInfo: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing[3],
+    borderTopWidth: 1, borderTopColor: Colors.border.light, marginBottom: Spacing[4],
+  },
+  senderAvatar: { width: 46, height: 46, borderRadius: 23, marginRight: Spacing[3] },
   senderDetails: { flex: 1 },
-  senderName: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  senderRole: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  actionButton: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
-  actionButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  detailsSection: { paddingTop: 16, borderTopWidth: 1, borderTopColor: '#eee' },
-  detailsTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 12 },
-  detailsList: { gap: 12 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailLabel: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  detailValue: { fontSize: 14, fontFamily: 'Inter_500Medium' },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  actionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  actionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  actionText: { fontSize: 16, fontFamily: 'Inter_500Medium', flex: 1 },
+  senderName: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: 2 },
+  senderRole: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  actionButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    paddingVertical: Spacing[3] + 2, borderRadius: BorderRadius.pill, marginBottom: Spacing[4],
+    ...Shadows.button,
+  },
+  actionButtonText: { color: '#fff', fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold },
+  detailsSection: { paddingTop: Spacing[4], borderTopWidth: 1, borderTopColor: Colors.border.light },
+  detailsTitle: { fontSize: 13.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: Spacing[3] },
+  detailsList: { gap: 0 },
+  detailRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: Spacing[2] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  detailLabel: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  detailValue: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  actionItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], paddingVertical: Spacing[3] + 2 },
+  actionIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  actionText: { fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, flex: 1 },
 });

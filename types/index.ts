@@ -330,6 +330,10 @@ export interface Task {
   posterCompletedTasks?: number;
   posterResponseRate?: number;
   skills?: string[];
+  /** IDs of buddies who applied (Firestore array on the task doc) */
+  applicants?: string[];
+  tip?: number;
+  paymentMode?: 'online' | 'cash';
   applications?: Array<{
     id: string;
     applicantId?: string;

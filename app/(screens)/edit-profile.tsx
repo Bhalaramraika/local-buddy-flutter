@@ -1,26 +1,29 @@
 /**
- * Edit Profile Screen - Update user profile information
+ * Edit Profile Screen — Soft Modern
+ * Hero avatar card with camera badge, cream form sections,
+ * skill chips, orange save bar. Profile/save/photo logic unchanged.
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  StyleSheet, 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
   TextInput,
   Image,
   Alert,
-  Platform,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useAuthStore } from '@/store/authStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUIStore } from '@/store/uiStore';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors } from '@/constants/design';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton, ScreenHeader } from '@/components/ui';
 import { uploadToCloudinary } from '@/services/upload';
 import { getApiErrorMessage } from '@/services/api';
 
@@ -28,16 +31,17 @@ import { getApiErrorMessage } from '@/services/api';
 // anything starting with http/https is an already-hosted (Cloudinary) URL.
 const isLocalUri = (uri?: string | null) => !!uri && !/^https?:\/\//i.test(uri);
 
+const POPULAR_SKILLS = ['Cleaning', 'Delivery', 'Handyman', 'Tutoring', 'Pet Care', 'Grocery Shopping', 'Tech Support', 'Moving Help', 'Gardening', 'Photography'];
+
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuthStore();
+  const { user } = useAuthStore();
   // AuthContext.updateProfile persists to the backend (PUT /users/me/profile)
   // and then syncs the auth store — the store-only version saved locally,
   // which is why edits "reset" after reopening the app.
   const { updateProfile } = useAuth();
-  const { theme, showToast } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -69,23 +73,23 @@ export default function EditProfileScreen() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     } else if (formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-    
+
     if (formData.phone && !/^[\d\s\-\+\(\)]{10,}$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone number';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -136,14 +140,14 @@ export default function EditProfileScreen() {
       Alert.alert('Permission needed', 'Please grant permission to access your photos');
       return;
     }
-    
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-    
+
     if (!result.canceled && result.assets[0]) {
       setAvatar(result.assets[0].uri);
     }
@@ -153,245 +157,298 @@ export default function EditProfileScreen() {
     setAvatar(null);
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Edit Profile</Text>
-          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
-            <Text style={[
-              styles.saveButtonText,
-              isSaving ? styles.saveButtonTextDisabled : styles.saveButtonTextActive
-            ]}>
-              {isSaving ? 'Saving...' : 'Save'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+  const toggleSkill = (skill: string) => {
+    const skills = formData.skills.split(',').map(s => s.trim()).filter(s => s);
+    const index = skills.findIndex(s => s.toLowerCase() === skill.toLowerCase());
+    if (index >= 0) {
+      skills.splice(index, 1);
+    } else {
+      skills.push(skill);
+    }
+    setFormData({ ...formData, skills: skills.join(', ') });
+  };
 
-      <ScrollView 
+  return (
+    <View style={styles.container}>
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Avatar Section */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-          <View style={styles.avatarSection}>
-            <View style={styles.avatarWrapper}>
-              {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImage} />
-              ) : user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-              ) : (
-                <Text style={[styles.avatarPlaceholder, { color: isDark ? '#fff' : '#fff' }]}>
+        <ScreenHeader title="Edit profile" subtitle="Photo, name and details" onBack={() => router.back()} />
+        {/* Avatar card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420 }}
+          style={styles.avatarCard}
+        >
+          <View style={styles.avatarWrapper}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatarImage} />
+            ) : user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitial}>
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </Text>
-              )}
-              <TouchableOpacity style={styles.avatarEditButton} onPress={pickImage}>
-                <Ionicons name="camera-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.avatarActions}>
-              <TouchableOpacity style={styles.changePhotoButton} onPress={pickImage}>
-                <Ionicons name="image-outline" size={18} color="#8B85FF" />
-                <Text style={styles.changePhotoButtonText}>Change Photo</Text>
-              </TouchableOpacity>
-              {(avatar || user?.avatar) && (
-                <TouchableOpacity style={styles.removePhotoButton} onPress={removeAvatar}>
-                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                  <Text style={styles.removePhotoButtonText}>Remove</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              </View>
+            )}
+            <Pressable style={styles.avatarEditButton} onPress={pickImage} accessibilityLabel="Change photo">
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+            </Pressable>
           </View>
-        </View>
+          <View style={styles.avatarActions}>
+            <Pressable style={styles.changePhotoButton} onPress={pickImage}>
+              <Ionicons name="image" size={15} color={Colors.brand.accent} />
+              <Text style={styles.changePhotoButtonText}>Change photo</Text>
+            </Pressable>
+            {(avatar || user?.avatar) ? (
+              <Pressable style={styles.removePhotoButton} onPress={removeAvatar}>
+                <Ionicons name="trash" size={14} color={Colors.semantic.error} />
+                <Text style={styles.removePhotoButtonText}>Remove</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </MotiView>
 
         {/* Basic Info */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Basic Information</Text>
-          
-          <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Full Name *</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              placeholder="Enter your full name"
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              autoCapitalize="words"
-            />
-            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Email</Text>
-            {/* Email is the login identity (OTP) — read-only to avoid desync */}
-            <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#222' : '#f0f0f0', color: isDark ? '#aaa' : '#666' }]}
-              value={formData.email}
-              editable={false}
-              placeholder="Login email"
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={[styles.charCount, { color: isDark ? '#888' : '#666' }]}>Email is your login ID and cannot be changed here</Text>
-          </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Phone Number</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
-              value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              placeholder="Enter your phone number"
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              keyboardType="phone-pad"
-            />
-            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>Location</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
-              value={formData.location}
-              onChangeText={(text) => setFormData({ ...formData, location: text })}
-              placeholder="Your city/area"
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              autoCapitalize="words"
-            />
-          </View>
-        </View>
+        <MotableSection index={1} title="Basic information">
+          <FormField
+            label="Full name *"
+            icon="person-outline"
+            value={formData.name}
+            onChangeText={(t) => setFormData({ ...formData, name: t })}
+            placeholder="Enter your full name"
+            autoCapitalize="words"
+            error={errors.name}
+          />
+          <FormField
+            label="Email"
+            icon="mail-outline"
+            value={formData.email}
+            placeholder="Login email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={false}
+            hint="Email is your login ID and cannot be changed here"
+          />
+          <FormField
+            label="Phone number"
+            icon="call-outline"
+            value={formData.phone}
+            onChangeText={(t) => setFormData({ ...formData, phone: t })}
+            placeholder="Enter your phone number"
+            keyboardType="phone-pad"
+            error={errors.phone}
+          />
+          <FormField
+            label="Location"
+            icon="location-outline"
+            value={formData.location}
+            onChangeText={(t) => setFormData({ ...formData, location: t })}
+            placeholder="Your city/area"
+            autoCapitalize="words"
+            last
+          />
+        </MotableSection>
 
         {/* Bio */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>About You</Text>
-          
-          <View style={styles.field}>
-            <TextInput
-              style={[styles.textInput, styles.textArea, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
-              value={formData.bio}
-              onChangeText={(text) => setFormData({ ...formData, bio: text })}
-              placeholder="Tell others about yourself..."
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-              autoCapitalize="sentences"
-            />
-            <Text style={[styles.charCount, { color: isDark ? '#888' : '#999' }]}>
-              {formData.bio.length}/500
-            </Text>
-          </View>
-        </View>
+        <MotableSection index={2} title="About you">
+          <TextInput
+            style={styles.textArea}
+            value={formData.bio}
+            onChangeText={(t) => setFormData({ ...formData, bio: t })}
+            placeholder="Tell others about yourself..."
+            placeholderTextColor={Colors.text.muted}
+            multiline
+            numberOfLines={4}
+            maxLength={500}
+            autoCapitalize="sentences"
+          />
+          <Text style={styles.charCount}>{formData.bio.length}/500</Text>
+        </MotableSection>
 
         {/* Skills */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }, { marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Skills</Text>
-          
-          <View style={styles.field}>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? '#2a2a2a' : '#fafafa', color: isDark ? '#fff' : '#000' }]}
-              value={formData.skills}
-              onChangeText={(text) => setFormData({ ...formData, skills: text })}
-              placeholder="Cleaning, Delivery, Handyman, Tutoring..."
-              placeholderTextColor={isDark ? '#888' : '#999'}
-              autoCapitalize="words"
-            />
-            <Text style={[styles.fieldHint, { color: isDark ? '#888' : '#999' }]}>
-              Separate skills with commas
-            </Text>
-          </View>
-          
-          {/* Skill Suggestions */}
-          <View style={styles.skillSuggestions}>
-            <Text style={[styles.skillSuggestionsLabel, { color: isDark ? '#888' : '#666' }]}>Popular Skills</Text>
-            <View style={styles.skillTags}>
-              {['Cleaning', 'Delivery', 'Handyman', 'Tutoring', 'Pet Care', 'Grocery Shopping', 'Tech Support', 'Moving Help', 'Gardening', 'Photography'].map((skill) => (
-                <TouchableOpacity
+        <MotableSection index={3} title="Skills">
+          <TextInput
+            style={styles.fieldInput}
+            value={formData.skills}
+            onChangeText={(t) => setFormData({ ...formData, skills: t })}
+            placeholder="Cleaning, Delivery, Handyman, Tutoring..."
+            placeholderTextColor={Colors.text.muted}
+            autoCapitalize="words"
+          />
+          <Text style={styles.fieldHint}>Separate skills with commas</Text>
+
+          <Text style={styles.skillSuggestionsLabel}>Popular skills</Text>
+          <View style={styles.skillTags}>
+            {POPULAR_SKILLS.map((skill) => {
+              const active = formData.skills.toLowerCase().includes(skill.toLowerCase());
+              return (
+                <Pressable
                   key={skill}
-                  style={[
-                    styles.skillTag,
-                    formData.skills.toLowerCase().includes(skill.toLowerCase()) && styles.skillTagSelected
-                  ]}
-                  onPress={() => {
-                    const skills = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-                    const index = skills.findIndex(s => s.toLowerCase() === skill.toLowerCase());
-                    if (index >= 0) {
-                      skills.splice(index, 1);
-                    } else {
-                      skills.push(skill);
-                    }
-                    setFormData({ ...formData, skills: skills.join(', ') });
-                  }}
+                  style={[styles.skillTag, active && styles.skillTagSelected]}
+                  onPress={() => toggleSkill(skill)}
                 >
-                  <Text style={[
-                    styles.skillTagText,
-                    formData.skills.toLowerCase().includes(skill.toLowerCase()) && styles.skillTagTextSelected
-                  ]}>
+                  <Text style={[styles.skillTagText, active && styles.skillTagTextSelected]}>
                     {skill}
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                </Pressable>
+              );
+            })}
           </View>
-        </View>
+        </MotableSection>
 
-        {/* Danger Zone */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }, { marginTop: 16, marginBottom: 40 }]}>
-          <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>Danger Zone</Text>
-          
-          <TouchableOpacity style={styles.dangerButton}>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-            <Text style={styles.dangerButtonText}>Delete Account</Text>
-            <Ionicons name="chevron-forward-outline" size={20} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
+        {/* Save */}
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 400 }}>
+          <SoftButton
+            label={isSaving ? 'Saving…' : 'Save changes'}
+            onPress={handleSave}
+            loading={isSaving}
+            variant="accent"
+            size="lg"
+            icon="checkmark-circle-outline"
+            withGlow
+          />
+        </MotiView>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
+function MotableSection({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 80 }}
+      style={styles.section}
+    >
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </MotiView>
+  );
+}
+
+function FormField({ label, icon, hint, error, last, ...inputProps }: any) {
+  const [focused, setFocused] = React.useState(false);
+  const editable = inputProps.editable !== false;
+  return (
+    <View style={[styles.field, last && { marginBottom: 0 }]}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={[
+        styles.fieldWrap,
+        focused && styles.fieldWrapFocused,
+        error ? { borderColor: Colors.semantic.error } : null,
+        !editable && styles.fieldWrapReadonly,
+      ]}>
+        <View style={[styles.fieldIconWrap, focused && { backgroundColor: Colors.brand.accentSoft }]}>
+          <Ionicons name={icon} size={15} color={focused ? Colors.brand.accent : Colors.text.muted} />
+        </View>
+        <TextInput
+          {...inputProps}
+          onFocus={(e: any) => { setFocused(true); inputProps.onFocus?.(e); }}
+          onBlur={(e: any) => { setFocused(false); inputProps.onBlur?.(e); }}
+          placeholderTextColor={Colors.text.muted}
+          style={[styles.fieldInputInner, !editable && { color: Colors.text.muted }]}
+        />
+        {!editable ? (
+          <Ionicons name="lock-closed" size={13} color={Colors.text.muted} />
+        ) : null}
+      </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  saveButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  saveButtonTextActive: { color: Colors.brand.primary },
-  saveButtonTextDisabled: { color: '#888' },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  section: { borderRadius: 28, padding: 20 },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 20 },
-  avatarSection: { alignItems: 'center' },
-  avatarWrapper: { position: 'relative', marginBottom: 16 },
-  avatarImage: { width: 100, height: 100, borderRadius: 50 },
-  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', fontSize: 36, fontFamily: 'Inter_700Bold' },
-  avatarEditButton: { position: 'absolute', bottom: 0, right: 0, width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#fff' },
-  avatarActions: { flexDirection: 'row', gap: 16 },
-  changePhotoButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  changePhotoButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
-  removePhotoButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  removePhotoButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#EF4444' },
-  field: { marginBottom: 20 },
-  fieldLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', marginBottom: 8 },
-  textInput: { fontSize: 16, fontFamily: 'Inter_400Regular', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: '#eee' },
-  textArea: { paddingTop: 14, textAlignVertical: 'top' },
-  errorText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#EF4444', marginTop: 6 },
-  charCount: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'right', marginTop: 6 },
-  fieldHint: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 6 },
-  skillSuggestions: { marginTop: 12 },
-  skillSuggestionsLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 10 },
-  skillTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skillTag: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 32, borderWidth: 1, borderColor: Colors.brand.primary, backgroundColor: '#8B85FF15' },
-  skillTagSelected: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary },
-  skillTagText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.brand.primary },
-  skillTagTextSelected: { color: '#fff' },
-  dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#EF444415', borderRadius: 32, borderWidth: 1, borderColor: '#EF4444' },
-  dangerButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#EF4444' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[5], paddingBottom: 40 },
+
+  avatarCard: {
+    alignItems: 'center', backgroundColor: Colors.surface.elevated,
+    borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[6], marginBottom: Spacing[4], ...Shadows.card,
+  },
+  avatarWrapper: { position: 'relative', marginBottom: Spacing[4] },
+  avatarImage: { width: 104, height: 104, borderRadius: 52 },
+  avatarPlaceholder: {
+    width: 104, height: 104, borderRadius: 52, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  avatarInitial: { fontSize: 38, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
+  avatarEditButton: {
+    position: 'absolute', bottom: 0, right: 0, width: 34, height: 34, borderRadius: 17,
+    backgroundColor: Colors.brand.accent, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: Colors.surface.elevated, ...Shadows.buttonOrange,
+  },
+  avatarActions: { flexDirection: 'row', gap: Spacing[4] },
+  changePhotoButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2],
+  },
+  changePhotoButtonText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed },
+  removePhotoButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.semantic.errorSoft, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2],
+  },
+  removePhotoButtonText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.error },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[4] },
+
+  field: { marginBottom: Spacing[5] },
+  fieldLabel: { fontSize: 13, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, marginBottom: Spacing[2], marginLeft: Spacing[1] },
+  fieldWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1.5, borderColor: Colors.border.light, paddingHorizontal: Spacing[3],
+  },
+  fieldWrapFocused: { borderColor: Colors.brand.accent, backgroundColor: Colors.surface.elevated },
+  fieldWrapReadonly: { backgroundColor: Colors.surface.tertiary },
+  fieldIconWrap: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surface.creamSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fieldInputInner: {
+    flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body,
+    color: Colors.text.primary, paddingVertical: Spacing[3] + 2,
+  },
+  fieldInput: {
+    fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary,
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[3] + 2,
+  },
+  textArea: {
+    fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary,
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[4],
+    minHeight: 110, textAlignVertical: 'top',
+  },
+  errorText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.semantic.error, marginTop: Spacing[1] + 2, marginLeft: Spacing[1] },
+  charCount: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, textAlign: 'right', marginTop: Spacing[2] },
+  fieldHint: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: Spacing[2], marginLeft: Spacing[1] },
+
+  skillSuggestionsLabel: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary, marginTop: Spacing[4], marginBottom: Spacing[2] },
+  skillTags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2] },
+  skillTag: {
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2], borderRadius: BorderRadius.pill,
+    borderWidth: 1.5, borderColor: Colors.border.medium, backgroundColor: Colors.surface.primary,
+  },
+  skillTagSelected: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary, ...Shadows.button },
+  skillTagText: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  skillTagTextSelected: { color: '#FFFFFF' },
 });

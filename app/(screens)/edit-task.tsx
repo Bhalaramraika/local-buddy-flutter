@@ -15,19 +15,16 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useTaskStore } from '@/store/taskStore';
-import { useAuthStore } from '@/store/authStore';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader, SoftButton } from '@/components/ui';
 
 export default function EditTaskScreen() {
   const router = useRouter();
   const { taskId } = useLocalSearchParams();
-  const { theme } = useUIStore();
-  const { user } = useAuthStore();
-  const { tasks, updateTask, isLoading, fetchTasks } = useTaskStore();
-  
-  const isDark = theme === 'dark';
+  const { tasks, updateTask, fetchTasks } = useTaskStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -115,55 +112,60 @@ export default function EditTaskScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Edit Task</Text>
-        <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={24} color="#EF4444" />
-        </TouchableOpacity>
+      <View style={{ paddingHorizontal: Spacing[5], paddingTop: Spacing[5] }}>
+        <ScreenHeader
+          title="Edit task"
+          subtitle="Update details anytime"
+          onBack={() => router.back()}
+          right={
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} hitSlop={8} accessibilityLabel="Delete task">
+              <Ionicons name="trash" size={16} color={Colors.semantic.error} />
+            </TouchableOpacity>
+          }
+        />
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.formContainer, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420 }}
+          style={styles.formContainer}
+        >
           {/* Title */}
-          <FormField 
-            label="Task Title"
-            error={errors.title}
-            isDark={isDark}
-          >
-            <TextInput
-              style={[styles.input, { color: isDark ? '#fff' : '#000' }]}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Enter task title"
-              maxLength={100}
-            />
+          <FormField label="Task title" error={errors.title}>
+            <View style={styles.inputShell}>
+              <View style={styles.inputIconChip}>
+                <Ionicons name="text" size={14} color={Colors.brand.accent} />
+              </View>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Enter task title"
+                placeholderTextColor={Colors.text.muted}
+                maxLength={100}
+              />
+            </View>
           </FormField>
 
           {/* Description */}
-          <FormField 
-            label="Description"
-            error={errors.description}
-            isDark={isDark}
-          >
+          <FormField label="Description" error={errors.description}>
             <TextInput
-              style={[styles.textarea, { color: isDark ? '#fff' : '#000' }]}
+              style={styles.textarea}
               value={description}
               onChangeText={setDescription}
               placeholder="Describe what needs to be done"
+              placeholderTextColor={Colors.text.muted}
               multiline
               numberOfLines={4}
               maxLength={1000}
@@ -171,59 +173,48 @@ export default function EditTaskScreen() {
           </FormField>
 
           {/* Category */}
-          <FormField 
-            label="Category"
-            error={errors.category}
-            isDark={isDark}
-          >
+          <FormField label="Category" error={errors.category}>
             <View style={styles.categorySelector}>
-              {categories.map(cat => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.categoryChip,
-                    category === cat ? styles.categoryChipActive : {},
-                    { backgroundColor: category === cat ? '#8B85FF' : (isDark ? '#333' : '#f5f5f5') }
-                  ]}
-                  onPress={() => setCategory(cat)}
-                >
-                  <Text style={[
-                    styles.categoryChipText,
-                    { color: category === cat ? '#fff' : (isDark ? '#fff' : '#000') }
-                  ]}>
-                    {cat}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {categories.map(cat => {
+                const active = category === cat;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryChip, active && styles.categoryChipActive]}
+                    onPress={() => setCategory(cat)}
+                  >
+                    {active ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
+                    <Text style={[styles.categoryChipText, active && { color: '#FFFFFF' }]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </FormField>
 
           {/* Budget & Deadline Row */}
           <View style={styles.row}>
-            <FormField 
-              label="Budget ($)"
-              error={errors.budget}
-              isDark={isDark}
-              style={styles.halfField}
-            >
-              <TextInput
-                style={[styles.input, { color: isDark ? '#fff' : '#000' }]}
-                value={budget}
-                onChangeText={setBudget}
-                placeholder="0.00"
-                keyboardType="numeric"
-                maxLength={10}
-              />
+            <FormField label="Budget (₹)" error={errors.budget} style={styles.halfField}>
+              <View style={styles.inputShell}>
+                <View style={styles.currencyChip}>
+                  <Text style={styles.currencyText}>₹</Text>
+                </View>
+                <TextInput
+                  style={styles.input}
+                  value={budget}
+                  onChangeText={setBudget}
+                  placeholder="0"
+                  placeholderTextColor={Colors.text.muted}
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
             </FormField>
 
-            <FormField 
-              label="Deadline"
-              error={errors.deadline}
-              isDark={isDark}
-              style={styles.halfField}
-            >
-              <TouchableOpacity 
-                style={[styles.datePicker, { backgroundColor: isDark ? '#333' : '#f5f5f5' }]}
+            <FormField label="Deadline" error={errors.deadline} style={styles.halfField}>
+              <TouchableOpacity
+                style={styles.datePicker}
                 onPress={() => {
                   // Date picker would open here
                   const date = new Date();
@@ -231,8 +222,10 @@ export default function EditTaskScreen() {
                   setDeadline(date.toISOString().split('T')[0]);
                 }}
               >
-                <Ionicons name="calendar-outline" size={22} color={isDark ? '#888' : '#666'} />
-                <Text style={[styles.datePickerText, { color: deadline ? (isDark ? '#fff' : '#000') : (isDark ? '#888' : '#666') }]}>
+                <View style={styles.dateChip}>
+                  <Ionicons name="calendar" size={13} color={Colors.brand.accent} />
+                </View>
+                <Text style={[styles.datePickerText, !deadline && { color: Colors.text.muted }]} numberOfLines={1}>
                   {deadline || 'Select date'}
                 </Text>
               </TouchableOpacity>
@@ -240,35 +233,32 @@ export default function EditTaskScreen() {
           </View>
 
           {/* Location */}
-          <FormField 
-            label="Location"
-            error={errors.location}
-            isDark={isDark}
-          >
-            <View style={styles.locationInput}>
-              <Ionicons name="location-outline" size={22} color={isDark ? '#888' : '#666'} />
+          <FormField label="Location" error={errors.location}>
+            <View style={styles.inputShell}>
+              <View style={styles.inputIconChip}>
+                <Ionicons name="location" size={14} color={Colors.brand.accent} />
+              </View>
               <TextInput
-                style={[styles.input, { color: isDark ? '#fff' : '#000', flex: 1 }]}
+                style={styles.input}
                 value={location}
                 onChangeText={setLocation}
                 placeholder="Enter location or use current"
+                placeholderTextColor={Colors.text.muted}
               />
-              <TouchableOpacity onPress={() => setLocation('Current Location')}>
-                <Ionicons name="navigate-outline" size={22} color="#8B85FF" />
+              <TouchableOpacity onPress={() => setLocation('Current Location')} style={styles.navChip} hitSlop={8}>
+                <Ionicons name="navigate" size={13} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </FormField>
 
           {/* Requirements */}
-          <FormField 
-            label="Requirements (Optional)"
-            isDark={isDark}
-          >
+          <FormField label="Requirements (optional)">
             <TextInput
-              style={[styles.textarea, { color: isDark ? '#fff' : '#000' }]}
+              style={styles.textarea}
               value={requirements}
               onChangeText={setRequirements}
               placeholder="Any special requirements or skills needed"
+              placeholderTextColor={Colors.text.muted}
               multiline
               numberOfLines={3}
               maxLength={500}
@@ -276,55 +266,94 @@ export default function EditTaskScreen() {
           </FormField>
 
           {/* Submit Button */}
-          <TouchableOpacity 
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+          <SoftButton
+            label={isSubmitting ? 'Updating…' : 'Update task'}
+            variant="accent"
+            size="lg"
+            icon="checkmark-circle"
             onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Text style={styles.submitButtonText}>Updating...</Text>
-            ) : (
-              <Text style={styles.submitButtonText}>Update Task</Text>
-            )}
-          </TouchableOpacity>
+            loading={isSubmitting}
+            withGlow
+          />
 
           <View style={{ height: 40 }} />
-        </View>
+        </MotiView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const FormField = ({ label, error, isDark, children, style }: any) => (
+const FormField = ({ label, error, children, style }: any) => (
   <View style={[styles.field, style]}>
-    <Text style={[styles.fieldLabel, { color: isDark ? '#fff' : '#000' }]}>{label}</Text>
+    <Text style={styles.fieldLabel}>{label}</Text>
     {children}
-    {error && <Text style={styles.errorText}>{error}</Text>}
+    {error ? (
+      <View style={styles.errorRow}>
+        <Ionicons name="alert-circle" size={12} color={Colors.semantic.error} />
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    ) : null}
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  deleteButton: { padding: 8 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  formContainer: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  field: { marginBottom: 20 },
-  fieldLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
-  input: { height: 52, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, paddingHorizontal: 16, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  textarea: { minHeight: 100, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: 16, fontSize: 16, fontFamily: 'Inter_400Regular', textAlignVertical: 'top' },
-  categorySelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#ddd' },
-  categoryChipActive: { borderColor: '#8B85FF' },
-  categoryChipText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  deleteBtn: {
+    width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.semantic.errorSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 60 },
+  formContainer: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  field: { marginBottom: Spacing[5] },
+  fieldLabel: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: Spacing[2], marginLeft: 2 },
+  inputShell: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2],
+    borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing[3], backgroundColor: Colors.surface.primary, minHeight: 54,
+  },
+  inputIconChip: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  currencyChip: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.semantic.successSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  currencyText: { fontSize: 14, fontFamily: Typography.fontFamily.bold, color: Colors.semantic.success },
+  navChip: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.brand.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  input: { flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary, paddingVertical: Spacing[3] },
+  textarea: {
+    minHeight: 100, borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: BorderRadius.md,
+    padding: Spacing[4], fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary,
+    backgroundColor: Colors.surface.primary, textAlignVertical: 'top',
+  },
+  categorySelector: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[2] },
+  categoryChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[2] + 1, borderRadius: BorderRadius.pill,
+    borderWidth: 1.5, borderColor: Colors.border.light, backgroundColor: Colors.surface.primary,
+  },
+  categoryChipActive: { borderColor: Colors.brand.primary, backgroundColor: Colors.brand.primary, ...Shadows.button },
+  categoryChipText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  row: { flexDirection: 'row', gap: Spacing[3] },
   halfField: { flex: 1 },
-  datePicker: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, paddingHorizontal: 16 },
-  datePickerText: { fontSize: 16, fontFamily: 'Inter_400Regular', flex: 1 },
-  locationInput: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52, borderWidth: 1, borderColor: '#ddd', borderRadius: 12, paddingHorizontal: 16, backgroundColor: '#fafafa' },
-  errorText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#EF4444', marginTop: 6 },
-  submitButton: { height: 56, borderRadius: 16, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#fff' },
+  datePicker: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[2], minHeight: 54,
+    borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing[3], backgroundColor: Colors.surface.primary,
+  },
+  dateChip: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  datePickerText: { flex: 1, fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.primary },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: Spacing[2], marginLeft: 2 },
+  errorText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.semantic.error },
 });

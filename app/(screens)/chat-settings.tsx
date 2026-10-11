@@ -1,80 +1,97 @@
 /**
- * Chat Settings Screen - Configure chat preferences and settings
+ * Chat Settings Screen — Soft Modern
+ * Chat hero card, rounded toggle sections, soft-red danger zone.
+ * All store actions (leaveGroup / deleteChat / clearHistory) unchanged.
  */
 
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Switch,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useChatStore } from '@/store/chatStore';
+import { ScreenHeader } from '@/components/ui';
 
 // Extracted components to avoid creating them during render
-const SettingSection = ({ title, children, isDark }: { title: string; children: React.ReactNode; isDark: boolean }) => (
-  <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginHorizontal: 16, marginTop: 16 }]}>
-    <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
+const SettingSection = ({ title, index, danger, children }: { title: string; index: number; danger?: boolean; children: React.ReactNode }) => (
+  <MotiView
+    from={{ opacity: 0, translateY: 14 }}
+    animate={{ opacity: 1, translateY: 0 }}
+    transition={{ type: 'timing', duration: 400, delay: index * 80 }}
+    style={[styles.section, danger && styles.sectionDanger]}
+  >
+    <Text style={[styles.sectionTitle, danger && { color: Colors.semantic.error }]}>{title}</Text>
     {children}
-  </View>
+  </MotiView>
 );
 
-const SettingItem = ({ title, subtitle, children, onPress, showArrow = true, isDark }: { title: string; subtitle?: string; children?: React.ReactNode; onPress?: () => void; showArrow?: boolean; isDark: boolean }) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#eee' }]}
+const SettingItem = ({ title, subtitle, icon, onPress, last }: { title: string; subtitle?: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void; last?: boolean }) => (
+  <Pressable
+    style={({ pressed }) => [styles.settingItem, last && styles.settingItemLast, pressed && styles.settingItemPressed]}
     onPress={onPress}
   >
+    {icon ? (
+      <View style={styles.settingIcon}>
+        <Ionicons name={icon} size={17} color={Colors.brand.accent} />
+      </View>
+    ) : null}
     <View style={styles.settingItemLeft}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      {subtitle && <Text style={[styles.settingSubtitle, { color: isDark ? '#888' : '#666' }]}>{subtitle}</Text>}
+      <Text style={styles.settingTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.settingSubtitle}>{subtitle}</Text> : null}
     </View>
-    <View style={styles.settingItemRight}>
-      {children}
-      {showArrow && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />}
-    </View>
-  </TouchableOpacity>
+    <Ionicons name="chevron-forward" size={17} color={Colors.text.muted} />
+  </Pressable>
 );
 
-const SettingToggle = ({ title, subtitle, value, onValueChange, isDark }: { title: string; subtitle?: string; value: boolean; onValueChange: (value: boolean) => void; isDark: boolean }) => (
-  <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#eee' }]}>
+const SettingToggle = ({ title, subtitle, icon, value, onValueChange, last }: { title: string; subtitle?: string; icon?: keyof typeof Ionicons.glyphMap; value: boolean; onValueChange: (value: boolean) => void; last?: boolean }) => (
+  <View style={[styles.settingItem, last && styles.settingItemLast]}>
+    {icon ? (
+      <View style={[styles.settingIcon, value && styles.settingIconOn]}>
+        <Ionicons name={icon} size={17} color={value ? '#FFFFFF' : Colors.brand.accent} />
+      </View>
+    ) : null}
     <View style={styles.settingItemLeft}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      {subtitle && <Text style={[styles.settingSubtitle, { color: isDark ? '#888' : '#666' }]}>{subtitle}</Text>}
+      <Text style={styles.settingTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.settingSubtitle}>{subtitle}</Text> : null}
     </View>
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: '#767577', true: '#8B85FF' }}
-      thumbColor={isDark ? '#fff' : '#f5f5f5'}
+      trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+      thumbColor="#FFFFFF"
     />
   </View>
 );
 
-const DangerItem = ({ title, subtitle, onPress, isDark }: { title: string; subtitle?: string; onPress?: () => void; isDark: boolean }) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#eee' }]}
+const DangerItem = ({ title, subtitle, icon, onPress, last }: { title: string; subtitle?: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void; last?: boolean }) => (
+  <Pressable
+    style={({ pressed }) => [styles.settingItem, last && styles.settingItemLast, pressed && { backgroundColor: Colors.semantic.error + '10', borderRadius: BorderRadius.sm }]}
     onPress={onPress}
   >
-    <View style={styles.settingItemLeft}>
-      <Text style={[styles.settingTitle, { color: '#EF4444' }]}>{title}</Text>
-      {subtitle && <Text style={[styles.settingSubtitle, { color: isDark ? '#888' : '#666' }]}>{subtitle}</Text>}
+    <View style={styles.dangerIcon}>
+      <Ionicons name={icon || 'warning-outline'} size={17} color={Colors.semantic.error} />
     </View>
-    <Ionicons name="chevron-forward-outline" size={20} color="#EF4444" />
-  </TouchableOpacity>
+    <View style={styles.settingItemLeft}>
+      <Text style={[styles.settingTitle, { color: Colors.semantic.error }]}>{title}</Text>
+      {subtitle ? <Text style={styles.settingSubtitle}>{subtitle}</Text> : null}
+    </View>
+    <Ionicons name="chevron-forward" size={17} color={Colors.semantic.error} />
+  </Pressable>
 );
 
 export default function ChatSettingsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  const { currentChat, updateChatSettings, leaveGroup, deleteChat, clearHistory } = useChatStore();
-  
-  const isDark = theme === 'dark';
+  const { currentChat, leaveGroup, deleteChat, clearHistory } = useChatStore();
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [messagePreview, setMessagePreview] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -117,173 +134,79 @@ export default function ChatSettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderBottomColor: isDark ? '#333' : '#eee' }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Chat Settings</Text>
-        <View style={{ width: 44 }} />
-      </View>
-
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Chat Info */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginHorizontal: 16, marginTop: 16 }]}>
-          <View style={styles.chatInfoHeader}>
-            <View style={styles.chatAvatar}>
-              <Text style={styles.chatAvatarText}>{currentChat?.name?.charAt(0) || 'G'}</Text>
-            </View>
-            <View style={styles.chatInfoDetails}>
-              <Text style={[styles.chatName, { color: isDark ? '#fff' : '#000' }]}>{currentChat?.name || 'Group Chat'}</Text>
-              <Text style={[styles.chatMembers, { color: isDark ? '#888' : '#666' }]}>{currentChat?.memberCount || 8} members</Text>
-            </View>
+        <ScreenHeader title="Chat settings" subtitle="Notifications, media and chat controls" onBack={() => router.back()} />
+        {/* Chat hero card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.chatAvatar}>
+            <Text style={styles.chatAvatarText}>{(currentChat?.name?.charAt(0) || 'G').toUpperCase()}</Text>
           </View>
-        </View>
+          <View style={styles.chatInfoDetails}>
+            <Text style={styles.chatName}>{currentChat?.name || 'Group Chat'}</Text>
+            <Text style={styles.chatMembers}>{currentChat?.memberCount || 8} members</Text>
+          </View>
+          <View style={styles.heroBadge}>
+            <Ionicons name="chatbubbles" size={16} color="#FFFFFF" />
+          </View>
+        </MotiView>
 
         {/* Notifications */}
-        <SettingSection title="Notifications" isDark={isDark}>
-          <SettingToggle
-            title="Message Notifications"
-            subtitle="Receive notifications for new messages"
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            isDark={isDark}
-          />
-          <SettingToggle
-            title="Message Preview"
-            subtitle="Show message content in notifications"
-            value={messagePreview}
-            onValueChange={setMessagePreview}
-            isDark={isDark}
-          />
-          <SettingToggle
-            title="Sound"
-            subtitle="Play sound for new messages"
-            value={soundEnabled}
-            onValueChange={setSoundEnabled}
-            isDark={isDark}
-          />
-          <SettingToggle
-            title="Vibration"
-            subtitle="Vibrate on new messages"
-            value={vibrationEnabled}
-            onValueChange={setVibrationEnabled}
-            isDark={isDark}
-          />
+        <SettingSection title="Notifications" index={1}>
+          <SettingToggle title="Message Notifications" subtitle="Alerts for new messages" icon="notifications-outline" value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
+          <SettingToggle title="Message Preview" subtitle="Show content in notifications" icon="eye-outline" value={messagePreview} onValueChange={setMessagePreview} />
+          <SettingToggle title="Sound" subtitle="Play a tone on new messages" icon="volume-high-outline" value={soundEnabled} onValueChange={setSoundEnabled} />
+          <SettingToggle title="Vibration" subtitle="Vibrate on new messages" icon="phone-portrait-outline" value={vibrationEnabled} onValueChange={setVibrationEnabled} last />
         </SettingSection>
 
         {/* Media & Data */}
-        <SettingSection title="Media & Data" isDark={isDark}>
-          <SettingToggle
-            title="Auto-download Media"
-            subtitle="Automatically download photos and videos"
-            value={autoDownloadMedia}
-            onValueChange={setAutoDownloadMedia}
-            isDark={isDark}
-          />
-          <SettingItem
-            title="Data Usage"
-            subtitle="Manage data usage for media downloads"
-            onPress={() => Alert.alert('Data Usage', 'Data usage settings coming soon')}
-            isDark={isDark}
-          />
-          <SettingItem
-            title="Storage Usage"
-            subtitle="View and manage chat storage"
-            onPress={() => Alert.alert('Storage', 'Storage management coming soon')}
-            isDark={isDark}
-          />
+        <SettingSection title="Media & data" index={2}>
+          <SettingToggle title="Auto-download Media" subtitle="Download photos and videos automatically" icon="image-outline" value={autoDownloadMedia} onValueChange={setAutoDownloadMedia} />
+          <SettingItem title="Data Usage" subtitle="Manage data usage for media" icon="cellular-outline" onPress={() => Alert.alert('Data Usage', 'Data usage settings coming soon')} />
+          <SettingItem title="Storage Usage" subtitle="View and manage chat storage" icon="folder-outline" onPress={() => Alert.alert('Storage', 'Storage management coming soon')} last />
         </SettingSection>
 
         {/* Privacy */}
-        <SettingSection title="Privacy" isDark={isDark}>
-          <SettingToggle
-            title="Disappearing Messages"
-            subtitle="Messages disappear after set duration"
-            value={disappearingMessages}
-            onValueChange={setDisappearingMessages}
-            isDark={isDark}
-          />
+        <SettingSection title="Privacy" index={3}>
+          <SettingToggle title="Disappearing Messages" subtitle="Messages vanish after a set duration" icon="timer-outline" value={disappearingMessages} onValueChange={setDisappearingMessages} />
           {disappearingMessages && (
             <SettingItem
               title="Message Timer"
               subtitle={`Messages disappear after ${disappearingDuration}`}
+              icon="hourglass-outline"
               onPress={() => Alert.alert('Message Timer', 'Select duration', [
                 { text: '24 Hours', onPress: () => setDisappearingDuration('24h') },
                 { text: '7 Days', onPress: () => setDisappearingDuration('7d') },
                 { text: '90 Days', onPress: () => setDisappearingDuration('90d') },
                 { text: 'Cancel', style: 'cancel' },
               ])}
-              isDark={isDark}
             />
           )}
-          <SettingItem
-            title="Block User"
-            subtitle="Block messages from specific users"
-            onPress={() => Alert.alert('Block User', 'Block user feature coming soon')}
-            isDark={isDark}
-          />
-          <SettingItem
-            title="Report Chat"
-            subtitle="Report inappropriate content"
-            onPress={() => Alert.alert('Report Chat', 'Report feature coming soon')}
-            isDark={isDark}
-          />
+          <SettingItem title="Report Chat" subtitle="Report inappropriate content" icon="flag-outline" onPress={() => Alert.alert('Report Chat', 'Report feature coming soon')} last />
         </SettingSection>
 
         {/* Group Settings (if group chat) */}
-        {currentChat?.isGroup && (
-          <SettingSection title="Group Settings" isDark={isDark}>
-            <SettingItem
-              title="Group Info"
-              subtitle="View and edit group details"
-              onPress={() => Alert.alert('Group Info', 'Group info editing coming soon')}
-              isDark={isDark}
-            />
-            <SettingItem
-              title="Group Members"
-              subtitle="Manage group members"
-              onPress={() => Alert.alert('Members', 'Member management coming soon')}
-              isDark={isDark}
-            />
-            <SettingItem
-              title="Group Permissions"
-              subtitle="Control who can send messages, edit info, etc."
-              onPress={() => Alert.alert('Permissions', 'Permission settings coming soon')}
-              isDark={isDark}
-            />
-            <SettingItem
-              title="Invite Links"
-              subtitle="Manage group invite links"
-              onPress={() => Alert.alert('Invite Links', 'Invite link management coming soon')}
-              isDark={isDark}
-            />
+        {currentChat?.isGroup ? (
+          <SettingSection title="Group settings" index={4}>
+            <SettingItem title="Group Info" subtitle="View and edit group details" icon="information-circle-outline" onPress={() => Alert.alert('Group Info', 'Group info editing coming soon')} />
+            <SettingItem title="Group Members" subtitle="Manage group members" icon="people-outline" onPress={() => Alert.alert('Members', 'Member management coming soon')} />
+            <SettingItem title="Group Permissions" subtitle="Control who can send messages, edit info" icon="key-outline" onPress={() => Alert.alert('Permissions', 'Permission settings coming soon')} />
+            <SettingItem title="Invite Links" subtitle="Manage group invite links" icon="link-outline" onPress={() => Alert.alert('Invite Links', 'Invite link management coming soon')} last />
           </SettingSection>
-        )}
+        ) : null}
 
         {/* Danger Zone */}
-        <SettingSection title="Danger Zone" isDark={isDark}>
-          <DangerItem
-            title="Clear Chat History"
-            subtitle="Remove all messages from this chat"
-            onPress={handleClearHistory}
-            isDark={isDark}
-          />
+        <SettingSection title="Danger zone" index={5} danger>
+          <DangerItem title="Clear Chat History" subtitle="Remove all messages from this chat" icon="trash-outline" onPress={handleClearHistory} />
           {currentChat?.isGroup ? (
-            <DangerItem
-              title="Leave Group"
-              subtitle="You will no longer receive messages from this group"
-              onPress={handleLeaveGroup}
-              isDark={isDark}
-            />
+            <DangerItem title="Leave Group" subtitle="You will no longer receive messages" icon="exit-outline" onPress={handleLeaveGroup} last />
           ) : (
-            <DangerItem
-              title="Delete Chat"
-              subtitle="Delete this conversation. Remove chat from your chats list"
-              onPress={handleDeleteChat}
-              isDark={isDark}
-            />
+            <DangerItem title="Delete Chat" subtitle="Delete this conversation from your chats" icon="trash-bin-outline" onPress={handleDeleteChat} last />
           )}
         </SettingSection>
 
@@ -294,21 +217,55 @@ export default function ChatSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 13, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  chatInfoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  chatAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center' },
-  chatAvatarText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.lg,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.button,
+  },
+  chatAvatar: {
+    width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.14)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  chatAvatarText: { fontSize: 21, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
   chatInfoDetails: { flex: 1 },
-  chatName: { fontSize: 17, fontFamily: 'Inter_600SemiBold' },
-  chatMembers: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  settingItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
+  chatName: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+  chatMembers: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  heroBadge: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[2],
+    marginBottom: Spacing[4], ...Shadows.card,
+  },
+  sectionDanger: { backgroundColor: Colors.semantic.errorSoft, borderColor: Colors.semantic.error + '2E' },
+  sectionTitle: {
+    fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed,
+    textTransform: 'uppercase', letterSpacing: 1, marginBottom: Spacing[2],
+  },
+
+  settingItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  settingItemLast: { borderBottomWidth: 0 },
+  settingItemPressed: { backgroundColor: Colors.surface.creamSoft, borderRadius: BorderRadius.sm },
+  settingIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  settingIconOn: { backgroundColor: Colors.brand.accent },
+  dangerIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+  },
   settingItemLeft: { flex: 1 },
-  settingItemRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_500Medium' },
-  settingSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  settingTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  settingSubtitle: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
 });

@@ -16,18 +16,19 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
 export default function GroupChatScreen() {
   const router = useRouter();
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-  const { theme } = useUIStore();
   const { messages: messagesMap, sendMessage, fetchMessages, isLoading } = useChatStore();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const messages = (chatId && messagesMap[chatId]) || [];
-  
-  const isDark = theme === 'dark';
+
   const [messageText, setMessageText] = useState('');
   const [showAttachments, setShowAttachments] = useState(false);
   const messagesEndRef = useRef<ScrollView>(null);
@@ -75,51 +76,53 @@ export default function GroupChatScreen() {
   };
 
   const renderMessage = (message: any, index: number) => {
-    const isOwn = message.senderId === 'current-user';
+    const isOwn = !!currentUserId && message.senderId === currentUserId;
     const showDate = index === 0 || formatDate(new Date(messages[index - 1]?.createdAt || message.createdAt)) !== formatDate(new Date(message.createdAt));
-    
+
     return (
       <View key={message.id} style={styles.messageContainer}>
-        {showDate && (
+        {showDate ? (
           <View style={styles.dateSeparator}>
-            <Text style={[styles.dateText, { color: isDark ? '#888' : '#999' }]}>{formatDate(message.createdAt)}</Text>
+            <View style={styles.datePill}>
+              <Text style={styles.dateText}>{formatDate(message.createdAt)}</Text>
+            </View>
           </View>
-        )}
-        
+        ) : null}
+
         <View style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
-          {!isOwn && (
+          {!isOwn ? (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{message.senderName?.charAt(0) || 'U'}</Text>
             </View>
-          )}
-          
-          <View style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther, { backgroundColor: isOwn ? '#8B85FF' : (isDark ? '#2a2a2a' : '#fff') }]}>
-            {!isOwn && (
-              <Text style={[styles.senderName, { color: '#8B85FF' }]}>{message.senderName}</Text>
-            )}
-            <Text style={[styles.messageText, { color: isOwn ? '#fff' : (isDark ? '#fff' : '#000') }]}>{message.content}</Text>
-            <Text style={[styles.messageTime, { color: isOwn ? 'rgba(255,255,255,0.6)' : (isDark ? '#666' : '#999') }]}>{formatTime(message.createdAt)}</Text>
+          ) : null}
+
+          <View style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther]}>
+            {!isOwn ? (
+              <Text style={styles.senderName}>{message.senderName}</Text>
+            ) : null}
+            <Text style={[styles.messageText, { color: isOwn ? '#fff' : Colors.text.primary }]}>{message.content}</Text>
+            <Text style={[styles.messageTime, { color: isOwn ? '#FFFFFFA6' : Colors.text.muted }]}>{formatTime(message.createdAt)}</Text>
           </View>
-          
-          {isOwn && <View style={styles.avatarSpacer} />}
+
+          {isOwn ? <View style={styles.avatarSpacer} /> : null}
         </View>
       </View>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderBottomColor: isDark ? '#333' : '#eee' }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
+    <View style={styles.container}>
+      {/* In-page header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerCircleBtn} hitSlop={8}>
+          <Ionicons name="arrow-back" size={19} color={Colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Task Group Chat</Text>
-          <Text style={[styles.headerSubtitle, { color: isDark ? '#888' : '#666' }]}>8 members • Active now</Text>
+          <Text style={styles.headerTitle}>Task group chat</Text>
+          <Text style={styles.headerSubtitle}>8 members • Active now</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push({ pathname: `/(screens)/chat-settings`, params: { chatId } })}>
-          <Ionicons name="people-outline" size={28} color={isDark ? '#fff' : '#000'} />
+        <TouchableOpacity onPress={() => router.push({ pathname: `/(screens)/chat-settings`, params: { chatId } })} style={styles.headerCircleBtn} hitSlop={8} accessibilityLabel="Group settings">
+          <Ionicons name="people" size={17} color={Colors.brand.accent} />
         </TouchableOpacity>
       </View>
 
@@ -133,13 +136,15 @@ export default function GroupChatScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: isDark ? '#888' : '#666' }]}>Loading messages...</Text>
+            <Text style={styles.loadingText}>Loading messages...</Text>
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-ellipses-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyTitle, { color: isDark ? '#888' : '#666' }, { marginTop: 12 }]}>No messages yet</Text>
-            <Text style={[styles.emptyDesc, { color: isDark ? '#666' : '#999' }, { marginTop: 4 }]}>Start the conversation!</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="chatbubble-ellipses" size={30} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptyDesc}>Start the conversation!</Text>
           </View>
         ) : (
           messages.map((message, index) => renderMessage(message, index))
@@ -147,36 +152,30 @@ export default function GroupChatScreen() {
       </ScrollView>
 
       {/* Attachment Options */}
-      {showAttachments && (
-        <View style={[styles.attachmentOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)' }]}>
-          <View style={[styles.attachmentMenu, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-            <TouchableOpacity onPress={() => handleAttachmentPress('Photo')} style={styles.attachmentOption}>
-              <View style={[styles.attachmentIcon, { backgroundColor: '#8B85FF15' }]}>
-                <Ionicons name="image-outline" size={24} color="#8B85FF" />
-              </View>
-              <Text style={[styles.attachmentLabel, { color: isDark ? '#fff' : '#000' }]}>Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleAttachmentPress('Camera')} style={styles.attachmentOption}>
-              <View style={[styles.attachmentIcon, { backgroundColor: '#10B98115' }]}>
-                <Ionicons name="camera-outline" size={24} color="#10B981" />
-              </View>
-              <Text style={[styles.attachmentLabel, { color: isDark ? '#fff' : '#000' }]}>Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleAttachmentPress('File')} style={styles.attachmentOption}>
-              <View style={[styles.attachmentIcon, { backgroundColor: '#F59E0B15' }]}>
-                <Ionicons name="document-outline" size={24} color="#F59E0B" />
-              </View>
-              <Text style={[styles.attachmentLabel, { color: isDark ? '#fff' : '#000' }]}>File</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleAttachmentPress('Location')} style={styles.attachmentOption}>
-              <View style={[styles.attachmentIcon, { backgroundColor: '#EF444415' }]}>
-                <Ionicons name="location-outline" size={24} color="#EF4444" />
-              </View>
-              <Text style={[styles.attachmentLabel, { color: isDark ? '#fff' : '#000' }]}>Location</Text>
-            </TouchableOpacity>
-          </View>
+      {showAttachments ? (
+        <View style={styles.attachmentOverlay}>
+          <MotiView
+            from={{ translateY: 80, opacity: 0 }}
+            animate={{ translateY: 0, opacity: 1 }}
+            transition={{ type: 'timing', duration: 280 }}
+            style={styles.attachmentMenu}
+          >
+            {[
+              { type: 'Photo', icon: 'image' as const, color: Colors.brand.accent, bg: Colors.brand.accentSoft },
+              { type: 'Camera', icon: 'camera' as const, color: Colors.semantic.success, bg: Colors.semantic.successSoft },
+              { type: 'File', icon: 'document' as const, color: Colors.semantic.warning, bg: Colors.semantic.warningSoft },
+              { type: 'Location', icon: 'location' as const, color: Colors.semantic.error, bg: Colors.semantic.errorSoft },
+            ].map((opt) => (
+              <TouchableOpacity key={opt.type} onPress={() => handleAttachmentPress(opt.type)} style={styles.attachmentOption}>
+                <View style={[styles.attachmentIcon, { backgroundColor: opt.bg }]}>
+                  <Ionicons name={opt.icon} size={22} color={opt.color} />
+                </View>
+                <Text style={styles.attachmentLabel}>{opt.type}</Text>
+              </TouchableOpacity>
+            ))}
+          </MotiView>
         </View>
-      )}
+      ) : null}
 
       {/* Input Area */}
       <KeyboardAvoidingView
@@ -184,25 +183,30 @@ export default function GroupChatScreen() {
         style={styles.inputContainer}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#2a2a2a' : '#fff', borderTopColor: isDark ? '#333' : '#eee' }]}>
-          <TouchableOpacity onPress={() => setShowAttachments(!showAttachments)} style={styles.inputAction}>
-            <Ionicons name={showAttachments ? 'close-outline' : 'add-outline'} size={24} color={isDark ? '#888' : '#666'} />
+        <View style={styles.inputWrapper}>
+          <TouchableOpacity onPress={() => setShowAttachments(!showAttachments)} style={[styles.inputActionBtn, showAttachments && styles.inputActionBtnActive]} accessibilityLabel="Attachments">
+            <Ionicons name={showAttachments ? 'close' : 'add'} size={20} color={showAttachments ? '#FFFFFF' : Colors.brand.accent} />
           </TouchableOpacity>
-          
+
           <TextInput
             ref={inputRef}
-            style={[styles.textInput, { color: isDark ? '#fff' : '#000' }]}
+            style={styles.textInput}
             placeholder="Message..."
-            placeholderTextColor={isDark ? '#666' : '#999'}
+            placeholderTextColor={Colors.text.muted}
             value={messageText}
             onChangeText={setMessageText}
             multiline
             maxLength={1000}
             onSubmitEditing={handleSendMessage}
           />
-          
-          <TouchableOpacity onPress={handleSendMessage} disabled={!messageText.trim()} style={styles.sendButton}>
-            <Ionicons name="send-outline" size={24} color={messageText.trim() ? '#8B85FF' : (isDark ? '#555' : '#ccc')} />
+
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            disabled={!messageText.trim()}
+            style={[styles.sendButton, messageText.trim() ? styles.sendButtonActive : null]}
+            accessibilityLabel="Send message"
+          >
+            <Ionicons name="send" size={17} color={messageText.trim() ? '#FFFFFF' : Colors.text.muted} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -211,40 +215,81 @@ export default function GroupChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  headerInfo: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  headerSubtitle: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[3],
+    backgroundColor: Colors.surface.primary,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  headerCircleBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.cardPressed,
+  },
+  headerInfo: { flex: 1 },
+  headerTitle: { fontSize: 16, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  headerSubtitle: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
   messagesContainer: { flex: 1 },
-  messagesContent: { padding: 16, paddingBottom: 20 },
+  messagesContent: { paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[5], flexGrow: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  dateSeparator: { alignItems: 'center', marginVertical: 16 },
-  dateText: { fontSize: 12, fontFamily: 'Inter_500Medium', backgroundColor: 'rgba(0,0,0,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  messageContainer: { marginBottom: 8 },
-  messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  loadingText: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  emptyIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  emptyTitle: { fontSize: 16, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptyDesc: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 4 },
+  dateSeparator: { alignItems: 'center', marginVertical: Spacing[4] },
+  datePill: {
+    backgroundColor: Colors.surface.tertiary, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], paddingVertical: 5,
+  },
+  dateText: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  messageContainer: { marginBottom: Spacing[2] },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing[2] },
   messageRowOwn: { flexDirection: 'row-reverse' },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  avatarText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
-  avatarSpacer: { width: 32, flexShrink: 0 },
-  messageBubble: { maxWidth: '75%', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
-  messageBubbleOwn: { borderBottomRightRadius: 4 },
-  messageBubbleOther: { borderBottomLeftRadius: 4 },
-  senderName: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
-  messageText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 22 },
-  messageTime: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4, textAlign: 'right' },
-  attachmentOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, justifyContent: 'flex-end' },
-  attachmentMenu: { flexDirection: 'row', padding: 16, gap: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: '#eee' },
-  attachmentOption: { alignItems: 'center', gap: 6, flex: 1 },
+  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.brand.primary, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  avatarText: { fontSize: 12, fontFamily: Typography.fontFamily.bold, color: '#fff' },
+  avatarSpacer: { width: 30, flexShrink: 0 },
+  messageBubble: { maxWidth: '75%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20 },
+  messageBubbleOwn: { borderBottomRightRadius: 6, backgroundColor: Colors.brand.primary, ...Shadows.button },
+  messageBubbleOther: {
+    borderBottomLeftRadius: 6, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.cardPressed,
+  },
+  senderName: { fontSize: 11.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed, marginBottom: 3 },
+  messageText: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, lineHeight: 21 },
+  messageTime: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, marginTop: 4, textAlign: 'right' },
+  attachmentOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(30,18,9,0.35)' },
+  attachmentMenu: {
+    flexDirection: 'row', paddingVertical: Spacing[5], paddingHorizontal: Spacing[5], gap: Spacing[3],
+    borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl,
+    backgroundColor: Colors.surface.elevated, borderTopWidth: 1, borderTopColor: Colors.border.light,
+    ...Shadows.floating,
+  },
+  attachmentOption: { alignItems: 'center', gap: 7, flex: 1 },
   attachmentIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-  attachmentLabel: { fontSize: 12, fontFamily: 'Inter_500Medium' },
+  attachmentLabel: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
   inputContainer: { paddingBottom: Platform.OS === 'ios' ? 0 : 10 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, gap: 8, borderTopWidth: 1 },
-  inputAction: { padding: 8 },
-  textInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#f0f0f0', borderRadius: 24, maxHeight: 120, minHeight: 48 },
-  sendButton: { padding: 8, marginLeft: 4 },
+  inputWrapper: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: Spacing[2],
+    paddingHorizontal: Spacing[3], paddingVertical: Spacing[3],
+    backgroundColor: Colors.surface.primary, borderTopWidth: 1, borderTopColor: Colors.border.light,
+  },
+  inputActionBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  inputActionBtnActive: { backgroundColor: Colors.semantic.error },
+  textInput: {
+    flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary,
+    paddingHorizontal: Spacing[4], paddingVertical: 10,
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+    maxHeight: 120, minHeight: 46,
+  },
+  sendButton: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface.tertiary },
+  sendButtonActive: { backgroundColor: Colors.brand.accent, ...Shadows.buttonOrange },
 });

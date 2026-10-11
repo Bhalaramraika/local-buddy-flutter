@@ -1,11 +1,16 @@
 /**
- * Tasks Screen - Browse and manage tasks
+ * Tasks Screen — Soft Modern
+ * Cream canvas, pill search bar, cocoa segmented tabs,
+ * white soft-shadowed task cards, orange FAB with Moti pop.
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, TextInput, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, TextInput, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -21,7 +26,6 @@ export default function TasksScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'nearby' | 'my' | 'applied'>('nearby');
 
-  // System-aware: 'system' follows the OS scheme so text/background always contrast
   const isDark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark');
   const nearbyTasks = storedNearbyTasks ?? [];
   const myTasks = storedMyTasks ?? [];
@@ -51,16 +55,16 @@ export default function TasksScreen() {
         taskList = assignedTasks;
         break;
     }
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      taskList = taskList.filter(task => 
+      taskList = taskList.filter(task =>
         task.title.toLowerCase().includes(query) ||
         task.description.toLowerCase().includes(query) ||
         task.category.toLowerCase().includes(query)
       );
     }
-    
+
     return taskList;
   };
 
@@ -70,104 +74,129 @@ export default function TasksScreen() {
     { id: 'applied', label: 'Applied', count: assignedTasks?.length ?? 0 },
   ];
 
-  const renderTask = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[styles.taskCard, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
-      onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: item.id } })}
+  const renderTask = ({ item, index }: { item: any; index: number }) => (
+    <MotiView
+      from={{ opacity: 0, translateY: 18 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 380, delay: Math.min(index, 6) * 60 }}
     >
-      <View style={styles.taskHeader}>
-        <View style={[styles.taskCategory, { backgroundColor: `${item.categoryColor}20` }]}>
-          <Text style={[styles.taskCategoryText, { color: item.categoryColor }]}>{item.category}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.taskCard, pressed && { transform: [{ scale: 0.985 }] }]}
+        onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: item.id } })}
+      >
+        <View style={styles.taskHeader}>
+          <View style={styles.taskCategory}>
+            <Text style={styles.taskCategoryText}>{item.category}</Text>
+          </View>
+          <View style={styles.taskStatus}>
+            <View style={[styles.statusDot, { backgroundColor: item.statusColor || Colors.semantic.success }]} />
+            <Text style={[styles.taskStatusText, { color: item.statusColor || Colors.semantic.success }]}>{item.status}</Text>
+          </View>
         </View>
-        <View style={styles.taskStatus}>
-          <View style={[styles.statusDot, { backgroundColor: item.statusColor }]} />
-          <Text style={[styles.taskStatusText, { color: item.statusColor }]}>{item.status}</Text>
+        <Text style={styles.taskTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.taskDescription} numberOfLines={2}>{item.description}</Text>
+        <View style={styles.taskMeta}>
+          <View style={styles.taskMetaItem}>
+            <Ionicons name="location-outline" size={14} color={Colors.text.muted} />
+            <Text style={styles.taskMetaText}>{formatDistance(item.distance)}</Text>
+          </View>
+          <View style={styles.taskMetaItem}>
+            <Ionicons name="cash-outline" size={14} color={Colors.semantic.success} />
+            <Text style={[styles.taskMetaText, { color: Colors.semantic.success, fontFamily: Typography.fontFamily.semiBold }]}>{formatCurrency(item.budget?.amount ?? 0)}</Text>
+          </View>
+          <View style={styles.taskMetaItem}>
+            <Ionicons name="time-outline" size={14} color={Colors.text.muted} />
+            <Text style={styles.taskMetaText}>{item.duration}</Text>
+          </View>
+          <View style={styles.taskMetaItem}>
+            <Ionicons name="person-outline" size={14} color={Colors.text.muted} />
+            <Text style={styles.taskMetaText}>{item.applicantsCount}/{item.maxApplicants}</Text>
+          </View>
         </View>
-      </View>
-      <Text style={[styles.taskTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={2}>{item.title}</Text>
-      <Text style={[styles.taskDescription, { color: isDark ? '#aaa' : '#666' }]} numberOfLines={2}>{item.description}</Text>
-      <View style={styles.taskMeta}>
-        <View style={styles.taskMetaItem}>
-          <Ionicons name="location-outline" size={14} color={isDark ? '#888' : '#666'} />
-          <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{formatDistance(item.distance)}</Text>
+        <View style={styles.taskFooter}>
+          <Text style={styles.taskPosted}>Posted {formatRelativeTime(item.createdAt)}</Text>
+          {activeTab === 'nearby' && (
+            <Pressable style={styles.applyButton} onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: item.id } })}>
+              <Text style={styles.applyButtonText}>Apply</Text>
+              <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+            </Pressable>
+          )}
         </View>
-        <View style={styles.taskMetaItem}>
-          <Ionicons name="cash-outline" size={14} color="#10B981" />
-          <Text style={[styles.taskMetaText, { color: '#10B981' }]}>{formatCurrency(item.budget?.amount ?? 0)}</Text>
-        </View>
-        <View style={styles.taskMetaItem}>
-          <Ionicons name="time-outline" size={14} color={isDark ? '#888' : '#666'} />
-          <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{item.duration}</Text>
-        </View>
-        <View style={styles.taskMetaItem}>
-          <Ionicons name="person-outline" size={14} color={isDark ? '#888' : '#666'} />
-          <Text style={[styles.taskMetaText, { color: isDark ? '#888' : '#666' }]}>{item.applicantsCount}/{item.maxApplicants}</Text>
-        </View>
-      </View>
-      <View style={styles.taskFooter}>
-        <Text style={[styles.taskPosted, { color: isDark ? '#888' : '#666' }]}>Posted {formatRelativeTime(item.createdAt)}</Text>
-        {activeTab === 'nearby' && (
-          <TouchableOpacity style={styles.applyButton}>
-            <Text style={styles.applyButtonText}>Apply</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+    </MotiView>
   );
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={styles.authPrompt}>
-          <MaterialCommunityIcons name="clipboard-outline" size={80} color={isDark ? '#666' : '#ccc'} />
-          <Text style={[styles.authTitle, { color: isDark ? '#fff' : '#000' }]}>Find Local Tasks</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? '#888' : '#666' }]}>Sign in to browse and apply for tasks near you</Text>
-        </View>
+      <View style={styles.container}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 450 }}
+          style={styles.authPrompt}
+        >
+          <View style={styles.authIconWrap}>
+            <Ionicons name="clipboard" size={40} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.authTitle}>Find Local Tasks</Text>
+          <Text style={styles.authSubtitle}>Sign in to browse and apply for tasks near you</Text>
+          <SoftButton label="Sign in" variant="accent" fullWidth={false} icon="arrow-forward" onPress={() => router.push('/login')} style={{ paddingHorizontal: Spacing[8], marginTop: Spacing[5] }} withGlow />
+        </MotiView>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerWrap}>
+        <Text style={styles.pageTitle}>Tasks</Text>
+        <Text style={styles.pageSubtitle}>Browse, post and track work around you</Text>
+      </View>
+
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={[styles.searchBar, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-          <Ionicons name="search-outline" size={20} color={isDark ? '#888' : '#666'} style={styles.searchIcon} />
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search tasks..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={isDark ? '#888' : '#999'}
+            placeholderTextColor={Colors.text.muted}
           />
-          {searchQuery && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-outline" size={20} color={isDark ? '#888' : '#666'} />
-            </TouchableOpacity>
-          )}
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={Colors.text.muted} />
+            </Pressable>
+          ) : null}
         </View>
-        <TouchableOpacity style={styles.filterButton} onPress={() => router.push('/(screens)/task-filters')}>
-          <Ionicons name="funnel-outline" size={22} color="#8B85FF" />
-        </TouchableOpacity>
+        <Pressable style={styles.filterButton} onPress={() => router.push('/(screens)/task-filters')}>
+          <Ionicons name="options-outline" size={20} color="#FFFFFF" />
+        </Pressable>
       </View>
 
-      {/* Tab Bar */}
-      <View style={[styles.tabBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]}
-            onPress={() => setActiveTab(tab.id as any)}
-          >
-            <Text style={[styles.tabLabel, { color: activeTab === tab.id ? '#8B85FF' : isDark ? '#888' : '#666' }]}>{tab.label}</Text>
-            {tab.count > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: activeTab === tab.id ? '#8B85FF' : '#eee' }]}>
-                <Text style={[styles.tabBadgeText, { color: activeTab === tab.id ? '#fff' : '#8B85FF' }]}>{tab.count > 99 ? '99+' : tab.count}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-        <View style={[styles.tabIndicator, { backgroundColor: '#8B85FF' }, { transform: [{ translateX: activeTab === 'nearby' ? 0 : activeTab === 'my' ? 100 : 200 }] }]} />
+      {/* Segmented Tabs */}
+      <View style={styles.segWrap}>
+        {tabs.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              style={[styles.segButton, active && styles.segButtonActive]}
+              onPress={() => setActiveTab(tab.id as any)}
+            >
+              <Text style={[styles.segLabel, active && styles.segLabelActive]}>{tab.label}</Text>
+              {tab.count > 0 && (
+                <View style={[styles.segBadge, active ? styles.segBadgeActive : styles.segBadgeIdle]}>
+                  <Text style={[styles.segBadgeText, active ? styles.segBadgeTextActive : styles.segBadgeTextIdle]}>
+                    {tab.count > 99 ? '99+' : tab.count}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Task List */}
@@ -176,74 +205,135 @@ export default function TasksScreen() {
         renderItem={renderTask}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B85FF']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
         ListEmptyComponent={
-          <View style={[styles.emptyState, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-            <MaterialCommunityIcons name="clipboard-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#000' }]}>No tasks found</Text>
-            <Text style={[styles.emptySubtext, { color: isDark ? '#888' : '#666' }]}>
-              {activeTab === 'nearby' ? 'No tasks nearby. Try adjusting your filters.' : 
-               activeTab === 'my' ? 'You haven\'t posted any tasks yet.' : 
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.emptyState}
+          >
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="clipboard-outline" size={36} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyText}>No tasks found</Text>
+            <Text style={styles.emptySubtext}>
+              {activeTab === 'nearby' ? 'No tasks nearby. Try adjusting your filters.' :
+               activeTab === 'my' ? 'You haven\'t posted any tasks yet.' :
                'You haven\'t applied to any tasks yet.'}
             </Text>
             {activeTab === 'my' && (
-              <TouchableOpacity style={styles.createTaskButton} onPress={() => router.push('/(screens)/create-task')}>
-                <Ionicons name="add" size={20} color="#fff" />
-                <Text style={styles.createTaskButtonText}>Create Task</Text>
-              </TouchableOpacity>
+              <SoftButton label="Create Task" variant="accent" icon="add" fullWidth={false} onPress={() => router.push('/(screens)/create-task')} style={{ paddingHorizontal: Spacing[7], marginTop: Spacing[5] }} withGlow />
             )}
-          </View>
+          </MotiView>
         }
       />
-      
+
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/(screens)/create-task')}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      <MotiView
+        from={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', damping: 14, stiffness: 220, delay: 300 }}
+        style={styles.fabWrap}
+      >
+        <Pressable style={styles.fab} onPress={() => router.push('/(screens)/create-task')} accessibilityLabel="Create task">
+          <Ionicons name="add" size={30} color="#FFFFFF" />
+        </Pressable>
+      </MotiView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, gap: 8 },
-  searchIcon: { marginRight: 4 },
-  searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  filterButton: { padding: 8, marginLeft: 8 },
-  tabBar: { flexDirection: 'row', position: 'relative', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  tabButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
-  tabButtonActive: {},
-  tabLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  tabBadge: { minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
-  tabBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-  tabIndicator: { position: 'absolute', bottom: 0, height: 3, width: 80, borderRadius: 3 },
-  listContent: { padding: 16, paddingBottom: 100 },
-  taskCard: { marginBottom: 16, padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#eee', shadowColor: '#B0A8FF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 2 },
-  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  taskCategory: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  taskCategoryText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textTransform: 'uppercase' },
-  taskStatus: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+
+  headerWrap: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[4] },
+  pageTitle: { fontFamily: Typography.fontFamily.display, fontSize: 30, lineHeight: 38, color: Colors.text.primary },
+  pageSubtitle: { fontFamily: Typography.fontFamily.body, fontSize: 13, color: Colors.text.secondary, marginTop: 3 },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing[5], gap: Spacing[3] },
+  searchBar: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[4], height: 52, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  searchIcon: { marginRight: Spacing[2] },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: Typography.fontFamily.body, color: Colors.text.primary },
+  filterButton: {
+    width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.brand.primary,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.button,
+  },
+
+  segWrap: {
+    flexDirection: 'row', marginHorizontal: Spacing[5], marginTop: Spacing[4],
+    backgroundColor: Colors.surface.tertiary, borderRadius: BorderRadius.pill, padding: 5,
+  },
+  segButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: Spacing[2] + 2, borderRadius: BorderRadius.pill,
+  },
+  segButtonActive: { backgroundColor: Colors.brand.primary, ...Shadows.button },
+  segLabel: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+  segLabelActive: { color: '#FFFFFF' },
+  segBadge: { minWidth: 19, height: 19, borderRadius: 10, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5 },
+  segBadgeActive: { backgroundColor: Colors.brand.accent },
+  segBadgeIdle: { backgroundColor: Colors.surface.elevated },
+  segBadgeText: { fontSize: 10, fontFamily: Typography.fontFamily.bold },
+  segBadgeTextActive: { color: '#FFFFFF' },
+  segBadgeTextIdle: { color: Colors.brand.accent },
+
+  listContent: { padding: Spacing[5], paddingBottom: 120 },
+  taskCard: {
+    marginBottom: Spacing[4], padding: Spacing[5],
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing[2] },
+  taskCategory: { paddingHorizontal: Spacing[3], paddingVertical: 5, borderRadius: BorderRadius.pill, backgroundColor: Colors.brand.accentSoft },
+  taskCategoryText: { fontSize: 11, fontFamily: Typography.fontFamily.semiBold, textTransform: 'uppercase', letterSpacing: 0.6, color: Colors.brand.accentPressed },
+  taskStatus: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  taskStatusText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  taskTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
-  taskDescription: { fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12, lineHeight: 18 },
-  taskMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 12 },
+  taskStatusText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, textTransform: 'capitalize' },
+  taskTitle: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: 4, lineHeight: 23 },
+  taskDescription: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginBottom: Spacing[3], lineHeight: 19 },
+  taskMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[4], marginBottom: Spacing[3] },
   taskMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  taskMetaText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  taskFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#eee' },
-  taskPosted: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  applyButton: { backgroundColor: '#8B85FF', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8 },
-  applyButtonText: { color: '#fff', fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, marginTop: 40 },
-  emptyText: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16 },
-  emptySubtext: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
-  createTaskButton: { marginTop: 20, backgroundColor: '#8B85FF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
-  createTaskButtonText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', shadowColor: '#8B85FF', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 6 },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  authTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', marginTop: 16, textAlign: 'center' },
-  authSubtitle: { fontSize: 15, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
+  taskMetaText: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  taskFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: Spacing[3], borderTopWidth: 1, borderTopColor: Colors.border.light,
+  },
+  taskPosted: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  applyButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.brand.accent, paddingVertical: 8, paddingHorizontal: Spacing[5],
+    borderRadius: BorderRadius.pill, ...Shadows.buttonOrange,
+  },
+  applyButtonText: { color: '#FFFFFF', fontSize: 13, fontFamily: Typography.fontFamily.semiBold },
+
+  emptyState: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8], marginTop: Spacing[12] },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  emptyText: { fontSize: 17, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptySubtext: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center', lineHeight: 20 },
+
+  fabWrap: { position: 'absolute', bottom: 110, right: Spacing[5] },
+  fab: {
+    width: 60, height: 60, borderRadius: 30, backgroundColor: Colors.brand.accent,
+    justifyContent: 'center', alignItems: 'center', ...Shadows.buttonOrange,
+  },
+
+  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  authIconWrap: {
+    width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', ...Shadows.card,
+  },
+  authTitle: { fontSize: 27, fontFamily: Typography.fontFamily.display, marginTop: Spacing[5], textAlign: 'center', color: Colors.text.primary },
+  authSubtitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center', lineHeight: 21 },
 });

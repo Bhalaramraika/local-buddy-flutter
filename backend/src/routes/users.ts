@@ -128,6 +128,44 @@ router.put(
 );
 
 /**
+ * DELETE /api/v1/users/me/account
+ * Permanently delete the current user's account: soft-delete + PII stripped
+ * in Firestore, then the Firebase Auth identity is revoked & removed so no
+ * new session can be created. Related data (tasks, transactions) is kept for
+ * audit; requireAuth blocks any token for a deleted account.
+ */
+router.delete('/me/account', requireAuth, async (req: Request, res: Response) => {
+  const uid = req.user!.uid;
+  const userRef = collections.users.doc(uid);
+
+  await userRef.update({
+    status: 'deleted',
+    isActive: false,
+    name: 'Deleted User',
+    email: `deleted_${uid}@deleted.local`,
+    avatar: FieldValue.delete(),
+    phone: FieldValue.delete(),
+    bio: FieldValue.delete(),
+    coordinates: FieldValue.delete(),
+    currentLocation: FieldValue.delete(),
+    fcmTokens: [],
+    deletedAt: timestamp(),
+    updatedAt: timestamp(),
+  });
+
+  // Kill every session and remove the Auth identity (best-effort: the
+  // Firestore block above already locks the account even if Auth fails).
+  try {
+    await getAuth().revokeRefreshTokens(uid);
+    await getAuth().deleteUser(uid);
+  } catch (err) {
+    console.error('[Users] Firebase Auth cleanup failed for deleted account:', err);
+  }
+
+  res.json({ success: true, message: 'Account permanently deleted' });
+});
+
+/**
  * PUT /api/v1/users/me/location
  * Update current user's location
  */

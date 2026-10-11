@@ -1,13 +1,16 @@
 /**
- * OTP Verification Screen — Soft Premium ◆ animated boxes
+ * OTP Verification Screen — Soft Modern
+ * Cream canvas, Playfair headline, white OTP card with
+ * orange-focused rounded digit boxes, Moti entrances.
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Text, View, StyleSheet, TextInput, Pressable, Animated } from 'react-native';
+import { Text, View, StyleSheet, TextInput, Pressable, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, Typography, Animation } from '@/constants/design';
-import { SoftButton, SoftCard } from '@/components/ui';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService, normalizeEmail } from '@/services/auth';
 import { getApiErrorMessage } from '@/services/api';
@@ -27,14 +30,7 @@ export default function OtpScreen() {
   const [timer, setTimer] = useState(60);
   const [timerActive, setTimerActive] = useState(false);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.94)).current;
   const inputRef = useRef<TextInput>(null);
-
-  useEffect(() => {
-    Animated.spring(fadeAnim, { toValue: 1, ...Animation.gentle, useNativeDriver: true }).start();
-    Animated.spring(scaleAnim, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }).start();
-  }, []);
 
   useEffect(() => {
     if (!email) router.replace('/login');
@@ -47,7 +43,6 @@ export default function OtpScreen() {
     } else if (timer === 0) setTimerActive(false);
   }, [timer, timerActive]);
 
-  // Popsosed
   const startTimer = () => {
     setTimer(60);
     setTimerActive(true);
@@ -96,33 +91,46 @@ export default function OtpScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Soft deco */}
+      {/* Warm deco blob */}
       <View style={[styles.blob, styles.blobTop]} />
 
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back-outline" size={22} color={Colors.text.secondary} />
+          <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Back">
+            <Ionicons name="arrow-back" size={20} color={Colors.text.primary} />
           </Pressable>
-          <Text style={styles.brand}>Local Buddy</Text>
+          <View style={styles.brandMark}>
+            <Ionicons name="people" size={14} color="#FFFFFF" />
+            <Text style={styles.brand}>Local Buddy</Text>
+          </View>
         </View>
 
         {/* Hero */}
-        <View style={styles.hero}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 14, stiffness: 180 }}
+          style={styles.hero}
+        >
           <View style={styles.heroBadge}>
-            <Ionicons name="shield-half-outline" size={28} color={Colors.brand.primary} />
+            <Ionicons name="shield-checkmark" size={30} color={Colors.brand.accent} />
           </View>
           <Text style={styles.heroTitle}>Check your inbox</Text>
           <Text style={styles.heroSub}>
             We sent a {OTP_LEN}-digit code to{'\n'}
             <Text style={styles.emph}>{email || 'your email'}</Text>
           </Text>
-        </View>
+        </MotiView>
 
         {/* OTP Card */}
-        <Animated.View style={[styles.cardWrap, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-          <SoftCard padding={0} style={styles.cardInner}>
+        <MotiView
+          from={{ opacity: 0, translateY: 30 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 450, delay: 140 }}
+          style={styles.cardWrap}
+        >
+          <Pressable style={styles.cardInner} onPress={() => { inputRef.current?.focus(); Keyboard.isVisible(); }}>
             {/*
              * The TextInput OVERLAYS the digit boxes (absolute fill, nearly
              * invisible). Taps anywhere on the boxes hit the native input
@@ -132,23 +140,24 @@ export default function OtpScreen() {
              */}
             <View style={styles.otpField}>
               <View style={styles.boxes} pointerEvents="none">
-                {Array.from({ length: OTP_LEN }, (_, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.box,
-                      {
-                        backgroundColor: otp.length > i ? Colors.brand.primary + '14' : Colors.surface.tertiary,
-                        borderColor: otp.length === i ? Colors.brand.primary : Colors.border.light,
-                        transform: otp.length >= i ? [{ scale: 1.04 }] : [{ scale: 1 }],
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.digit, { color: otp.length > i ? Colors.brand.primary : Colors.text.muted }]}>
-                      {otp[i] || ''}
-                    </Text>
-                  </Animated.View>
-                ))}
+                {Array.from({ length: OTP_LEN }, (_, i) => {
+                  const filled = otp.length > i;
+                  const active = otp.length === i;
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.box,
+                        filled && styles.boxFilled,
+                        active && styles.boxActive,
+                      ]}
+                    >
+                      <Text style={[styles.digit, filled && styles.digitFilled]}>
+                        {otp[i] || ''}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
               <TextInput
                 ref={inputRef}
@@ -165,12 +174,13 @@ export default function OtpScreen() {
                 accessibilityLabel="One-time password input"
               />
             </View>
-          </SoftCard>
+          </Pressable>
 
           {localError || error ? (
-            <Text style={styles.errorText}>
-              <Ionicons name="alert-circle-outline" size={12} color={Colors.semantic.error} /> {localError || error}
-            </Text>
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle" size={13} color={Colors.semantic.error} />
+              <Text style={styles.errorText}>{localError || error}</Text>
+            </View>
           ) : null}
 
           <SoftButton
@@ -178,9 +188,10 @@ export default function OtpScreen() {
             onPress={verify}
             loading={isLoading}
             size="lg"
-            tone="brand"
+            variant="accent"
             withGlow
-            style={{ width: '100%' as any, maxWidth: 320, backgroundColor: '#FF6B35' }}
+            icon="checkmark-circle-outline"
+            style={styles.cta}
           />
 
           <View style={styles.helpers}>
@@ -191,7 +202,7 @@ export default function OtpScreen() {
               </Text>
             </Text>
           </View>
-        </Animated.View>
+        </MotiView>
       </View>
     </View>
   );
@@ -199,37 +210,57 @@ export default function OtpScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.surface.primary },
-  container: { flex: 1, paddingHorizontal: Spacing[6], paddingTop: Spacing[2] },
+  container: { flex: 1, paddingHorizontal: Spacing[6], paddingTop: Spacing[3] },
   blob: {
     position: 'absolute', borderRadius: BorderRadius.pill,
-    top: -100, right: -120, width: 300, height: 300,
-    backgroundColor: Colors.brand.primary + '08',
+    backgroundColor: Colors.brand.accent, opacity: 0.1,
   },
   blobTop: { top: -120, right: -130, width: 310, height: 310 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[8] },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing[7] },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface.secondary,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border.light, marginRight: Spacing[3],
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface.elevated,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.cardPressed,
   },
-  brand: { fontFamily: Typography.fontFamily.semiBold, fontSize: 13, color: Colors.text.muted, letterSpacing: 1 },
+  brandMark: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: Spacing[2], ...Shadows.button,
+  },
+  brand: { fontFamily: Typography.fontFamily.semiBold, fontSize: 12, color: '#FFFFFF', letterSpacing: 0.4 },
   hero: { alignItems: 'center', marginBottom: Spacing[7] },
   heroBadge: {
-    width: 48, height: 48, borderRadius: 16, backgroundColor: Colors.brand.primary + '15',
-    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4], ...Shadows.card,
   },
-  heroTitle: { fontFamily: Typography.fontFamily.bold, fontSize: 26, color: Colors.text.primary, marginBottom: Spacing[2], letterSpacing: -0.3 },
-  heroSub: { fontFamily: Typography.fontFamily.regular, fontSize: 15, color: Colors.text.secondary, textAlign: 'center', lineHeight: 22 },
-  emph: { fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.primary },
+  heroTitle: {
+    fontFamily: Typography.fontFamily.display, fontSize: 30, lineHeight: 38,
+    color: Colors.text.primary, marginBottom: Spacing[2],
+  },
+  heroSub: {
+    fontFamily: Typography.fontFamily.body, fontSize: 14.5, color: Colors.text.secondary,
+    textAlign: 'center', lineHeight: 22,
+  },
+  emph: { fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accent },
   cardWrap: { marginBottom: Spacing[6] },
-  cardInner: { borderRadius: BorderRadius.xl, padding: Spacing[6], alignItems: 'center', marginBottom: Spacing[5] },
-  boxes: { flexDirection: 'row', gap: Spacing[3], justifyContent: 'center', flexWrap: 'wrap' },
+  cardInner: {
+    borderRadius: BorderRadius['2xl'], padding: Spacing[6], alignItems: 'center',
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    marginBottom: Spacing[5], ...Shadows.elevated,
+  },
+  boxes: { flexDirection: 'row', gap: Spacing[2], justifyContent: 'center' },
   box: {
-    width: 48, height: 58, borderRadius: BorderRadius.lg, borderWidth: 2,
+    width: 46, height: 56, borderRadius: BorderRadius.md, borderWidth: 1.5,
+    borderColor: Colors.border.light, backgroundColor: Colors.surface.primary,
     alignItems: 'center', justifyContent: 'center',
   },
-  digit: { fontFamily: Typography.fontFamily.bold, fontSize: 22, includeFontPadding: false },
-  errorText: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.semantic.error, textAlign: 'center', marginBottom: Spacing[4] },
-  cta: { width: '100%', maxWidth: 320 },
+  boxActive: { borderColor: Colors.brand.accent, ...Shadows.cardPressed },
+  boxFilled: { backgroundColor: Colors.brand.accentSoft, borderColor: Colors.brand.accent },
+  digit: { fontFamily: Typography.fontFamily.bold, fontSize: 22, color: Colors.text.muted, includeFontPadding: false },
+  digitFilled: { color: Colors.brand.accentPressed },
+  errorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: Spacing[4] },
+  errorText: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.semantic.error },
+  cta: { width: '100%', maxWidth: 340, alignSelf: 'center' },
   otpField: { position: 'relative', alignSelf: 'center' },
   // Full-size transparent overlay: receives the tap directly so the
   // keyboard always opens; opacity must stay > 0 for Android hit-testing.
@@ -244,6 +275,6 @@ const styles = StyleSheet.create({
     fontSize: 1,
   },
   helpers: { marginTop: Spacing[6] },
-  resendText: { fontFamily: Typography.fontFamily.regular, fontSize: 13, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+  resendText: { fontFamily: Typography.fontFamily.body, fontSize: 13, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
   resendPlus: { color: Colors.brand.accent, fontFamily: Typography.fontFamily.semiBold, fontSize: 14 },
 });

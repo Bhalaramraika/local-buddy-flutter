@@ -65,6 +65,8 @@ function mapTask(id: string, d: DocumentData): Task {
     tip: d.tip ?? 0,
     attachments: d.attachments ?? [],
     requirements: d.requirements ?? [],
+    applicants: Array.isArray(d.applicants) ? d.applicants : [],
+    applicationsCount: Array.isArray(d.applicants) ? d.applicants.length : (d.applicationsCount ?? 0),
     chatId: d.chatId,
     createdAt: d.createdAt ?? '',
     updatedAt: d.updatedAt ?? '',

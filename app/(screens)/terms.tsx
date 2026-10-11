@@ -14,13 +14,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function TermsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
+
   const lastUpdated = 'January 15, 2024';
   const version = '2.1';
 
@@ -224,45 +224,47 @@ Last updated: ${lastUpdated} | Version ${version}`,
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Terms of Service</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
+    <View style={styles.container}>
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <ScreenHeader title="Terms of Service" subtitle={`v${version} • Updated ${lastUpdated}`} onBack={() => router.back()} />
+
         {/* Meta Info */}
-        <View style={[styles.metaContainer, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.metaText, { color: isDark ? '#888' : '#666' }]}>Last updated: {lastUpdated}</Text>
-          <Text style={[styles.metaText, { color: isDark ? '#888' : '#666' }]}>Version: {version}</Text>
-        </View>
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380 }} style={styles.metaContainer}>
+          <Ionicons name="calendar-outline" size={13} color={Colors.text.muted} />
+          <Text style={styles.metaText}>Last updated: {lastUpdated}</Text>
+          <View style={styles.metaDot} />
+          <Ionicons name="document-text-outline" size={13} color={Colors.text.muted} />
+          <Text style={styles.metaText}>Version: {version}</Text>
+        </MotiView>
 
         {/* Sections */}
         {sections.map((section, index) => (
-          <View key={section.id} style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: index === 0 ? 16 : 16 }]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>{section.title}</Text>
-            <Text style={[styles.sectionContent, { color: isDark ? '#ccc' : '#333' }]}>{section.content}</Text>
-          </View>
+          <MotiView
+            key={section.id}
+            from={{ opacity: 0, translateY: 14 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 360, delay: Math.min(index, 8) * 40 }}
+            style={styles.section}
+          >
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionContent}>{section.content}</Text>
+          </MotiView>
         ))}
 
         {/* Acceptance Notice */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 200 }} style={[styles.section, { marginTop: Spacing[4] }]}>
           <View style={styles.noticeBox}>
-            <Ionicons name="information-circle-outline" size={24} color="#8B85FF" style={{ marginRight: 12 }} />
-            <Text style={[styles.noticeText, { color: isDark ? '#ccc' : '#333' }]}>
+            <View style={styles.noticeIconWrap}>
+              <Ionicons name="information-circle" size={18} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.noticeText}>
               By continuing to use LocalBuddy, you acknowledge that you have read, understood, and agree to these Terms of Service.
             </Text>
           </View>
-        </View>
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -271,16 +273,30 @@ Last updated: ${lastUpdated} | Version ${version}`,
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  metaContainer: { paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
-  metaText: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center' },
-  section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', marginBottom: 12 },
-  sectionContent: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  noticeBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, backgroundColor: '#8B85FF15', borderRadius: 12 },
-  noticeText: { fontSize: 14, fontFamily: 'Inter_500Medium', lineHeight: 22, flex: 1 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+  metaContainer: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing[2],
+    paddingVertical: Spacing[3], borderRadius: BorderRadius.pill, marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.cardPressed,
+  },
+  metaText: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  metaDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.border.medium, marginHorizontal: 4 },
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5], marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: Spacing[3] },
+  sectionContent: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, lineHeight: 22, color: Colors.text.secondary },
+  noticeBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[3],
+    padding: Spacing[4], backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.md,
+  },
+  noticeIconWrap: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  noticeText: { fontSize: 13, fontFamily: Typography.fontFamily.medium, lineHeight: 20, flex: 1, color: Colors.brand.accentPressed },
 });

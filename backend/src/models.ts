@@ -60,7 +60,7 @@ export interface UserDocument {
   referralCode?: string;
   avatar?: string;
   role: UserRole;
-  status: 'active' | 'inactive' | 'suspended' | 'banned';
+  status: 'active' | 'inactive' | 'suspended' | 'banned' | 'deleted';
   isActive: boolean;
   language: 'en' | 'hi';
   city: string;

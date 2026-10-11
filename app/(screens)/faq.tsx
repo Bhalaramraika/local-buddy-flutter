@@ -13,13 +13,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader, SoftButton } from '@/components/ui';
 
 export default function FAQScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
+
   const [searchQuery, setSearchQuery] = React.useState('');
   const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
 
@@ -170,85 +170,108 @@ export default function FAQScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>FAQ</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="FAQ"
+        subtitle="Answers to common questions"
+        onBack={() => router.back()}
+      />
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={[styles.searchBar, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-          <Ionicons name="search-outline" size={22} color={isDark ? '#888' : '#999'} style={styles.searchIcon} />
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
-            style={[styles.searchInput, { color: isDark ? '#fff' : '#000' }]}
+            style={styles.searchInput}
             placeholder="Search questions..."
-            placeholderTextColor={isDark ? '#666' : '#999'}
+            placeholderTextColor={Colors.text.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-outline" size={22} color={isDark ? '#888' : '#999'} />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={Colors.text.muted} />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {filteredFaqs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={48} color={isDark ? '#666' : '#999'} />
-            <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }, { marginTop: 16 }]}>No results found</Text>
-            <Text style={[styles.emptyDesc, { color: isDark ? '#888' : '#666' }, { marginTop: 8 }]}>Try different keywords or browse categories below</Text>
-          </View>
+          <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 400 }} style={styles.emptyState}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="search" size={30} color={Colors.brand.accent} />
+            </View>
+            <Text style={styles.emptyTitle}>No results found</Text>
+            <Text style={styles.emptyDesc}>Try different keywords or browse categories below</Text>
+          </MotiView>
         ) : (
           filteredFaqs.map((category, catIndex) => (
-            <View key={catIndex} style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: catIndex === 0 ? 16 : 16 }]}>
-              <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>{category.category}</Text>
-              <View style={styles.faqList}>
-                {category.items.map((item, itemIndex) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[styles.faqItem, { borderBottomWidth: itemIndex < category.items.length - 1 ? 1 : 0, borderBottomColor: '#eee' }]}
-                    onPress={() => toggleExpand(item.id)}
-                  >
-                    <View style={styles.faqQuestionContainer}>
-                      <Text style={[styles.faqQuestion, { color: isDark ? '#fff' : '#000' }]}>{item.question}</Text>
-                      <Ionicons 
-                        name={expandedItems.has(item.id) ? 'remove-outline' : 'add-outline'} 
-                        size={24} 
-                        color={isDark ? '#888' : '#666'}
-                        style={styles.faqIcon}
-                      />
-                    </View>
-                    {expandedItems.has(item.id) && (
-                      <Text style={[styles.faqAnswer, { color: isDark ? '#ccc' : '#333' }, { marginTop: 12 }]}>{item.answer}</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
+            <MotiView
+              key={catIndex}
+              from={{ opacity: 0, translateY: 14 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 380, delay: catIndex * 70 }}
+              style={styles.section}
+            >
+              <View style={styles.categoryHeaderRow}>
+                <View style={styles.categoryIconWrap}>
+                  <Ionicons
+                    name={
+                      catIndex === 0 ? 'rocket' : catIndex === 1 ? 'card' : catIndex === 2 ? 'shield-checkmark' : catIndex === 3 ? 'wallet' : 'build'
+                    }
+                    size={14}
+                    color={Colors.brand.accent}
+                  />
+                </View>
+                <Text style={styles.categoryTitle}>{category.category}</Text>
               </View>
-            </View>
+              <View style={styles.faqList}>
+                {category.items.map((item, itemIndex) => {
+                  const expanded = expandedItems.has(item.id);
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.faqItem, itemIndex < category.items.length - 1 && styles.faqItemDivider, expanded && styles.faqItemExpanded]}
+                      onPress={() => toggleExpand(item.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.faqQuestionContainer}>
+                        <View style={[styles.faqQIcon, expanded && styles.faqQIconActive]}>
+                          <Text style={styles.faqQMark}>?</Text>
+                        </View>
+                        <Text style={[styles.faqQuestion, expanded && { color: Colors.brand.accentPressed }]}>{item.question}</Text>
+                        <View style={[styles.faqChevron, expanded && styles.faqChevronActive]}>
+                          <Ionicons
+                            name={expanded ? 'remove' : 'add'}
+                            size={16}
+                            color={expanded ? '#FFFFFF' : Colors.brand.accent}
+                          />
+                        </View>
+                      </View>
+                      {expanded ? (
+                        <Text style={styles.faqAnswer}>{item.answer}</Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </MotiView>
           ))
         )}
 
         {/* Still need help? */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.categoryTitle, { color: isDark ? '#fff' : '#000' }]}>Still need help?</Text>
-          <Text style={[styles.helpDesc, { color: isDark ? '#888' : '#666' }, { marginBottom: 16 }]}>Can&apos;t find what you&apos;re looking for? Our support team is here to help.</Text>
-          <TouchableOpacity style={styles.contactButton} onPress={() => router.push('/contact-support')}>
-            <Text style={styles.contactButtonText}>Contact Support</Text>
-          </TouchableOpacity>
-        </View>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 350 }} style={styles.stillHelpCard}>
+          <View style={styles.stillHelpIconWrap}>
+            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+          </View>
+          <Text style={styles.stillHelpTitle}>Still need help?</Text>
+          <Text style={styles.helpDesc}>Can&apos;t find what you&apos;re looking for? Our support team is here to help.</Text>
+          <SoftButton label="Contact support" variant="accent" size="md" icon="mail" onPress={() => router.push('/contact-support')} style={{ marginTop: Spacing[4], paddingHorizontal: Spacing[7] }} fullWidth={false} withGlow />
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -257,27 +280,60 @@ export default function FAQScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  searchContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
-  searchIcon: { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  categoryTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  faqList: { gap: 0 },
-  faqItem: { paddingVertical: 16 },
-  faqQuestionContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  faqQuestion: { fontSize: 16, fontFamily: 'Inter_600SemiBold', flex: 1, paddingRight: 16 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  searchContainer: { paddingHorizontal: Spacing[5], paddingBottom: Spacing[3] },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing[4], height: 50, borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  searchIcon: { marginRight: Spacing[2] },
+  searchInput: { flex: 1, fontSize: 14.5, fontFamily: Typography.fontFamily.body, color: Colors.text.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40, paddingTop: Spacing[1] },
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[4], marginTop: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  categoryHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], marginBottom: Spacing[3] },
+  categoryIconWrap: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  categoryTitle: { fontSize: 16.5, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  faqList: {},
+  faqItem: { paddingVertical: Spacing[3] + 2, borderRadius: BorderRadius.sm, paddingHorizontal: 2 },
+  faqItemDivider: { borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  faqItemExpanded: { backgroundColor: Colors.surface.primary, paddingHorizontal: Spacing[3], borderRadius: BorderRadius.md, marginHorizontal: -8 },
+  faqQuestionContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
+  faqQIcon: {
+    width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.surface.tertiary,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  faqQIconActive: { backgroundColor: Colors.brand.accentSoft },
+  faqQMark: { fontSize: 12, fontFamily: Typography.fontFamily.bold, color: Colors.brand.accentPressed },
+  faqQuestion: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, flex: 1 },
+  faqChevron: {
+    width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  faqChevronActive: { backgroundColor: Colors.brand.accent },
   faqIcon: { flexShrink: 0 },
-  faqAnswer: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  emptyState: { alignItems: 'center', paddingVertical: 48 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
-  emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 32 },
-  helpDesc: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  contactButton: { backgroundColor: '#8B85FF', paddingVertical: 14, borderRadius: 24, alignItems: 'center' },
-  contactButtonText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
+  faqAnswer: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, lineHeight: 21, color: Colors.text.secondary, marginTop: Spacing[3], marginLeft: 38 },
+  emptyState: { alignItems: 'center', paddingVertical: Spacing[12] },
+  emptyIconWrap: {
+    width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  emptyTitle: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptyDesc: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center', paddingHorizontal: Spacing[8], marginTop: 4 },
+  stillHelpCard: {
+    borderRadius: BorderRadius.lg, padding: Spacing[6], marginTop: Spacing[4], alignItems: 'center',
+    backgroundColor: Colors.brand.primary, ...Shadows.button,
+  },
+  stillHelpIconWrap: {
+    width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  stillHelpTitle: { fontSize: 17, fontFamily: Typography.fontFamily.display, color: '#FFFFFF' },
+  helpDesc: { fontSize: 13, fontFamily: Typography.fontFamily.body, lineHeight: 20, color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 6 },
 });

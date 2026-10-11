@@ -1,13 +1,15 @@
 /**
- * Data Usage Screen - Data management, export, and storage
+ * Data Usage Screen — Soft Modern
+ * Orange storage bar card, rounded action rows, pill toggles,
+ * soft-red danger zone. All handlers unchanged.
  */
 
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -15,15 +17,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
-import { useAuthStore } from '@/store/authStore';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function DataUsageScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  const { user } = useAuthStore();
-  
-  const isDark = theme === 'dark';
+
   const [exporting, setExporting] = React.useState(false);
   const [clearingCache, setClearingCache] = React.useState(false);
   const [storageInfo, setStorageInfo] = React.useState({
@@ -57,8 +57,8 @@ export default function DataUsageScreen() {
       'This will clear temporary files and cached images. Your login and settings will not be affected.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear Cache', 
+        {
+          text: 'Clear Cache',
           onPress: () => {
             setClearingCache(true);
             setTimeout(() => {
@@ -78,13 +78,13 @@ export default function DataUsageScreen() {
       'This action is irreversible. All your data, tasks, messages, and wallet balance will be permanently deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete Account', 
+        {
+          text: 'Delete Account',
           style: 'destructive',
           onPress: () => Alert.alert('Confirm Deletion', 'Type "DELETE" to confirm.', [
             { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Confirm', 
+            {
+              text: 'Confirm',
               style: 'destructive',
               onPress: () => Alert.alert('Account Deleted', 'Your account has been permanently deleted.')
             }
@@ -102,153 +102,62 @@ export default function DataUsageScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Data & Storage</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Storage Overview */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Storage Usage</Text>
-          
-          <View style={styles.storageCard}>
-            <View style={styles.storageBarContainer}>
-              <View style={styles.storageBarBg}>
-                <View style={[styles.storageBarFill, { width: '73%' }]} />
-              </View>
-              <Text style={[styles.storageUsed, { color: isDark ? '#fff' : '#000' }]}>{storageInfo.app} used of {storageInfo.total}</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Data & storage" subtitle="Storage, cache, offline and sharing" onBack={() => router.back()} />
+        {/* Storage hero card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420 }}
+          style={styles.storageHero}
+        >
+          <View style={styles.storageHeroTop}>
+            <View style={styles.storageIconWrap}>
+              <Ionicons name="server" size={20} color="#FFFFFF" />
             </View>
-            
-            <View style={styles.storageBreakdown}>
-              <StorageBreakdownItem 
-                label="App Data" 
-                value={storageInfo.app} 
-                color="#8B85FF" 
-                percentage={73}
-                isDark={isDark}
-              />
-              <StorageBreakdownItem 
-                label="Cache" 
-                value={storageInfo.cache} 
-                color="#F59E0B" 
-                percentage={18}
-                isDark={isDark}
-              />
-              <StorageBreakdownItem 
-                label="Media" 
-                value={storageInfo.media} 
-                color="#10B981" 
-                percentage={8}
-                isDark={isDark}
-              />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.storageHeroLabel}>Storage used</Text>
+              <Text style={styles.storageHeroValue}>{storageInfo.app}<Text style={styles.storageHeroTotal}> of {storageInfo.total}</Text></Text>
             </View>
           </View>
-        </View>
+          <View style={styles.storageBarBg}>
+            <MotiView
+              from={{ width: '0%' }}
+              animate={{ width: '73%' }}
+              transition={{ type: 'timing', duration: 900, delay: 300 }}
+              style={styles.storageBarFill}
+            />
+          </View>
+          <View style={styles.storageBreakdown}>
+            <StorageBreakdownItem label="App Data" value={storageInfo.app} color={Colors.brand.accent} percentage={73} />
+            <StorageBreakdownItem label="Cache" value={storageInfo.cache} color={Colors.semantic.warning} percentage={18} />
+            <StorageBreakdownItem label="Media" value={storageInfo.media} color={Colors.semantic.success} percentage={8} />
+          </View>
+        </MotiView>
 
-        {/* Data Management */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Your Data</Text>
-          
-          <SettingItem
-            title="Download Your Data"
-            description="Get a copy of all your data in JSON format"
-            icon="download-outline"
-            color="#8B85FF"
-            isDark={isDark}
-            onPress={handleDownloadData}
-            showArrow
-          />
-          
-          <SettingItem
-            title="Export Data"
-            description="Request a complete data export via email"
-            icon="mail-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={handleExportData}
-            showArrow
-            loading={exporting}
-          />
-          
-          <SettingItem
-            title="Data Retention"
-            description="Manage how long your data is kept"
-            icon="time-outline"
-            color="#F59E0B"
-            isDark={isDark}
-            onPress={() => Alert.alert('Data Retention', 'Data is kept for 7 years after account closure for legal compliance.')}
-            showArrow
-          />
-        </View>
+        {/* Your Data */}
+        <MotableSection index={1} title="Your data">
+          <ActionRow title="Download Your Data" description="Copy of your data in JSON" icon="download-outline" onPress={handleDownloadData} />
+          <ActionRow title="Export Data" description="Complete export via email" icon="mail-outline" onPress={handleExportData} loading={exporting} />
+          <ActionRow title="Data Retention" description="How long your data is kept" icon="time-outline" onPress={() => Alert.alert('Data Retention', 'Data is kept for 7 years after account closure for legal compliance.')} last />
+        </MotableSection>
 
-        {/* Cache Management */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Cache & Temporary Files</Text>
-          
-          <SettingItem
-            title="Clear Cache"
-            description={`Free up ${storageInfo.cache} of temporary files`}
-            icon="trash-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={handleClearCache}
-            showArrow
-            loading={clearingCache}
-            destructive
-          />
-          
-          <SettingToggle
-            title="Auto-clear Cache"
-            description="Automatically clear cache when storage is low"
-            value={autoClearCache}
-            onChange={setAutoClearCache}
-            icon="refresh-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingItem
-            title="Media Auto-download"
-            description="Control when photos and videos are downloaded"
-            icon="image-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => router.push('/media-download-settings')}
-            showArrow
-          />
-        </View>
+        {/* Cache */}
+        <MotableSection index={2} title="Cache & temporary files">
+          <ActionRow title="Clear Cache" description={`Free up ${storageInfo.cache} of temporary files`} icon="trash-outline" onPress={handleClearCache} loading={clearingCache} destructive />
+          <ToggleRow title="Auto-clear Cache" description="Clear cache when storage is low" icon="refresh-outline" value={autoClearCache} onChange={setAutoClearCache} />
+          <ActionRow title="Media Auto-download" description="When photos and videos download" icon="image-outline" onPress={() => router.push('/media-download-settings')} last />
+        </MotableSection>
 
-        {/* Offline Data */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Offline Access</Text>
-          
-          <SettingToggle
-            title="Offline Mode"
-            description="Access your tasks and messages without internet"
-            value={offlineMode}
-            onChange={setOfflineMode}
-            icon="wifi-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingItem
+        {/* Offline */}
+        <MotableSection index={3} title="Offline access">
+          <ToggleRow title="Offline Mode" description="Access tasks and messages without internet" icon="wifi-outline" value={offlineMode} onChange={setOfflineMode} />
+          <ActionRow
             title="Offline Storage Limit"
             description={`Keep ${offlineStorageLimit}GB for offline use`}
             icon="hardware-chip-outline"
-            color="#F59E0B"
-            isDark={isDark}
+            trailing={`${offlineStorageLimit} GB`}
             onPress={() => {
               const options = [1, 2, 5, 10];
               Alert.alert('Offline Storage Limit', 'Select maximum storage for offline data', options.map(opt => ({
@@ -256,85 +165,31 @@ export default function DataUsageScreen() {
                 onPress: () => setOfflineStorageLimit(opt),
               })));
             }}
-            showArrow
-            trailing={`${offlineStorageLimit} GB`}
           />
-          
-          <SettingItem
-            title="Sync Now"
-            description={`Last synced ${lastSynced}`}
-            icon="sync-outline"
-            color="#10B981"
-            isDark={isDark}
-            onPress={() => Alert.alert('Syncing', 'Your data is now up to date.')}
-            showArrow
-          />
-        </View>
+          <ActionRow title="Sync Now" description={`Last synced ${lastSynced}`} icon="sync-outline" iconTone="success" onPress={() => Alert.alert('Syncing', 'Your data is now up to date.')} last />
+        </MotableSection>
 
-        {/* Data Sharing */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Data Sharing & Analytics</Text>
-          
-          <SettingToggle
-            title="Usage Analytics"
-            description="Help improve the app by sharing anonymous usage data"
-            value={usageAnalytics}
-            onChange={setUsageAnalytics}
-            icon="analytics-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Crash Reports"
-            description="Automatically send crash reports to help fix bugs"
-            value={crashReports}
-            onChange={setCrashReports}
-            icon="bug-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Performance Monitoring"
-            description="Share app performance metrics"
-            value={performanceMonitoring}
-            onChange={setPerformanceMonitoring}
-            icon="speedometer-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-        </View>
+        {/* Sharing */}
+        <MotableSection index={4} title="Sharing & analytics">
+          <ToggleRow title="Usage Analytics" description="Anonymous usage data improves the app" icon="analytics-outline" value={usageAnalytics} onChange={setUsageAnalytics} />
+          <ToggleRow title="Crash Reports" description="Send crash reports to fix bugs faster" icon="bug-outline" value={crashReports} onChange={setCrashReports} />
+          <ToggleRow title="Performance Monitoring" description="Share app performance metrics" icon="speedometer-outline" value={performanceMonitoring} onChange={setPerformanceMonitoring} last />
+        </MotableSection>
 
         {/* Danger Zone */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Danger Zone</Text>
-          
-          <SettingItem
+        <MotableSection index={5} title="Danger zone" danger>
+          <ActionRow
             title="Delete All Data"
-            description="Permanently delete all your data from this device"
+            description="Remove all local data from this device"
             icon="trash-outline"
-            color="#EF4444"
-            isDark={isDark}
+            destructive
             onPress={() => Alert.alert('Delete All Data', 'This will remove all local data. You will need to log in again.', [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Deleted', 'All local data has been removed.') }
             ])}
-            showArrow
-            destructive
           />
-          
-          <SettingItem
-            title="Delete Account"
-            description="Permanently delete your account and all data"
-            icon="person-remove-outline"
-            color="#EF4444"
-            isDark={isDark}
-            onPress={handleDeleteAccount}
-            showArrow
-            destructive
-          />
-        </View>
+          <ActionRow title="Delete Account" description="Permanently delete account and all data" icon="person-remove-outline" onPress={handleDeleteAccount} destructive last />
+        </MotableSection>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -342,114 +197,117 @@ export default function DataUsageScreen() {
   );
 }
 
-const StorageBreakdownItem = ({ label, value, color, percentage, isDark }: any) => (
-  <View style={styles.storageBreakdownItem}>
-    <View style={styles.storageBreakdownColor}>
-      <View style={[styles.colorDot, { backgroundColor: color }]} />
-    </View>
-    <View style={styles.storageBreakdownInfo}>
-      <Text style={[styles.storageBreakdownLabel, { color: isDark ? '#fff' : '#000' }]}>{label}</Text>
-      <Text style={[styles.storageBreakdownValue, { color: isDark ? '#888' : '#666' }]}>{value} ({percentage}%)</Text>
-    </View>
+const StorageBreakdownItem = ({ label, value, color, percentage }: any) => (
+  <View style={styles.breakdownItem}>
+    <View style={[styles.colorDot, { backgroundColor: color }]} />
+    <Text style={styles.breakdownLabel}>{label}</Text>
+    <Text style={styles.breakdownValue}>{value} · {percentage}%</Text>
   </View>
 );
 
-const SettingItem = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  onPress, 
-  showArrow = false, 
-  destructive = false,
-  trailing,
-  loading = false
-}: any) => (
-  <TouchableOpacity 
-    style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}
+function MotableSection({ index, title, danger, children }: { index: number; title: string; danger?: boolean; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 14 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 400, delay: index * 70 }}
+      style={[styles.section, danger && styles.sectionDanger]}
+    >
+      <Text style={[styles.sectionTitle, danger && { color: Colors.semantic.error }]}>{title}</Text>
+      {children}
+    </MotiView>
+  );
+}
+
+const ActionRow = ({ title, description, icon, iconTone, onPress, destructive, trailing, loading, last }: any) => (
+  <Pressable
+    style={({ pressed }) => [styles.row, last && styles.rowLast, pressed && { backgroundColor: Colors.surface.creamSoft, borderRadius: BorderRadius.sm }]}
     onPress={onPress}
     disabled={loading}
   >
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+    <View style={[styles.rowIcon, destructive ? styles.rowIconError : iconTone === 'success' ? styles.rowIconSuccess : styles.rowIconAccent]}>
+      <Ionicons name={icon} size={17} color={destructive ? Colors.semantic.error : iconTone === 'success' ? Colors.semantic.success : Colors.brand.accent} />
     </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: destructive ? '#EF4444' : (isDark ? '#fff' : '#000') }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+    <View style={styles.rowBody}>
+      <Text style={[styles.rowTitle, destructive && { color: Colors.semantic.error }]}>{title}</Text>
+      <Text style={styles.rowDesc}>{description}</Text>
     </View>
-    <View style={styles.settingTrailing}>
-      {loading && <ActivityIndicator size="small" color={isDark ? '#fff' : '#000'} />}
-      {trailing && !loading && <Text style={[styles.settingTrailingText, { color: isDark ? '#888' : '#666' }]}>{trailing}</Text>}
-      {showArrow && !loading && <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#888' : '#999'} />}
+    <View style={styles.rowTrailing}>
+      {loading ? <ActivityIndicator size="small" color={Colors.brand.accent} /> : null}
+      {trailing && !loading ? <Text style={styles.rowTrailingText}>{trailing}</Text> : null}
+      {!loading ? <Ionicons name="chevron-forward" size={16} color={destructive ? Colors.semantic.error : Colors.text.muted} /> : null}
     </View>
-  </TouchableOpacity>
+  </Pressable>
 );
 
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange 
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+const ToggleRow = ({ title, description, icon, value, onChange, last }: any) => (
+  <View style={[styles.row, last && styles.rowLast]}>
+    <View style={[styles.rowIcon, value ? styles.rowIconOn : styles.rowIconAccent]}>
+      <Ionicons name={icon} size={17} color={value ? '#FFFFFF' : Colors.brand.accent} />
     </View>
-    <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+    <View style={styles.rowBody}>
+      <Text style={styles.rowTitle}>{title}</Text>
+      <Text style={styles.rowDesc}>{description}</Text>
     </View>
     <Switch
       value={value}
       onValueChange={onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
+      trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+      thumbColor="#FFFFFF"
     />
-  </TouchableOpacity>
+  </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  storageCard: { backgroundColor: '#f8f9fa', borderRadius: 12, padding: 16 },
-  storageBarContainer: { marginBottom: 16 },
-  storageBarBg: { height: 8, borderRadius: 4, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  storageBarFill: { height: '100%', borderRadius: 4, backgroundColor: '#8B85FF' },
-  storageUsed: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'right' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  storageHero: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
+  },
+  storageHeroTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[4] },
+  storageIconWrap: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  storageHeroLabel: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
+  storageHeroValue: { fontSize: 26, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary, marginTop: 2 },
+  storageHeroTotal: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  storageBarBg: { height: 10, borderRadius: 5, backgroundColor: Colors.surface.tertiary, overflow: 'hidden', marginBottom: Spacing[4] },
+  storageBarFill: { height: '100%', borderRadius: 5, backgroundColor: Colors.brand.accent },
   storageBreakdown: { flexDirection: 'row', justifyContent: 'space-between' },
-  storageBreakdownItem: { flex: 1, alignItems: 'center', paddingHorizontal: 8 },
-  storageBreakdownColor: { marginBottom: 8 },
-  storageBreakdownInfo: { alignItems: 'center' },
-  colorDot: { width: 12, height: 12, borderRadius: 6 },
-  storageBreakdownLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'center', marginBottom: 2 },
-  storageBreakdownValue: { fontSize: 11, fontFamily: 'Inter_400Regular', textAlign: 'center' },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+  breakdownItem: { flex: 1, alignItems: 'center' },
+  colorDot: { width: 10, height: 10, borderRadius: 5, marginBottom: 6 },
+  breakdownLabel: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, marginBottom: 1 },
+  breakdownValue: { fontSize: 11, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[2],
+    marginBottom: Spacing[4], ...Shadows.card,
   },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  sectionDanger: { backgroundColor: Colors.semantic.errorSoft, borderColor: Colors.semantic.error + '2E' },
+  sectionTitle: {
+    fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.brand.accentPressed,
+    textTransform: 'uppercase', letterSpacing: 1, marginBottom: Spacing[2],
   },
-  settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingTrailing: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingTrailingText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
+
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  rowLast: { borderBottomWidth: 0 },
+  rowIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  rowIconAccent: { backgroundColor: Colors.brand.accentSoft },
+  rowIconOn: { backgroundColor: Colors.brand.accent },
+  rowIconError: { backgroundColor: Colors.semantic.errorSoft },
+  rowIconSuccess: { backgroundColor: Colors.semantic.successSoft },
+  rowBody: { flex: 1 },
+  rowTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  rowDesc: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  rowTrailing: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
+  rowTrailingText: { fontSize: 12.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
 });

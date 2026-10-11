@@ -14,13 +14,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function GuidelinesScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
+
   const lastUpdated = 'January 15, 2024';
   const version = '1.3';
 
@@ -64,8 +64,8 @@ Prohibited:
     {
       id: 'respect',
       title: '2. Respect & Inclusion',
-      icon: 'people-outline',
-      color: '#8B85FF',
+      icon: 'people',
+      color: Colors.semantic.success,
       content: `Treat everyone with dignity and respect.
 
 Zero Tolerance for:
@@ -165,8 +165,8 @@ Prohibited:
     {
       id: 'privacy',
       title: '6. Privacy & Data',
-      icon: 'lock-closed-outline',
-      color: '#8B85FF',
+      icon: 'lock-closed',
+      color: Colors.semantic.info,
       content: `Respect everyone's privacy.
 
 • Don't share other users' personal info (address, phone, ID docs) outside the task
@@ -253,8 +253,8 @@ Recognitions:
     {
       id: 'changes',
       title: '10. Changes to Guidelines',
-      icon: 'document-text-outline',
-      color: '#8B85FF',
+      icon: 'document-text',
+      color: Colors.brand.primary,
       content: `We may update these guidelines as our community evolves. Material changes will be announced via in-app notification and email. Continued use constitutes acceptance.
 
 Last updated: ${lastUpdated} | Version ${version}`,
@@ -262,67 +262,61 @@ Last updated: ${lastUpdated} | Version ${version}`,
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Community Guidelines</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
+    <View style={styles.container}>
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <ScreenHeader title="Community guidelines" subtitle={`v${version} • Updated ${lastUpdated}`} onBack={() => router.back()} />
+
         {/* Meta Info */}
-        <View style={[styles.metaContainer, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.metaText, { color: isDark ? '#888' : '#666' }]}>Last updated: {lastUpdated}</Text>
-          <Text style={[styles.metaText, { color: isDark ? '#888' : '#666' }]}>Version: {version}</Text>
-        </View>
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 380 }} style={styles.metaContainer}>
+          <Ionicons name="people" size={13} color={Colors.text.muted} />
+          <Text style={styles.metaText}>Last updated: {lastUpdated}</Text>
+          <View style={styles.metaDot} />
+          <Ionicons name="document-text-outline" size={13} color={Colors.text.muted} />
+          <Text style={styles.metaText}>Version: {version}</Text>
+        </MotiView>
 
         {/* Sections */}
         {sections.map((section, index) => (
-          <View key={section.id} style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: index === 0 ? 16 : 16 }]}>
+          <MotiView
+            key={section.id}
+            from={{ opacity: 0, translateY: 14 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 360, delay: Math.min(index, 8) * 40 }}
+            style={styles.section}
+          >
             <View style={styles.sectionHeader}>
-              <View style={[styles.iconBadge, { backgroundColor: `${section.color}20` }]}>
-                <Ionicons name={section.icon as any} size={24} color={section.color} />
+              <View style={[styles.iconBadge, { backgroundColor: `${section.color}1A` }]}>
+                <Ionicons name={section.icon as any} size={18} color={section.color} />
               </View>
-              <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>{section.title}</Text>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
             </View>
-            <Text style={[styles.sectionContent, { color: isDark ? '#ccc' : '#333' }]}>{section.content}</Text>
-          </View>
+            <Text style={styles.sectionContent}>{section.content}</Text>
+          </MotiView>
         ))}
 
         {/* Quick Actions */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Quick Actions</Text>
+        <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 250 }} style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick actions</Text>
           <View style={styles.quickLinks}>
-            <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/contact-support')}>
-              <Ionicons name="chatbubble-outline" size={22} color="#8B85FF" style={{ marginRight: 12 }} />
-              <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Contact Support</Text>
-              <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickLink} onPress={() => handleOpenUrl('mailto:safety@localbuddy.app')}>
-              <Ionicons name="shield-checkmark-outline" size={22} color="#10B981" style={{ marginRight: 12 }} />
-              <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Report Safety Issue</Text>
-              <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/terms')}>
-              <Ionicons name="document-text-outline" size={22} color="#F59E0B" style={{ marginRight: 12 }} />
-              <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Read Terms of Service</Text>
-              <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickLink} onPress={() => router.push('/privacy')}>
-              <Ionicons name="lock-closed-outline" size={22} color="#6366F1" style={{ marginRight: 12 }} />
-              <Text style={[styles.quickLinkText, { color: isDark ? '#fff' : '#000' }]}>Read Privacy Policy</Text>
-              <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
-            </TouchableOpacity>
+            {[
+              { label: 'Contact Support', icon: 'chatbubble' as const, color: Colors.brand.accent, bg: Colors.brand.accentSoft, onPress: () => router.push('/contact-support') },
+              { label: 'Report Safety Issue', icon: 'shield-checkmark' as const, color: Colors.semantic.success, bg: Colors.semantic.successSoft, onPress: () => handleOpenUrl('mailto:safety@localbuddy.app') },
+              { label: 'Read Terms of Service', icon: 'document-text' as const, color: Colors.semantic.warning, bg: Colors.semantic.warningSoft, onPress: () => router.push('/terms') },
+              { label: 'Read Privacy Policy', icon: 'lock-closed' as const, color: Colors.brand.primary, bg: '#1E120912', onPress: () => router.push('/privacy') },
+            ].map((item, i) => (
+              <TouchableOpacity key={item.label} style={styles.quickLink} onPress={item.onPress}>
+                <View style={[styles.quickLinkIcon, { backgroundColor: item.bg }]}>
+                  <Ionicons name={item.icon} size={17} color={item.color} />
+                </View>
+                <Text style={styles.quickLinkText}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={16} color={Colors.text.muted} />
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -331,19 +325,32 @@ Last updated: ${lastUpdated} | Version ${version}`,
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  metaContainer: { paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#eee', marginBottom: 16 },
-  metaText: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center' },
-  section: { borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#eee' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  iconBadge: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', flex: 1 },
-  sectionContent: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  quickLinks: { gap: 12, marginTop: 8 },
-  quickLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#fafafa', borderRadius: 12 },
-  quickLinkText: { fontSize: 15, fontFamily: 'Inter_500Medium', flex: 1 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+  metaContainer: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing[2],
+    paddingVertical: Spacing[3], borderRadius: BorderRadius.pill, marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.cardPressed,
+  },
+  metaText: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary },
+  metaDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.border.medium, marginHorizontal: 4 },
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5], marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3], marginBottom: Spacing[3] },
+  iconBadge: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { fontSize: 16.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, flex: 1 },
+  sectionContent: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, lineHeight: 22, color: Colors.text.secondary },
+  quickLinks: { gap: Spacing[3] },
+  quickLink: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3], paddingHorizontal: Spacing[3],
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: Colors.border.light,
+  },
+  quickLinkIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  quickLinkText: { fontSize: 14, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, flex: 1 },
 });

@@ -1,7 +1,9 @@
 /**
- * Soft Premium Component Kit
- * Reusable, animated, consistent components replacing FlowUI pieces.
- * Style rules: soft colors, big curvatures, animations everywhere.
+ * UI Kit — "Soft Modern" (Warm & Professional)
+ * Every component rebuilt for the onboarding-style theme:
+ * antique-white background (#FAEBD7), dark cocoa (#1E1209) primary,
+ * orange (#F77051) CTA, soft red (negative), success green (#10B981).
+ * Extra-rounded corners, soft shadows, Moti entrance animations.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -17,24 +19,16 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Modal,
   Animated,
   useColorScheme,
 } from 'react-native';
+import { MotiView } from 'moti';
 import { useUIStore } from '@/store/uiStore';
 import { Colors, Spacing, BorderRadius, Typography, Shadows, Animation } from '@/constants/design';
 import { Ionicons } from '@expo/vector-icons';
 
-// Small helper: always import Emoticons at correct color without nesting theme logic everywhere
-const getTextColor = (isDark: boolean) => (isDark ? Colors.dark.text.primary : Colors.text.primary);
-const getMutedColor = (isDark: boolean) => (isDark ? Colors.dark.text.secondary : Colors.text.muted);
-const getSurfaceColor = (isDark: boolean) => (isDark ? Colors.dark.surface.secondary : Colors.surface.secondary);
-const getSurface3Color = (isDark: boolean) => (isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary);
-
 // ============================================================
 // THEME HOOK — system-aware
-// uiStore.theme may be 'system'; resolve it against the OS scheme so
-// text never renders in a color identical to the surface below it.
 // ============================================================
 
 export function useIsDark(): boolean {
@@ -47,19 +41,20 @@ export function useAppColors() {
   const isDark = useIsDark();
   return {
     isDark,
-    primary: Colors.brand.primary,
-    accent: Colors.brand.accent,
-    coral: Colors.brand.coral,
+    primary: Colors.brand.primary,          // dark cocoa
+    accent: Colors.brand.accent,            // orange
+    coral: Colors.brand.accent,
     background: isDark ? Colors.dark.surface.primary : Colors.surface.primary,
     surface: isDark ? Colors.dark.surface.secondary : Colors.surface.secondary,
     surfaceAlt: isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary,
+    cream: isDark ? Colors.dark.surface.tertiary : Colors.surface.creamSoft,
     card: isDark ? Colors.dark.surface.elevated : Colors.surface.elevated,
     text: isDark ? Colors.dark.text.primary : Colors.text.primary,
     textSecondary: isDark ? Colors.dark.text.secondary : Colors.text.secondary,
     textMuted: isDark ? Colors.dark.text.muted : Colors.text.muted,
     textInverse: isDark ? Colors.dark.text.inverse : Colors.text.inverse,
     border: isDark ? Colors.dark.surface.tertiary : Colors.border.light,
-    borderStrong: isDark ? '#33335A' : Colors.border.medium,
+    borderStrong: isDark ? '#4A3421' : Colors.border.medium,
     semantic: Colors.semantic,
   };
 }
@@ -77,13 +72,16 @@ export function useSoftTheme() {
 }
 
 // ============================================================
-// SOFT BUTTON
+// BUTTON — filled, soft-rounded, soft-shadowed
+// primary = dark cocoa, accent = orange CTA, success = green, danger = soft red
 // ============================================================
+
+export type SoftButtonVariant = 'primary' | 'accent' | 'outline' | 'ghost' | 'secondary' | 'success' | 'danger';
 
 interface SoftButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'accent' | 'outline' | 'ghost' | 'secondary';
+  variant?: SoftButtonVariant;
   tone?: 'brand' | 'accent';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
@@ -91,7 +89,6 @@ interface SoftButtonProps {
   fullWidth?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
-  // used for VeryPrimary (animated glow button)
   withGlow?: boolean;
 }
 
@@ -99,7 +96,7 @@ export function SoftButton({
   label,
   onPress,
   variant = 'primary',
-  tone = 'brand',
+  tone = 'accent',
   size = 'md',
   loading = false,
   disabled = false,
@@ -108,64 +105,58 @@ export function SoftButton({
   style,
   withGlow = false,
 }: SoftButtonProps) {
-  const [pressed, setPressed] = useState(false);
   const isDark = useIsDark();
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   const pressIn = () => {
-    setPressed(true);
-    Animated.spring(scaleAnim, {
-      toValue: 0.96,
-      ...Animation.spring,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 0.95, ...Animation.spring, useNativeDriver: true }).start();
+  };
+  const pressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, ...Animation.spring, useNativeDriver: true }).start();
   };
 
-  const pressOut = () => {
-    setPressed(false);
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      ...Animation.spring,
-      useNativeDriver: true,
-    }).start();
-  };
+  const accentColor = tone === 'accent' ? Colors.brand.accent : Colors.brand.primary;
 
   const bgColor = (() => {
-    if (disabled) return isDark ? Colors.dark.surface.tertiary : Colors.border.light;
+    if (disabled) return isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary;
     switch (variant) {
-      case 'primary':
-        return tone === 'accent' ? Colors.brand.accent : Colors.brand.primary;
-      case 'accent':
-        return Colors.brand.accent;
-      case 'secondary':
-        return isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary;
-      case 'outline':
-        return 'transparent';
-      case 'ghost':
-        return 'transparent';
-      default:
-        return Colors.brand.primary;
+      case 'primary': return Colors.brand.primary;
+      case 'accent': return Colors.brand.accent;
+      case 'success': return Colors.semantic.success;
+      case 'danger': return Colors.semantic.error;
+      case 'secondary': return isDark ? Colors.dark.surface.tertiary : Colors.surface.creamSoft;
+      case 'outline': return 'transparent';
+      case 'ghost': return 'transparent';
+      default: return Colors.brand.primary;
     }
   })();
 
   const textColor = (() => {
-    if (disabled) return getMutedColor(isDark);
+    if (disabled) return isDark ? Colors.dark.text.muted : Colors.text.muted;
     switch (variant) {
       case 'primary':
       case 'accent':
-        return '#FFFFFF'; // brand/accent fills are saturated — always white text
-      case 'outline':
-        return tone === 'accent' ? Colors.brand.accent : Colors.brand.primary;
-      case 'secondary':
-      case 'ghost':
-        return getTextColor(isDark);
-      default:
+      case 'success':
+      case 'danger':
         return '#FFFFFF';
+      case 'outline': return accentColor;
+      case 'secondary': return isDark ? Colors.dark.text.primary : Colors.text.primary;
+      case 'ghost': return accentColor;
+      default: return '#FFFFFF';
     }
   })();
 
-  const height = size === 'lg' ? 56 : size === 'md' ? 52 : 44;
-  const fontSize = size === 'lg' ? Typography.fontSize['2xl'] : size === 'md' ? Typography.fontSize.base : Typography.fontSize.sm;
+  const height = size === 'lg' ? 60 : size === 'md' ? 54 : 46;
+  const fontSize = size === 'lg' ? 17 : size === 'md' ? 15 : 13;
+
+  const glow =
+    withGlow && !disabled
+      ? variant === 'accent' || (variant === 'primary' && tone === 'accent')
+        ? Shadows.buttonOrange
+        : variant === 'success'
+          ? { shadowColor: Colors.semantic.success, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.32, shadowRadius: 22, elevation: 7 }
+          : Shadows.button
+      : {};
 
   return (
     <Pressable
@@ -175,21 +166,26 @@ export function SoftButton({
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
-      style={({ pressed: isPressed }) => [
-        styles.btn,
-        {
-          height,
-          borderRadius: height / 2,
-          backgroundColor: bgColor,
-          opacity: disabled ? 0.5 : 1,
-        },
-        variant === 'outline' ? { borderWidth: 1.5, borderColor: tone === 'accent' ? Colors.brand.accent : Colors.brand.primary } : null,
+      style={[
+        { opacity: disabled ? 0.55 : 1 },
         fullWidth && { alignSelf: 'stretch' },
-        withGlow && !disabled ? Shadows.button : {},
         style,
       ]}
     >
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Animated.View
+        style={[
+          styles.btn,
+          {
+            height,
+            borderRadius: height / 2,
+            backgroundColor: bgColor,
+            // Buttons always carry a background fill + soft shadow (Soft Modern)
+            ...(variant === 'ghost' ? {} : variant === 'outline' ? {} : Shadows.button),
+          },
+          variant === 'outline' ? { borderWidth: 1.5, borderColor: accentColor } : null,
+          glow,
+        ]}
+      >
         {loading ? (
           <ActivityIndicator color={textColor} size="small" />
         ) : (
@@ -206,7 +202,7 @@ export function SoftButton({
 }
 
 // ============================================================
-// SOFT CARD
+// CARD — white on cream, extra rounded, soft shadow, Moti entrance
 // ============================================================
 
 interface SoftCardProps {
@@ -216,7 +212,8 @@ interface SoftCardProps {
   padding?: keyof typeof Spacing;
   style?: ViewStyle;
   animated?: boolean;
-  delay?: number; // stagger delay in ms
+  delay?: number;
+  radius?: keyof typeof BorderRadius;
 }
 
 export function SoftCard({
@@ -227,51 +224,46 @@ export function SoftCard({
   style,
   animated = true,
   delay = 0,
+  radius = 'xl',
 }: SoftCardProps) {
   const isDark = useIsDark();
-  const anim = React.useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (!animated) {
-      anim.setValue(1);
-      return;
-    }
-    const t = setTimeout(() => {
-      Animated.spring(anim, {
-        toValue: 1,
-        ...Animation.gentle,
-        useNativeDriver: true,
-      }).start();
-    }, delay);
-    return () => clearTimeout(t);
-  }, []);
+  const body = (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          borderRadius: BorderRadius[radius],
+          padding: Spacing[padding],
+          backgroundColor: isDark ? Colors.dark.surface.elevated : Colors.surface.elevated,
+          borderColor: isDark ? Colors.dark.surface.tertiary : Colors.border.light,
+        },
+        elevated ? (pressed && onPress ? Shadows.cardPressed : Shadows.card) : {},
+        pressed && onPress ? { transform: [{ scale: 0.985 }] } : {},
+        style,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
 
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
+  if (!animated) return body;
 
   return (
-    <Animated.View style={[!onPress && animated ? { opacity: anim, transform: [{ translateY }] } : {}]}>
-      <Pressable
-        onPress={onPress}
-        disabled={!onPress}
-        style={({ pressed }) => [
-          styles.card,
-          isDark && { backgroundColor: Colors.dark.surface.elevated, borderColor: Colors.dark.surface.tertiary },
-          elevated && !isDark ? Shadows.card : {},
-          {
-            padding: Spacing[padding],
-            ...(pressed && onPress ? { opacity: 0.95, transform: [{ scale: 0.99 }] } : {}),
-          },
-          style,
-        ]}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay }}
+    >
+      {body}
+    </MotiView>
   );
 }
 
 // ============================================================
-// SOFT INPUT
+// INPUT — soft curved cream field, orange focus ring
 // ============================================================
 
 interface SoftInputProps {
@@ -287,8 +279,11 @@ interface SoftInputProps {
   iconRight?: keyof typeof Ionicons.glyphMap;
   onIconRightPress?: () => void;
   style?: ViewStyle;
+  inputStyle?: TextStyle;
   containerStyle?: ViewStyle;
   multiline?: boolean;
+  maxLength?: number;
+  editable?: boolean;
 }
 
 export function SoftInput({
@@ -303,55 +298,69 @@ export function SoftInput({
   iconLeft,
   iconRight,
   onIconRightPress,
+  inputStyle,
   containerStyle,
   multiline,
+  maxLength,
+  editable = true,
 }: SoftInputProps) {
-  const colors = {
-    error: Colors.semantic.error,
-    primary: Colors.brand.primary,
-    muted: getMutedColor(false),
-    bg: Colors.surface.secondary,
-    border: Colors.border.light,
-    inputBg: Colors.surface.secondary,
-    inputBorder: Colors.border.light,
-    text: Colors.text.primary,
-  };
+  const isDark = useIsDark();
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? colors.error : focused ? colors.primary : colors.border;
+  const borderColor = error
+    ? Colors.semantic.error
+    : focused
+      ? Colors.brand.accent
+      : isDark
+        ? Colors.dark.surface.tertiary
+        : Colors.border.light;
 
   return (
     <View style={[styles.inputContainer, containerStyle]}>
-      {label ? <Text style={[styles.inputLabel, { color: colors.text }]}>{label}</Text> : null}
-      <View style={[
-        styles.inputWrapper,
-        {
-          backgroundColor: colors.inputBg,
-          borderColor,
-          borderWidth: 1.5,
-          borderRadius: BorderRadius.lg,
-        },
-        error ? { borderColor: colors.error } : {},
-      ]}>
+      {label ? (
+        <Text style={[styles.inputLabel, { color: isDark ? Colors.dark.text.primary : Colors.text.primary }]}>
+          {label}
+        </Text>
+      ) : null}
+      <View
+        style={[
+          styles.inputWrapper,
+          {
+            backgroundColor: isDark ? Colors.dark.surface.secondary : Colors.surface.secondary,
+            borderColor,
+          },
+          focused ? Shadows.cardPressed : {},
+          error ? { borderColor: Colors.semantic.error } : {},
+        ]}
+      >
         {iconLeft ? (
-          <Ionicons name={iconLeft} size={20} color={colors.muted} style={styles.inputIcon} />
+          <View style={styles.inputIconWrap}>
+            <Ionicons name={iconLeft} size={19} color={focused ? Colors.brand.accent : Colors.text.muted} />
+          </View>
         ) : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={Colors.text.muted}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={[styles.input, multiline && { textAlignVertical: 'top', minHeight: 100 }]}
+          editable={editable}
+          maxLength={maxLength}
+          style={[
+            styles.input,
+            { color: isDark ? Colors.dark.text.primary : Colors.text.primary },
+            multiline && { textAlignVertical: 'top', minHeight: 110 },
+            inputStyle,
+          ]}
           multiline={multiline}
         />
         {iconRight ? (
-          <Pressable onPress={onIconRightPress} style={styles.inputIconRight}>
-            <Ionicons name={iconRight} size={20} color={colors.muted} />
+          <Pressable onPress={onIconRightPress} style={styles.inputIconRight} disabled={!onIconRightPress}>
+            <Ionicons name={iconRight} size={19} color={Colors.text.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -361,12 +370,160 @@ export function SoftInput({
 }
 
 // ============================================================
-// SOFT BADGE
+// CHOICE CARD — rounded option card for every pick/choice row
+// ============================================================
+
+interface ChoiceCardProps {
+  label: string;
+  description?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  emoji?: string;
+  selected?: boolean;
+  onPress?: () => void;
+  style?: ViewStyle;
+  delay?: number;
+}
+
+export function ChoiceCard({
+  label,
+  description,
+  icon,
+  emoji,
+  selected = false,
+  onPress,
+  style,
+  delay = 0,
+}: ChoiceCardProps) {
+  const isDark = useIsDark();
+  const scale = React.useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => Animated.spring(scale, { toValue: 0.97, ...Animation.snappy, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, ...Animation.snappy, useNativeDriver: true }).start();
+
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 14 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 400, delay }}
+      style={style}
+    >
+      <Pressable onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} disabled={!onPress}>
+        <Animated.View
+          style={[
+            styles.choice,
+            {
+              backgroundColor: selected
+                ? Colors.brand.accent
+                : isDark
+                  ? Colors.dark.surface.elevated
+                  : Colors.surface.elevated,
+              borderColor: selected ? Colors.brand.accent : isDark ? Colors.dark.surface.tertiary : Colors.border.light,
+              transform: [{ scale }],
+            },
+            selected ? Shadows.buttonOrange : Shadows.card,
+          ]}
+        >
+          {icon ? (
+            <View
+              style={[
+                styles.choiceIcon,
+                {
+                  backgroundColor: selected
+                    ? 'rgba(255,255,255,0.22)'
+                    : Colors.brand.accentSoft,
+                },
+              ]}
+            >
+              <Ionicons
+                name={icon}
+                size={22}
+                color={selected ? '#FFFFFF' : Colors.brand.accent}
+              />
+            </View>
+          ) : emoji ? (
+            <Text style={styles.choiceEmoji}>{emoji}</Text>
+          ) : null}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.choiceLabel,
+                { color: selected ? '#FFFFFF' : isDark ? Colors.dark.text.primary : Colors.text.primary },
+              ]}
+            >
+              {label}
+            </Text>
+            {description ? (
+              <Text
+                style={[
+                  styles.choiceDesc,
+                  { color: selected ? 'rgba(255,255,255,0.85)' : Colors.text.secondary },
+                ]}
+              >
+                {description}
+              </Text>
+            ) : null}
+          </View>
+          <Ionicons
+            name={selected ? 'checkmark-circle' : 'chevron-forward'}
+            size={20}
+            color={selected ? '#FFFFFF' : Colors.text.muted}
+          />
+        </Animated.View>
+      </Pressable>
+    </MotiView>
+  );
+}
+
+// ============================================================
+// SCREEN HEADER — Playfair headline + Inter subtitle + back button
+// ============================================================
+
+interface ScreenHeaderProps {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  right?: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export function ScreenHeader({ title, subtitle, onBack, right, style }: ScreenHeaderProps) {
+  const isDark = useIsDark();
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: -10 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 350 }}
+      style={[styles.header, style]}
+    >
+      <View style={styles.headerRow}>
+        {onBack ? (
+          <Pressable onPress={onBack} style={[styles.backBtn, { backgroundColor: isDark ? Colors.dark.surface.elevated : Colors.surface.elevated }]} hitSlop={10}>
+            <Ionicons name="arrow-back" size={20} color={isDark ? Colors.dark.text.primary : Colors.text.primary} />
+          </Pressable>
+        ) : null}
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.headerTitle, { color: isDark ? Colors.dark.text.primary : Colors.text.primary }]}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.headerSubtitle, { color: Colors.text.secondary }]}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {right}
+      </View>
+    </MotiView>
+  );
+}
+
+// ============================================================
+// BADGE / CHIP
 // ============================================================
 
 interface SoftBadgeProps {
   label: string;
-  variant?: 'primary' | 'neutral' | 'success' | 'warning' | 'error';
+  variant?: 'primary' | 'neutral' | 'success' | 'warning' | 'error' | 'accent';
   icon?: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
   selected?: boolean;
@@ -380,15 +537,17 @@ export function SoftBadge({
   selected = false,
 }: SoftBadgeProps) {
   const isDark = useIsDark();
-  const colors = {
-    primary: { bg: Colors.brand.primary + '18', text: isDark ? '#B9B4FF' : Colors.brand.primaryDeep, border: Colors.brand.primary + '40' },
-    neutral: { bg: getSurface3Color(isDark), text: getTextColor(isDark), border: isDark ? Colors.dark.surface.tertiary : Colors.border.light },
-    success: { bg: Colors.semantic.successSoft, text: isDark ? '#22C55E' : Colors.semantic.success, border: Colors.semantic.success + '40' },
-    warning: { bg: Colors.semantic.warningSoft, text: isDark ? '#FBBF24' : Colors.semantic.warning, border: Colors.semantic.warning + '40' },
-    error: { bg: Colors.semantic.errorSoft, text: Colors.semantic.error, border: Colors.semantic.error + '40' },
+  const palette = {
+    primary: { bg: '#1E120914', text: Colors.brand.primary, border: '#1E120922' },
+    accent: { bg: Colors.brand.accentSoft, text: Colors.brand.accentPressed, border: Colors.brand.accent + '55' },
+    neutral: { bg: isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary, text: isDark ? Colors.dark.text.primary : Colors.text.primary, border: isDark ? Colors.dark.surface.tertiary : Colors.border.light },
+    success: { bg: Colors.semantic.successSoft, text: Colors.semantic.success, border: Colors.semantic.success + '55' },
+    warning: { bg: Colors.semantic.warningSoft, text: Colors.semantic.warning, border: Colors.semantic.warning + '55' },
+    error: { bg: Colors.semantic.errorSoft, text: Colors.semantic.error, border: Colors.semantic.error + '55' },
   };
-  const color = colors[variant];
-  const tint = selected ? (variant === 'primary' ? Colors.brand.primary : color.bg) : 'transparent';
+  const color = palette[variant];
+  const tint = selected ? (variant === 'accent' ? Colors.brand.accent : Colors.brand.primary) : color.bg;
+  const labelColor = selected ? '#FFFFFF' : color.text;
 
   return (
     <Pressable
@@ -396,12 +555,12 @@ export function SoftBadge({
       disabled={!onPress}
       style={({ pressed }) => [
         styles.badge,
-        { backgroundColor: tint, borderColor: color.border, borderWidth: 1 },
+        { backgroundColor: tint, borderColor: selected ? tint : color.border, borderWidth: 1 },
         pressed && onPress ? { opacity: 0.85 } : {},
       ]}
     >
-      {icon ? <Ionicons name={icon} size={14} color={selected ? Colors.text.inverse : color.text} style={{ marginRight: 4 }} /> : null}
-      <Text style={[styles.badgeText, { color: selected ? Colors.text.inverse : color.text }]}>
+      {icon ? <Ionicons name={icon} size={14} color={labelColor} style={{ marginRight: 4 }} /> : null}
+      <Text style={[styles.badgeText, { color: labelColor }]}>
         {label}
       </Text>
     </Pressable>
@@ -409,7 +568,7 @@ export function SoftBadge({
 }
 
 // ============================================================
-// SOFT AVATAR
+// AVATAR
 // ============================================================
 
 interface SoftAvatarProps {
@@ -452,7 +611,7 @@ export function SoftAvatar({ name, size = 48, source, online, accent }: SoftAvat
 }
 
 // ============================================================
-// SKELETON LOADER — subtle shimmer
+// SKELETON LOADER — warm shimmer
 // ============================================================
 
 export function SoftSkeleton({ width = '100%', height = 20, borderRadius: br = BorderRadius.sm, style }: {
@@ -463,11 +622,16 @@ export function SoftSkeleton({ width = '100%', height = 20, borderRadius: br = B
 }) {
   const isDark = useIsDark();
   return (
-    <View style={[
-      styles.skeleton,
-      { width: width as any, height: height as any, borderRadius: br, backgroundColor: isDark ? Colors.dark.surface.tertiary : Colors.border.light },
-      style,
-    ]} />
+    <MotiView
+      from={{ opacity: 0.45 }}
+      animate={{ opacity: 1 }}
+      transition={{ type: 'timing', duration: 900, loop: true, repeatReverse: true } as any}
+      style={[
+        styles.skeleton,
+        { width: width as any, height: height as any, borderRadius: br, backgroundColor: isDark ? Colors.dark.surface.tertiary : Colors.surface.tertiary },
+        style,
+      ]}
+    />
   );
 }
 
@@ -478,10 +642,10 @@ export function SoftLineSkeleton({ lines = 3, gap = Spacing[3], style }: {
 }) {
   return (
     <View style={[styles.skeletonContainer, { gap }, style]}>
-      <SoftSkeleton width="60%" height={14} />
-      <SoftSkeleton width="80%" height={14} />
-      {lines > 2 ? <SoftSkeleton width="50%" height={14} /> : null}
-      {lines > 3 ? <SoftSkeleton width="70%" height={14} /> : null}
+      <SoftSkeleton width="60%" height={16} borderRadius={8} />
+      <SoftSkeleton width="100%" height={64} borderRadius={BorderRadius.lg} />
+      {lines > 2 ? <SoftSkeleton width="100%" height={64} borderRadius={BorderRadius.lg} /> : null}
+      {lines > 3 ? <SoftSkeleton width="100%" height={64} borderRadius={BorderRadius.lg} /> : null}
     </View>
   );
 }
@@ -505,23 +669,26 @@ export function EmptyStateEnhanced({
 }) {
   const isDark = useIsDark();
   return (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={52} color={Colors.brand.primary + '40'} />
+    <MotiView
+      from={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'timing', duration: 400 }}
+      style={styles.emptyState}
+    >
+      <View style={[styles.emptyIcon, { backgroundColor: Colors.brand.accentSoft }]}>
+        <Ionicons name={icon} size={44} color={Colors.brand.accent} />
       </View>
-      <Text style={[styles.emptyTitle, isDark && { color: Colors.dark.text.primary }]}>{title}</Text>
-      {message ? <Text style={[styles.emptyMessage, isDark && { color: Colors.dark.text.secondary }]}>{message}</Text> : null}
+      <Text style={[styles.emptyTitle, { color: isDark ? Colors.dark.text.primary : Colors.text.primary }]}>{title}</Text>
+      {message ? <Text style={[styles.emptyMessage, { color: Colors.text.secondary }]}>{message}</Text> : null}
       {actionLabel && onAction ? (
-        <Pressable onPress={onAction} style={[styles.btn, styles.emptyBtn, { backgroundColor: Colors.brand.primary }]}>
-          <Text style={[styles.btnText, { color: Colors.text.inverse }]}>{actionLabel}</Text>
-        </Pressable>
+        <SoftButton label={actionLabel} onPress={onAction} variant="accent" fullWidth={false} style={{ paddingHorizontal: Spacing[8], marginTop: Spacing[4] }} withGlow />
       ) : null}
-    </View>
+    </MotiView>
   );
 }
 
 // ============================================================
-// SCREEN WRAPPER (handles dark + top padding)
+// SCREEN WRAPPER — antique white bg, optional scroll
 // ============================================================
 
 export function SoftScreen({
@@ -560,7 +727,7 @@ export function SoftScreen({
 }
 
 // ============================================================
-// ICON WRAPPER — scale-on-press animation
+// ICON — soft circular chip with scale-on-press
 // ============================================================
 
 export function SoftIcon({
@@ -573,7 +740,7 @@ export function SoftIcon({
 }: {
   name: keyof typeof Ionicons.glyphMap;
   size?: number;
-  color: string;
+  color?: string;
   bgColor?: string;
   onPress?: () => void;
   style?: ViewStyle;
@@ -593,13 +760,13 @@ export function SoftIcon({
         <View style={[
           styles.iconContainer,
           {
-            backgroundColor: bgColor || Colors.surface.tertiary,
+            backgroundColor: bgColor || Colors.brand.accentSoft,
             width: size * 2,
             height: size * 2,
             borderRadius: size,
           }
         ]}>
-          <Ionicons name={name} size={size} color={color} />
+          <Ionicons name={name} size={size} color={color || Colors.brand.accent} />
         </View>
       </Animated.View>
     </Pressable>
@@ -611,35 +778,88 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing[6],
-    overflow: 'hidden',
   },
   btnContent: { flexDirection: 'row', alignItems: 'center' },
-  btnText: { fontFamily: Typography.fontFamily.semiBold, fontWeight: '700', includeFontPadding: false },
+  btnText: { fontFamily: Typography.fontFamily.semiBold, includeFontPadding: false, letterSpacing: 0.2 },
   card: {
-    backgroundColor: Colors.surface.elevated,
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.border.light,
+  },
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    padding: Spacing[4],
+    gap: Spacing[3],
+  },
+  choiceIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceEmoji: { fontSize: 26 },
+  choiceLabel: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 15,
+    includeFontPadding: false,
+  },
+  choiceDesc: {
+    fontFamily: Typography.fontFamily.body,
+    fontSize: 12.5,
+    marginTop: 2,
+  },
+  header: { marginBottom: Spacing[6] },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },
+  headerTitle: {
+    fontFamily: Typography.fontFamily.display,
+    fontSize: 26,
+    lineHeight: 32,
+    includeFontPadding: false,
+  },
+  headerSubtitle: {
+    fontFamily: Typography.fontFamily.body,
+    fontSize: 13.5,
+    marginTop: 3,
+    lineHeight: 19,
+  },
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.cardPressed,
   },
   inputContainer: { marginBottom: Spacing[5] },
   inputLabel: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: Typography.fontFamily.medium,
     marginBottom: Spacing[2],
+    marginLeft: Spacing[1],
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[4],
-    minHeight: 52,
+    minHeight: 56,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
   },
-  inputIcon: { marginRight: Spacing[2] },
+  inputIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing[2],
+    backgroundColor: Colors.surface.creamSoft,
+  },
   input: {
     flex: 1,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
+    fontFamily: Typography.fontFamily.body,
+    fontSize: 15,
     paddingVertical: Spacing[3],
   },
   inputIconRight: { padding: Spacing[1] },
@@ -647,17 +867,18 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.semantic.error,
     marginTop: Spacing[1],
+    marginLeft: Spacing[1],
     fontFamily: Typography.fontFamily.medium,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing[3],
-    paddingVertical: Spacing[1],
+    paddingVertical: Spacing[1] + 2,
     borderRadius: BorderRadius.pill,
     overflow: 'hidden',
   },
-  badgeText: { fontSize: Typography.fontSize.xs, fontFamily: Typography.fontFamily.semiBold },
+  badgeText: { fontSize: Typography.fontSize.xs, fontFamily: Typography.fontFamily.semiBold, includeFontPadding: false },
   avatar: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -673,12 +894,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   skeleton: { marginVertical: Spacing[1] },
-  skeletonContainer: { padding: Spacing[5] },
+  skeletonContainer: { padding: Spacing[1] },
   emptyState: { alignItems: 'center', justifyContent: 'center', padding: Spacing[12] },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.brand.primary + '12', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4] },
-  emptyTitle: { fontSize: Typography.fontSize.lg, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary, marginBottom: Spacing[2] },
-  emptyMessage: { fontSize: Typography.fontSize.base, color: Colors.text.secondary, textAlign: 'center', marginBottom: Spacing[6] },
-  emptyBtn: { marginTop: Spacing[4], paddingHorizontal: Spacing[8] },
+  emptyIcon: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[5] },
+  emptyTitle: { fontSize: Typography.fontSize.lg, fontFamily: Typography.fontFamily.semiBold, marginBottom: Spacing[2] },
+  emptyMessage: { fontSize: Typography.fontSize.base, fontFamily: Typography.fontFamily.body, textAlign: 'center', marginBottom: Spacing[6], lineHeight: 22 },
   screen: { flex: 1 },
   screenContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[24] },
   iconContainer: { alignItems: 'center', justifyContent: 'center' },

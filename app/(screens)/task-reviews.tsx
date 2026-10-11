@@ -1,28 +1,30 @@
 /**
- * Task Reviews Screen - View and manage task reviews/ratings
+ * Task Reviews Screen — Soft Modern
+ * Cocoa rating hero, orange rating bars, white review cards
+ * with star rows + given/received badges. Fetch logic unchanged.
  */
 
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { useRouter } from 'expo-router';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
 
 export default function TaskReviewsScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
   const { reviews, isLoading, fetchReviews } = useTaskStore();
-  
-  const isDark = theme === 'dark';
+
   const [refreshing, setRefreshing] = React.useState(false);
   const [filter, setFilter] = React.useState<'all' | 'given' | 'received'>('all');
 
@@ -39,160 +41,160 @@ export default function TaskReviewsScreen() {
     return true;
   });
 
-  const getStarRating = (rating: number) => {
-    return '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
-  };
+  const receivedReviews = reviews.filter(r => r.type === 'received');
+  const overallRating = receivedReviews.length
+    ? receivedReviews.reduce((s, r) => s + r.rating, 0) / receivedReviews.length
+    : 0;
+
+  const StarRow = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Ionicons key={s} name={s <= Math.round(rating) ? 'star' : 'star-outline'} size={size} color={Colors.semantic.warning} />
+      ))}
+    </View>
+  );
 
   const handleReviewPress = (review: any) => {
     Alert.alert(
       review.type === 'given' ? 'Your Review' : 'Review Received',
-      `${review.comment}\n\nRating: ${getStarRating(review.rating)} (${review.rating.toFixed(1)})`,
+      `${review.comment}\n\nRating: ${'★'.repeat(Math.floor(review.rating))} (${review.rating.toFixed(1)})`,
       [{ text: 'OK' }]
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Task Reviews</Text>
-          <View style={{ width: 44 }} />
-        </View>
+    <View style={styles.container}>
+      <View style={{ paddingHorizontal: Spacing[5], paddingTop: Spacing[5] }}>
+        <ScreenHeader title="Reviews" subtitle="Ratings you give and receive" onBack={() => router.back()} style={{ marginBottom: 0 }} />
       </View>
-
       {/* Filter Tabs */}
-      <View style={[styles.filterContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        {['all', 'received', 'given'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.filterTab,
-              filter === tab && styles.filterTabActive,
-              { backgroundColor: filter === tab ? '#8B85FF' : (isDark ? '#2a2a2a' : '#f0f0f0') }
-            ]}
-            onPress={() => setFilter(tab as any)}
-          >
-            <Text style={[
-              styles.filterTabText,
-              filter === tab ? styles.filterTabTextActive : {},
-              { color: filter === tab ? '#fff' : (isDark ? '#fff' : '#000') }
-            ]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.filterContainer}>
+        {(['all', 'received', 'given'] as const).map((tab) => {
+          const active = filter === tab;
+          return (
+            <Pressable
+              key={tab}
+              style={[styles.filterTab, active && styles.filterTabActive]}
+              onPress={() => setFilter(tab)}
+            >
+              <Text style={[styles.filterTabText, active && { color: '#FFFFFF' }]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[isDark ? '#fff' : '#000']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
       >
-        {/* Summary Stats */}
-        <View style={styles.summaryContainer}>
-          <ReviewStatCard
-            title="Overall Rating"
-            value="4.8"
-            subtitle="127 reviews"
-            icon="star-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-          <ReviewStatCard
-            title="Reviews Given"
-            value="42"
-            subtitle="Average: 4.7"
-            icon="send-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          <ReviewStatCard
-            title="Reviews Received"
-            value="85"
-            subtitle="Average: 4.9"
-            icon="receive-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-        </View>
-
-        {/* Rating Breakdown */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginHorizontal: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Rating Breakdown</Text>
-          
-          <View style={styles.ratingBreakdown}>
-            {[5, 4, 3, 2, 1].map((star) => (
-              <View key={star} style={styles.ratingRow}>
-                <Text style={[styles.ratingStarLabel, { color: isDark ? '#fff' : '#000' }]}>{star}★</Text>
-                <View style={styles.ratingBarContainer}>
-                  <View style={styles.ratingBarBg}>
-                    <View style={[styles.ratingBarFill, { width: `${star === 5 ? 65 : star === 4 ? 20 : star === 3 ? 10 : star === 2 ? 3 : 2}%` }]} />
-                  </View>
-                </View>
-                <Text style={[styles.ratingCount, { color: isDark ? '#888' : '#666' }]}>{star === 5 ? '82' : star === 4 ? '25' : star === 3 ? '12' : star === 2 ? '5' : '3'}</Text>
-              </View>
-            ))}
+        {/* Rating hero — cocoa card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 440 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroLeft}>
+            <Text style={styles.heroScore}>{overallRating.toFixed(1)}</Text>
+            <StarRow rating={overallRating} size={16} />
+            <Text style={styles.heroSub}>{receivedReviews.length} reviews received</Text>
           </View>
+          <View style={styles.heroBadge}>
+            <Ionicons name="star" size={40} color="#FFFFFF" />
+          </View>
+        </MotiView>
+
+        {/* Summary strip */}
+        <View style={styles.summaryRow}>
+          {[
+            { icon: 'star' as const, label: 'Avg rating', value: overallRating.toFixed(1), color: Colors.semantic.warning },
+            { icon: 'download' as const, label: 'Received', value: String(receivedReviews.length), color: Colors.semantic.success },
+            { icon: 'send' as const, label: 'Given', value: String(reviews.filter(r => r.type === 'given').length), color: Colors.brand.accent },
+          ].map((item, i) => (
+            <MotiView
+              key={item.label}
+              from={{ opacity: 0, translateY: 14 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 380, delay: 100 + i * 70 }}
+              style={{ flex: 1 }}
+            >
+              <View style={styles.summaryCard}>
+                <View style={[styles.summaryIcon, { backgroundColor: item.color + '1A' }]}>
+                  <Ionicons name={item.icon} size={15} color={item.color} />
+                </View>
+                <Text style={styles.summaryValue}>{item.value}</Text>
+                <Text style={styles.summaryLabel}>{item.label}</Text>
+              </View>
+            </MotiView>
+          ))}
         </View>
 
         {/* Reviews List */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginHorizontal: 16, marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Reviews</Text>
-          
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 420, delay: 300 }}
+          style={styles.section}
+        >
+          <Text style={styles.sectionTitle}>Reviews</Text>
+
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <Text style={[styles.loadingText, { color: isDark ? '#888' : '#666' }]}>Loading reviews...</Text>
+              <Text style={styles.loadingText}>Loading reviews...</Text>
             </View>
           ) : filteredReviews.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="document-text-outline" size={48} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#888' : '#666' }, { marginTop: 12 }]}>No reviews found</Text>
-              <Text style={[styles.emptyDesc, { color: isDark ? '#666' : '#999' }, { marginTop: 4 }]}>Complete tasks to start receiving reviews</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="chatbox-ellipses-outline" size={30} color={Colors.brand.accent} />
+              </View>
+              <Text style={styles.emptyTitle}>No reviews found</Text>
+              <Text style={styles.emptyDesc}>Complete tasks to start receiving reviews</Text>
             </View>
           ) : (
-            <View style={styles.reviewsList}>
+            <View>
               {filteredReviews.map((review, index) => (
-                <TouchableOpacity
+                <Pressable
                   key={review.id}
-                  style={[styles.reviewItem, { borderBottomWidth: index < filteredReviews.length - 1 ? 1 : 0, borderBottomColor: '#eee' }]}
+                  style={[styles.reviewItem, index < filteredReviews.length - 1 && styles.reviewItemDivider]}
                   onPress={() => handleReviewPress(review)}
                 >
                   <View style={styles.reviewHeader}>
                     <View style={styles.reviewAvatar}>
-                      <Text style={styles.reviewAvatarText}>{review.reviewerName?.charAt(0) || 'U'}</Text>
+                      <Text style={styles.reviewAvatarText}>{(review.reviewerName?.charAt(0) || 'U').toUpperCase()}</Text>
                     </View>
                     <View style={styles.reviewInfo}>
                       <View style={styles.reviewNameRow}>
-                        <Text style={[styles.reviewerName, { color: isDark ? '#fff' : '#000' }]}>{review.reviewerName}</Text>
-                        <View style={styles.reviewTypeBadge}>
-                          <Ionicons name={review.type === 'given' ? 'send-outline' : 'download-outline'} size={12} color="#8B85FF" />
-                          <Text style={[styles.reviewTypeText, { color: '#8B85FF' }]}>{review.type === 'given' ? 'Given' : 'Received'}</Text>
+                        <Text style={styles.reviewerName} numberOfLines={1}>{review.reviewerName}</Text>
+                        <View style={[styles.reviewTypeBadge, review.type === 'given' ? styles.reviewTypeGiven : styles.reviewTypeReceived]}>
+                          <Ionicons name={review.type === 'given' ? 'send' : 'download'} size={10} color={review.type === 'given' ? Colors.brand.accentPressed : Colors.semantic.success} />
+                          <Text style={[styles.reviewTypeText, { color: review.type === 'given' ? Colors.brand.accentPressed : Colors.semantic.success }]}>
+                            {review.type === 'given' ? 'Given' : 'Received'}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.reviewMeta}>
-                        <Text style={[styles.reviewTask, { color: isDark ? '#888' : '#666' }]}>{review.taskTitle}</Text>
-                        <Text style={[styles.reviewDate, { color: isDark ? '#666' : '#999' }]}>{new Date(review.createdAt).toLocaleDateString()}</Text>
+                        <Text style={styles.reviewTask} numberOfLines={1}>{review.taskTitle}</Text>
+                        <Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString('en-IN')}</Text>
                       </View>
                     </View>
                   </View>
-                  
+
                   <View style={styles.reviewRating}>
-                    <Text style={[styles.reviewStars, { color: '#F59E0B' }]}>{getStarRating(review.rating)}</Text>
-                    <Text style={[styles.reviewRatingValue, { color: isDark ? '#fff' : '#000' }]}>{review.rating.toFixed(1)}</Text>
+                    <StarRow rating={review.rating} />
+                    <Text style={styles.reviewRatingValue}>{review.rating.toFixed(1)}</Text>
                   </View>
-                  
-                  <Text style={[styles.reviewComment, { color: isDark ? '#ddd' : '#333' }]}>{review.comment}</Text>
-                </TouchableOpacity>
+
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                </Pressable>
               ))}
             </View>
           )}
-        </View>
+        </MotiView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -200,66 +202,81 @@ export default function TaskReviewsScreen() {
   );
 }
 
-const ReviewStatCard = ({ title, value, subtitle, icon, color, isDark }: any) => (
-  <View style={styles.statCard}>
-    <View style={[styles.statCardIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <View style={styles.statCardContent}>
-      <Text style={[styles.statCardValue, { color: isDark ? '#fff' : '#000' }]}>{value}</Text>
-      <Text style={[styles.statCardTitle, { color: isDark ? '#888' : '#666' }]}>{title}</Text>
-      <Text style={[styles.statCardSubtitle, { color: isDark ? '#666' : '#999' }]}>{subtitle}</Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  filterContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  filterTab: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
-  filterTabActive: { },
-  filterTabText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  filterTabTextActive: { color: '#fff' },
-  scrollContent: { paddingTop: 16, paddingBottom: 40 },
-  summaryContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
-  statCard: { flex: 1, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  statCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  statCardContent: { flex: 1 },
-  statCardValue: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 2 },
-  statCardTitle: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  statCardSubtitle: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  ratingBreakdown: { gap: 8 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ratingStarLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', width: 30 },
-  ratingBarContainer: { flex: 1, height: 6 },
-  ratingBarBg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB', overflow: 'hidden' },
-  ratingBarFill: { height: '100%', borderRadius: 3, backgroundColor: '#F59E0B' },
-  ratingCount: { fontSize: 13, fontFamily: 'Inter_500Medium', width: 30, textAlign: 'right' },
-  loadingContainer: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  emptyState: { alignItems: 'center', paddingVertical: 40 },
-  emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  reviewsList: { },
-  reviewItem: { paddingVertical: 16 },
-  reviewHeader: { flexDirection: 'row', marginBottom: 12 },
-  reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#8B85FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  reviewAvatarText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#fff' },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+
+  filterContainer: {
+    flexDirection: 'row', gap: Spacing[2],
+    paddingHorizontal: Spacing[5], paddingTop: Spacing[4],
+  },
+  filterTab: {
+    paddingHorizontal: Spacing[4] + 2, paddingVertical: Spacing[2] + 2, borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.surface.elevated, borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  filterTabActive: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary, ...Shadows.button },
+  filterTabText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+
+  scrollContent: { padding: Spacing[5], paddingBottom: 40 },
+
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.xl,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.button,
+  },
+  heroLeft: { flex: 1, gap: 5 },
+  heroScore: { fontSize: 42, fontFamily: Typography.fontFamily.display, color: '#FFFFFF', lineHeight: 46 },
+  heroSub: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.75)' },
+  heroBadge: {
+    width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  summaryRow: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[4] },
+  summaryCard: {
+    alignItems: 'center', borderRadius: BorderRadius.lg, paddingVertical: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  summaryIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  summaryValue: { fontSize: 17, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  summaryLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[3] },
+
+  loadingContainer: { alignItems: 'center', paddingVertical: Spacing[8] },
+  loadingText: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  emptyState: { alignItems: 'center', paddingVertical: Spacing[8] },
+  emptyIconWrap: {
+    width: 68, height: 68, borderRadius: 34, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[3],
+  },
+  emptyTitle: { fontSize: 15.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  emptyDesc: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 4, textAlign: 'center' },
+
+  reviewItem: { paddingVertical: Spacing[4] },
+  reviewItemDivider: { borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  reviewHeader: { flexDirection: 'row', gap: Spacing[3], marginBottom: Spacing[2] },
+  reviewAvatar: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.brand.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  reviewAvatarText: { fontSize: 16, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
   reviewInfo: { flex: 1 },
-  reviewNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  reviewerName: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  reviewTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8B85FF15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  reviewTypeText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  reviewMeta: { gap: 2 },
-  reviewTask: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  reviewDate: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  reviewRating: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  reviewStars: { fontSize: 16 },
-  reviewRatingValue: { fontSize: 14, fontFamily: 'Inter_700Bold' },
-  reviewComment: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
+  reviewNameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], marginBottom: 3 },
+  reviewerName: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, flexShrink: 1 },
+  reviewTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: Spacing[2], paddingVertical: 2, borderRadius: BorderRadius.pill },
+  reviewTypeGiven: { backgroundColor: Colors.brand.accentSoft },
+  reviewTypeReceived: { backgroundColor: Colors.semantic.successSoft },
+  reviewTypeText: { fontSize: 10, fontFamily: Typography.fontFamily.semiBold },
+  reviewMeta: { flexDirection: 'row', gap: Spacing[2] },
+  reviewTask: { fontSize: 12, fontFamily: Typography.fontFamily.medium, color: Colors.text.secondary, flexShrink: 1 },
+  reviewDate: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted },
+  reviewRating: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2], marginBottom: Spacing[2] },
+  reviewRatingValue: { fontSize: 13, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
+  reviewComment: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 20 },
 });

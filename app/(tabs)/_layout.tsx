@@ -1,7 +1,8 @@
 /**
- * Tabs Layout — Soft Floating Pill Navigation (redesigned)
- * Always-visible icon + label tabs inside a floating rounded shell.
- * Active tab gets a filled brand pill; badges for chats/notifications.
+ * Tabs Layout — Soft Modern Floating Navigation
+ * Orange (#F77051) rounded floating shell (Soft Modern signature nav),
+ * active tab = cream pill with dark cocoa icon+label, pop + slide animations.
+ * Badges for chats/notifications.
  */
 
 import React from 'react';
@@ -30,10 +31,10 @@ const TAB_DEFS: TabDef[] = [
   { route: 'profile', label: 'Profile', icon: 'person', iconOutline: 'person-outline' },
 ];
 
-function TabBadge({ count, dark }: { count: number; dark: boolean }) {
+function TabBadge({ count }: { count: number }) {
   if (!count || count <= 0) return null;
   return (
-    <View style={[styles.badge, { borderColor: dark ? Colors.dark.surface.secondary : Colors.surface.elevated }]}>
+    <View style={styles.badge}>
       <Text style={styles.badgeText} allowFontScaling={false}>
         {count > 99 ? '99+' : count}
       </Text>
@@ -52,22 +53,22 @@ interface FloatingTabBarProps {
 }
 
 function TabButton({
-  def, focused, badge, isDark, inactiveColor, onPress,
+  def, focused, badge, onPress,
 }: {
   def: TabDef;
   focused: boolean;
   badge: number;
-  isDark: boolean;
-  inactiveColor: string;
   onPress: () => void;
 }) {
   // Pop animation when a tab becomes active
   const scale = React.useRef(new Animated.Value(1)).current;
   React.useEffect(() => {
     if (!focused) return;
-    scale.setValue(0.88);
-    Animated.spring(scale, { toValue: 1, damping: 11, stiffness: 260, useNativeDriver: true }).start();
+    scale.setValue(0.82);
+    Animated.spring(scale, { toValue: 1, damping: 11, stiffness: 300, useNativeDriver: true }).start();
   }, [focused, scale]);
+
+  const iconColor = focused ? Colors.brand.primary : 'rgba(255,255,255,0.85)';
 
   return (
     <Pressable
@@ -77,29 +78,15 @@ function TabButton({
       accessibilityLabel={`${def.label} tab`}
       style={styles.tabItem}
     >
-      <Animated.View
-        style={[
-          styles.tabPill,
-          { transform: [{ scale }] },
-        ]}
-      >
+      <Animated.View style={[styles.tabPill, { transform: [{ scale }] }]}>
         <View>
           <Ionicons
             name={focused ? def.icon : def.iconOutline}
-            size={21}
-            color={focused ? '#FFFFFF' : inactiveColor}
+            size={22}
+            color={iconColor}
           />
-          <TabBadge count={badge} dark={isDark} />
+          <TabBadge count={badge} />
         </View>
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.tabLabel,
-            { color: focused ? '#FFFFFF' : inactiveColor },
-          ]}
-        >
-          {def.label}
-        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -113,9 +100,6 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const chatUnread = getTotalUnreadCount();
 
   const isDark = resolvedTheme === 'dark';
-  const shellColor = isDark ? Colors.dark.surface.secondary : Colors.surface.elevated;
-  const borderColor = isDark ? Colors.dark.surface.tertiary : Colors.border.light;
-  const inactiveColor = isDark ? Colors.dark.text.secondary : Colors.text.muted;
 
   // ---- Sliding active-pill animation ----
   const [shellWidth, setShellWidth] = React.useState(0);
@@ -124,7 +108,7 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
     Animated.spring(slide, {
       toValue: state.index,
       damping: 18,
-      stiffness: 220,
+      stiffness: 240,
       useNativeDriver: true,
     }).start();
   }, [state.index, slide]);
@@ -153,10 +137,10 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
       pointerEvents="box-none"
     >
       <View
-        style={[styles.shell, { backgroundColor: shellColor, borderColor }]}
+        style={[styles.shell, isDark && { backgroundColor: Colors.dark.surface.secondary }]}
         onLayout={(e) => setShellWidth(e.nativeEvent.layout.width)}
       >
-        {/* Sliding active background pill */}
+        {/* Sliding active cream pill */}
         {tabWidth > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -167,6 +151,7 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
                 left: SHELL_HPAD + 3,
                 transform: [{ translateX }],
               },
+              isDark && { backgroundColor: Colors.brand.accent },
             ]}
           />
         )}
@@ -193,8 +178,6 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
               def={def}
               focused={focused}
               badge={badge}
-              isDark={isDark}
-              inactiveColor={inactiveColor}
               onPress={onPress}
             />
           );
@@ -232,17 +215,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     backgroundColor: 'transparent',
   },
   shell: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 28,
-    borderWidth: 1,
+    borderRadius: 32,
     paddingHorizontal: 6,
     paddingVertical: 8,
     marginBottom: 10,
+    backgroundColor: Colors.brand.accent, // orange navigation bar (Soft Modern)
     ...Shadows.floating,
   },
   tabItem: { flex: 1 },
@@ -250,35 +233,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    height: 44,
+    gap: 6,
+    height: 46,
     borderRadius: BorderRadius.pill,
     paddingHorizontal: 6,
   },
   activePill: {
     position: 'absolute',
     top: 8,
-    height: 44,
+    height: 46,
     borderRadius: BorderRadius.pill,
-    backgroundColor: Colors.brand.primary,
+    backgroundColor: Colors.surface.primary, // cream active pill on orange shell
   },
-  tabLabel: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: 11.5,
-    includeFontPadding: false,
-  },
+  // icon-only nav (text labels removed per user request)
+
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
-    backgroundColor: Colors.semantic.error,
+    top: -5,
+    right: -10,
+    backgroundColor: Colors.brand.primary, // dark cocoa badge on orange shell
     borderRadius: BorderRadius.full,
-    minWidth: 16,
-    height: 16,
+    minWidth: 17,
+    height: 17,
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
+    borderColor: Colors.surface.primary,
   },
   badgeText: {
     fontSize: 9,

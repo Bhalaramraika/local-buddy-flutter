@@ -15,13 +15,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUIStore } from '@/store/uiStore';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 export default function AboutScreen() {
   const router = useRouter();
-  const { theme } = useUIStore();
-  
-  const isDark = theme === 'dark';
   const appVersion = '1.0.0';
   const buildNumber = '100';
 
@@ -29,144 +28,90 @@ export default function AboutScreen() {
     Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open link'));
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>About</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+  const FEATURES = [
+    { icon: 'shield-checkmark', title: 'Verified Buddies', desc: 'KYC verification for all service providers' },
+    { icon: 'card', title: 'Secure Payments', desc: 'Escrow protection for every transaction' },
+    { icon: 'chatbubbles', title: 'In-App Chat', desc: 'Communicate directly with your buddy' },
+    { icon: 'location', title: 'Local Focus', desc: 'Find help in your neighborhood' },
+    { icon: 'star', title: 'Ratings & Reviews', desc: 'Transparent feedback system' },
+    { icon: 'gift', title: 'Referral Rewards', desc: 'Earn credits by inviting friends' },
+  ];
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* App Logo & Info */}
-        <View style={styles.appInfoSection}>
-          <View style={styles.logoContainer}>
-            <View style={[styles.logo, { backgroundColor: '#8B85FF' }]}>
-              <Ionicons name="people-outline" size={48} color="#fff" />
-            </View>
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="About" subtitle="LocalBuddy — local help, real trust" onBack={() => router.back()} />
+
+        {/* App Logo & Info hero */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'timing', duration: 440 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.logo}>
+            <Ionicons name="people" size={36} color="#fff" />
           </View>
-          <Text style={[styles.appName, { color: isDark ? '#fff' : '#000' }]}>LocalBuddy</Text>
-          <Text style={[styles.appTagline, { color: isDark ? '#888' : '#666' }]}>Your Local Task Marketplace</Text>
-          <View style={styles.versionContainer}>
-            <Text style={[styles.versionText, { color: isDark ? '#888' : '#666' }]}>Version {appVersion}</Text>
-            <Text style={[styles.versionText, { color: isDark ? '#666' : '#999' }]}>Build {buildNumber}</Text>
+          <Text style={styles.appName}>LocalBuddy</Text>
+          <Text style={styles.appTagline}>Your local task marketplace</Text>
+          <View style={styles.versionPill}>
+            <Text style={styles.versionText}>v{appVersion} · Build {buildNumber}</Text>
           </View>
-        </View>
+        </MotiView>
 
         {/* Description */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>About LocalBuddy</Text>
-          <Text style={[styles.descriptionText, { color: isDark ? '#ccc' : '#333' }]}>
-            LocalBuddy connects you with trusted local buddies for everyday tasks and errands. 
-            Whether you need help with grocery shopping, home repairs, tech assistance, or any other task, 
+        <MotableSection index={1} title="About LocalBuddy">
+          <Text style={styles.descriptionText}>
+            LocalBuddy connects you with trusted local buddies for everyday tasks and errands.
+            Whether you need help with grocery shopping, home repairs, tech assistance, or any other task,
             find reliable help in your neighborhood.
           </Text>
-          <Text style={[styles.descriptionText, { color: isDark ? '#ccc' : '#333', marginTop: 12 }]}>
-            Our mission is to build stronger communities by making it easy to give and receive help locally. 
+          <Text style={[styles.descriptionText, { marginTop: Spacing[3] }]}>
+            Our mission is to build stronger communities by making it easy to give and receive help locally.
             Every buddy is verified through our KYC process, and all transactions are protected by our secure escrow system.
           </Text>
-        </View>
+        </MotableSection>
 
         {/* Features */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Key Features</Text>
+        <MotableSection index={2} title="Key features">
           <View style={styles.featuresList}>
-            {[
-              { icon: 'shield-checkmark-outline', title: 'Verified Buddies', desc: 'KYC verification for all service providers' },
-              { icon: 'card-outline', title: 'Secure Payments', desc: 'Escrow protection for every transaction' },
-              { icon: 'chatbubbles-outline', title: 'In-App Chat', desc: 'Communicate directly with your buddy' },
-              { icon: 'location-outline', title: 'Local Focus', desc: 'Find help in your neighborhood' },
-              { icon: 'star-outline', title: 'Ratings & Reviews', desc: 'Transparent feedback system' },
-              { icon: 'gift-outline', title: 'Referral Rewards', desc: 'Earn credits by inviting friends' },
-            ].map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <View style={[styles.featureIcon, { backgroundColor: '#8B85FF15' }]}>
-                  <Ionicons name={feature.icon as any} size={24} color="#8B85FF" />
+            {FEATURES.map((feature) => (
+              <View key={feature.title} style={styles.featureItem}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name={feature.icon as any} size={19} color={Colors.brand.accent} />
                 </View>
                 <View style={styles.featureContent}>
-                  <Text style={[styles.featureTitle, { color: isDark ? '#fff' : '#000' }]}>{feature.title}</Text>
-                  <Text style={[styles.featureDesc, { color: isDark ? '#888' : '#666' }]}>{feature.desc}</Text>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDesc}>{feature.desc}</Text>
                 </View>
               </View>
             ))}
           </View>
-        </View>
+        </MotableSection>
 
         {/* Legal Links */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Legal & Policies</Text>
+        <MotableSection index={3} title="Legal & policies">
           <View style={styles.legalLinks}>
-            <LegalLinkItem 
-              icon="document-text-outline" 
-              title="Terms of Service" 
-              onPress={() => router.push('/terms')} 
-              isDark={isDark} 
-            />
-            <LegalLinkItem 
-              icon="shield-outline" 
-              title="Privacy Policy" 
-              onPress={() => router.push('/privacy')} 
-              isDark={isDark} 
-            />
-            <LegalLinkItem 
-              icon="people-outline" 
-              title="Community Guidelines" 
-              onPress={() => router.push('/guidelines')} 
-              isDark={isDark} 
-            />
-            <LegalLinkItem 
-              icon="logo-github" 
-              title="Open Source Licenses" 
-              onPress={() => handleOpenUrl('https://github.com/localbuddy/licenses')} 
-              isDark={isDark} 
-            />
+            <LegalLinkItem icon="document-text" title="Terms of Service" onPress={() => router.push('/terms')} />
+            <LegalLinkItem icon="shield" title="Privacy Policy" onPress={() => router.push('/privacy')} />
+            <LegalLinkItem icon="people" title="Community Guidelines" onPress={() => router.push('/guidelines')} />
+            <LegalLinkItem icon="logo-github" title="Open Source Licenses" onPress={() => handleOpenUrl('https://github.com/localbuddy/licenses')} last />
           </View>
-        </View>
+        </MotableSection>
 
         {/* Contact */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Contact Us</Text>
-          <View style={styles.contactLinks}>
-            <ContactLinkItem 
-              icon="mail-outline" 
-              title="Email Support" 
-              value="support@localbuddy.app"
-              onPress={() => handleOpenUrl('mailto:support@localbuddy.app')}
-              isDark={isDark} 
-            />
-            <ContactLinkItem 
-              icon="globe-outline" 
-              title="Website" 
-              value="localbuddy.app"
-              onPress={() => handleOpenUrl('https://localbuddy.app')}
-              isDark={isDark} 
-            />
-            <ContactLinkItem 
-              icon="logo-twitter" 
-              title="Twitter" 
-              value="@LocalBuddyApp"
-              onPress={() => handleOpenUrl('https://twitter.com/LocalBuddyApp')}
-              isDark={isDark} 
-            />
+        <MotableSection index={4} title="Contact us">
+          <View style={styles.legalLinks}>
+            <ContactLinkItem icon="mail" title="Email Support" value="support@localbuddy.app" onPress={() => handleOpenUrl('mailto:support@localbuddy.app')} />
+            <ContactLinkItem icon="globe" title="Website" value="localbuddy.app" onPress={() => handleOpenUrl('https://localbuddy.app')} />
+            <ContactLinkItem icon="logo-twitter" title="Twitter" value="@LocalBuddyApp" onPress={() => handleOpenUrl('https://twitter.com/LocalBuddyApp')} last />
           </View>
-        </View>
+        </MotableSection>
 
         {/* Copyright */}
         <View style={styles.copyrightContainer}>
-          <Text style={[styles.copyrightText, { color: isDark ? '#666' : '#999' }]}>
-            © 2024 LocalBuddy. All rights reserved.
-          </Text>
-          <Text style={[styles.copyrightText, { color: isDark ? '#666' : '#999', marginTop: 4 }]}>
-            Made with ❤️ for local communities
-          </Text>
+          <Text style={styles.copyrightText}>© 2024 LocalBuddy. All rights reserved.</Text>
+          <Text style={[styles.copyrightText, { marginTop: 4 }]}>Made with ❤️ for local communities</Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -175,61 +120,92 @@ export default function AboutScreen() {
   );
 }
 
-const LegalLinkItem = ({ icon, title, onPress, isDark }: any) => (
-  <TouchableOpacity style={styles.legalLinkItem} onPress={onPress}>
-    <View style={[styles.legalLinkIcon, { backgroundColor: '#8B85FF15' }]}>
-      <Ionicons name={icon} size={22} color="#8B85FF" />
+function MotableSection({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 90 }}
+      style={styles.section}
+    >
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </MotiView>
+  );
+}
+
+const LegalLinkItem = ({ icon, title, onPress, last }: any) => (
+  <TouchableOpacity style={[styles.linkItem, last && { borderBottomWidth: 0 }]} onPress={onPress}>
+    <View style={styles.linkIcon}>
+      <Ionicons name={icon} size={18} color={Colors.brand.accent} />
     </View>
-    <Text style={[styles.legalLinkTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-    <Ionicons name="chevron-forward-outline" size={20} color={isDark ? '#666' : '#999'} />
+    <Text style={styles.linkTitle}>{title}</Text>
+    <Ionicons name="chevron-forward" size={16} color={Colors.text.muted} />
   </TouchableOpacity>
 );
 
-const ContactLinkItem = ({ icon, title, value, onPress, isDark }: any) => (
-  <TouchableOpacity style={styles.contactLinkItem} onPress={onPress}>
-    <View style={[styles.contactLinkIcon, { backgroundColor: '#8B85FF15' }]}>
-      <Ionicons name={icon} size={22} color="#8B85FF" />
+const ContactLinkItem = ({ icon, title, value, onPress, last }: any) => (
+  <TouchableOpacity style={[styles.linkItem, last && { borderBottomWidth: 0 }]} onPress={onPress}>
+    <View style={styles.linkIcon}>
+      <Ionicons name={icon} size={18} color={Colors.brand.accent} />
     </View>
-    <View style={styles.contactLinkContent}>
-      <Text style={[styles.contactLinkTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.contactLinkValue, { color: isDark ? '#888' : '#666' }]}>{value}</Text>
+    <View style={styles.linkContent}>
+      <Text style={styles.linkTitle}>{title}</Text>
+      <Text style={styles.linkValue}>{value}</Text>
     </View>
-    <Ionicons name="open-outline" size={20} color={isDark ? '#666' : '#999'} />
+    <Ionicons name="open-outline" size={16} color={Colors.text.muted} />
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  appInfoSection: { alignItems: 'center', paddingVertical: 24 },
-  logoContainer: { marginBottom: 16 },
-  logo: { width: 96, height: 96, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  appName: { fontSize: 28, fontFamily: 'Inter_700Bold', marginBottom: 4 },
-  appTagline: { fontSize: 16, fontFamily: 'Inter_400Regular' },
-  versionContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  versionText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  descriptionText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 24 },
-  featuresList: { gap: 16 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+
+  heroCard: {
+    alignItems: 'center', paddingVertical: Spacing[8], marginBottom: Spacing[4],
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius['2xl'],
+    ...Shadows.button,
+  },
+  logo: {
+    width: 84, height: 84, borderRadius: 26, backgroundColor: Colors.brand.accent,
+    justifyContent: 'center', alignItems: 'center', marginBottom: Spacing[4], ...Shadows.buttonOrange,
+  },
+  appName: { fontSize: 30, fontFamily: Typography.fontFamily.display, color: '#FFFFFF' },
+  appTagline: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  versionPill: {
+    marginTop: Spacing[4], backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: BorderRadius.pill, paddingHorizontal: Spacing[4], paddingVertical: 5,
+  },
+  versionText: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: 'rgba(255,255,255,0.9)' },
+
+  section: {
+    borderRadius: BorderRadius.lg, padding: Spacing[5], marginBottom: Spacing[4],
+    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    ...Shadows.card,
+  },
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[4] },
+  descriptionText: { fontSize: 14, fontFamily: Typography.fontFamily.body, lineHeight: 22, color: Colors.text.secondary },
+
+  featuresList: { gap: Spacing[4] },
   featureItem: { flexDirection: 'row', alignItems: 'center' },
-  featureIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  featureIcon: {
+    width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center',
+    marginRight: Spacing[3], backgroundColor: Colors.brand.accentSoft,
+  },
   featureContent: { flex: 1 },
-  featureTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  featureDesc: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  legalLinks: { gap: 8 },
-  legalLinkItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  legalLinkIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  legalLinkTitle: { fontSize: 16, fontFamily: 'Inter_500Medium', flex: 1 },
-  contactLinks: { gap: 8 },
-  contactLinkItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  contactLinkIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  contactLinkContent: { flex: 1 },
-  contactLinkTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  contactLinkValue: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  copyrightContainer: { alignItems: 'center', paddingTop: 24, paddingBottom: 16 },
-  copyrightText: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center' },
+  featureTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: 2 },
+  featureDesc: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+
+  legalLinks: {},
+  linkItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  linkIcon: {
+    width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginRight: Spacing[3],
+  },
+  linkTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, flex: 1 },
+  linkContent: { flex: 1 },
+  linkValue: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+
+  copyrightContainer: { alignItems: 'center', paddingTop: Spacing[6], paddingBottom: Spacing[2] },
+  copyrightText: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, textAlign: 'center' },
 });

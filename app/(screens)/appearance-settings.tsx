@@ -1,27 +1,29 @@
 /**
- * Appearance Settings Screen - Theme, display, and UI customization
+ * Appearance Settings — Soft Modern
+ * Theme choice cards with warm previews, font-size picker,
+ * pill switches for display options, live preview card.
  */
 
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
   StyleSheet,
-  Alert,
   Switch,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { MotiView } from 'moti';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useUIStore } from '@/store/uiStore';
+import { ScreenHeader } from '@/components/ui';
 
 export default function AppearanceSettingsScreen() {
   const router = useRouter();
   const { theme, setTheme, fontSize, setFontSize } = useUIStore();
-  
-  const isDark = theme === 'dark';
-  
+
   const [animationsEnabled, setAnimationsEnabled] = React.useState(true);
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [highContrast, setHighContrast] = React.useState(false);
@@ -30,9 +32,9 @@ export default function AppearanceSettingsScreen() {
   const [showBadges, setShowBadges] = React.useState(true);
 
   const themes = [
-    { id: 'light', name: 'Light', icon: 'sunny-outline', color: '#F59E0B' },
-    { id: 'dark', name: 'Dark', icon: 'moon-outline', color: '#8B85FF' },
-    { id: 'system', name: 'System', icon: 'phone-portrait-outline', color: '#10B981' },
+    { id: 'light', name: 'Light', icon: 'sunny' as const, desc: 'Warm cream, easy on the eyes' },
+    { id: 'dark', name: 'Dark', icon: 'moon' as const, desc: 'Warm charcoal for the night' },
+    { id: 'system', name: 'System', icon: 'phone-portrait' as const, desc: 'Follows your phone setting' },
   ];
 
   const fontSizes = [
@@ -42,184 +44,108 @@ export default function AppearanceSettingsScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Appearance</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
-
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Appearance" subtitle="Theme, fonts and display comfort" onBack={() => router.back()} />
         {/* Theme Selection */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Theme</Text>
-          
-          {themes.map((t) => (
-            <TouchableOpacity
-              key={t.id}
-              style={[
-                styles.themeOption,
-                { 
-                  backgroundColor: isDark ? '#2a2a2a' : '#fff',
-                  borderColor: theme === t.id ? t.color : '#eee',
-                  borderWidth: theme === t.id ? 2 : 1,
-                }
-              ]}
-              onPress={() => setTheme(t.id as 'light' | 'dark' | 'system')}
-            >
-              <View style={[styles.themeIcon, { backgroundColor: `${t.color}15` }]}>
-                <Ionicons name={t.icon as any} size={24} color={t.color} />
-              </View>
-              <View style={styles.themeContent}>
-                <Text style={[styles.themeName, { color: isDark ? '#fff' : '#000' }]}>{t.name}</Text>
-                <Text style={[styles.themeDesc, { color: isDark ? '#888' : '#666' }]}>
-                  {t.id === 'system' ? 'Follow system settings' : `${t.name} mode always`}
-                </Text>
-              </View>
-              {theme === t.id && <Ionicons name="checkmark-circle" size={24} color={t.color} />}
-            </TouchableOpacity>
-          ))}
-        </View>
+        <MotableSection index={0} title="Theme" subtitle="Pick how Local Buddy looks">
+          <View style={styles.themeRow}>
+            {themes.map((t) => {
+              const active = theme === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  style={[styles.themeCard, active && styles.themeCardActive]}
+                  onPress={() => setTheme(t.id as 'light' | 'dark' | 'system')}
+                >
+                  <View style={[styles.themeIconWrap, active && styles.themeIconWrapActive]}>
+                    <Ionicons name={t.icon} size={22} color={active ? '#FFFFFF' : Colors.brand.accent} />
+                  </View>
+                  <Text style={[styles.themeName, active && { color: '#FFFFFF' }]}>{t.name}</Text>
+                  <Text style={[styles.themeDesc, active && { color: 'rgba(255,255,255,0.85)' }]} numberOfLines={2}>{t.desc}</Text>
+                  {active ? (
+                    <View style={styles.themeCheck}>
+                      <Ionicons name="checkmark" size={12} color={Colors.brand.accent} />
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </MotableSection>
 
         {/* Font Size */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Font Size</Text>
-          
-          {fontSizes.map((fs) => (
-            <TouchableOpacity
-              key={fs.id}
-              style={[
-                styles.fontOption,
-                { 
-                  backgroundColor: isDark ? '#2a2a2a' : '#fff',
-                  borderColor: fontSize === fs.id ? '#8B85FF' : '#eee',
-                  borderWidth: fontSize === fs.id ? 2 : 1,
-                }
-              ]}
-              onPress={() => setFontSize(fs.id as 'small' | 'medium' | 'large')}
-            >
-              <View style={styles.fontPreview}>
-                <Text style={{ fontSize: fs.size, fontFamily: 'Inter_400Regular', color: isDark ? '#fff' : '#000' }}>
-                  Sample text preview
-                </Text>
-              </View>
-              <View style={styles.fontInfo}>
-                <Text style={[styles.fontName, { color: isDark ? '#fff' : '#000' }]}>{fs.name}</Text>
-                <Text style={[styles.fontSize, { color: isDark ? '#888' : '#666' }]}>{fs.size}pt</Text>
-              </View>
-              {fontSize === fs.id && <Ionicons name="checkmark-circle" size={24} color="#8B85FF" />}
-            </TouchableOpacity>
-          ))}
-        </View>
+        <MotableSection index={1} title="Font size" subtitle="How big text appears across the app">
+          <View style={styles.fontRow}>
+            {fontSizes.map((fs) => {
+              const active = fontSize === fs.id;
+              return (
+                <Pressable
+                  key={fs.id}
+                  style={[styles.fontCard, active && styles.fontCardActive]}
+                  onPress={() => setFontSize(fs.id as 'small' | 'medium' | 'large')}
+                >
+                  <Text style={{ fontSize: fs.size, fontFamily: Typography.fontFamily.body, color: active ? Colors.brand.accentPressed : Colors.text.primary }}>
+                    Aa
+                  </Text>
+                  <Text style={[styles.fontName, active && { color: Colors.brand.accentPressed }]}>{fs.name}</Text>
+                  {active ? (
+                    <View style={styles.fontCheck}>
+                      <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </MotableSection>
 
         {/* Display Options */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Display</Text>
-          
-          <SettingToggle
-            title="Animations"
-            description="Enable smooth transitions and animations"
-            value={animationsEnabled}
-            onChange={setAnimationsEnabled}
-            icon="flash-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Reduced Motion"
-            description="Minimize motion effects for accessibility"
-            value={reducedMotion}
-            onChange={setReducedMotion}
-            icon="remove-circle-outline"
-            color="#EF4444"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="High Contrast"
-            description="Increase color contrast for better visibility"
-            value={highContrast}
-            onChange={setHighContrast}
-            icon="contrast-outline"
-            color="#10B981"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Compact Mode"
-            description="Reduce spacing for more content on screen"
-            value={compactMode}
-            onChange={setCompactMode}
-            icon="compress-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={2} title="Display" subtitle="Fine-tune motion and layout">
+          <SettingToggle title="Animations" description="Smooth transitions across screens" icon="sparkles" value={animationsEnabled} onChange={setAnimationsEnabled} />
+          <SettingToggle title="Reduced Motion" description="Minimize motion for accessibility" icon="remove-circle-outline" value={reducedMotion} onChange={setReducedMotion} />
+          <SettingToggle title="High Contrast" description="Stronger text contrast" icon="contrast-outline" value={highContrast} onChange={setHighContrast} />
+          <SettingToggle title="Compact Mode" description="Denser content, less spacing" icon="compress-outline" value={compactMode} onChange={setCompactMode} last />
+        </MotableSection>
 
         {/* Content Display */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Content Display</Text>
-          
-          <SettingToggle
-            title="Show Avatars"
-            description="Display user profile pictures"
-            value={showAvatars}
-            onChange={setShowAvatars}
-            icon="person-circle-outline"
-            color="#8B85FF"
-            isDark={isDark}
-          />
-          
-          <SettingToggle
-            title="Show Badges"
-            description="Display achievement and verification badges"
-            value={showBadges}
-            onChange={setShowBadges}
-            icon="ribbon-outline"
-            color="#F59E0B"
-            isDark={isDark}
-          />
-        </View>
+        <MotableSection index={3} title="Content" subtitle="What shows in lists and profiles">
+          <SettingToggle title="Show Avatars" description="Profile pictures in lists" icon="person-circle-outline" value={showAvatars} onChange={setShowAvatars} />
+          <SettingToggle title="Show Badges" description="Verification and achievement badges" icon="ribbon-outline" value={showBadges} onChange={setShowBadges} last />
+        </MotableSection>
 
-        {/* Preview */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#2a2a2a' : '#fff', marginTop: 16 }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>Preview</Text>
-          
-          <View style={[styles.previewCard, { backgroundColor: isDark ? '#1a1a1a' : '#fafafa' }]}>
+        {/* Live Preview */}
+        <MotableSection index={4} title="Preview" subtitle="Live look at your settings">
+          <View style={styles.previewCard}>
             <View style={styles.previewHeader}>
-              <View style={styles.previewAvatar}>
-                <Text style={styles.previewAvatarText}>JB</Text>
+              {showAvatars ? (
+                <View style={styles.previewAvatar}>
+                  <Text style={styles.previewAvatarText}>JB</Text>
+                </View>
+              ) : null}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewName}>John Buddy</Text>
+                <Text style={styles.previewSub}>Super Buddy • 4.9★</Text>
               </View>
-              <View>
-                <Text style={[styles.previewName, { color: isDark ? '#fff' : '#000' }]}>John Buddy</Text>
-                <Text style={[styles.previewSub, { color: isDark ? '#888' : '#666' }]}>Super Buddy • 4.9★</Text>
-              </View>
-              {showBadges && (
+              {showBadges ? (
                 <View style={styles.previewBadges}>
-                  <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
-                    <Text style={styles.badgeText}>⭐</Text>
+                  <View style={[styles.badge, { backgroundColor: Colors.semantic.successSoft }]}>
+                    <Ionicons name="checkmark" size={12} color={Colors.semantic.success} />
                   </View>
-                  <View style={[styles.badge, { backgroundColor: '#8B85FF' }]}>
-                    <Text style={styles.badgeText}>✓</Text>
+                  <View style={[styles.badge, { backgroundColor: Colors.brand.accentSoft }]}>
+                    <Ionicons name="star" size={11} color={Colors.brand.accent} />
                   </View>
                 </View>
-              )}
+              ) : null}
             </View>
-            <Text style={[styles.previewText, { color: isDark ? '#fff' : '#000', fontSize: fontSize === 'small' ? 14 : fontSize === 'medium' ? 16 : 18 }]}>
-              This is a preview of how content will appear with your current settings. 
-              Adjust theme, font size, and display options above to see changes.
+            <Text style={[styles.previewText, { fontSize: fontSize === 'small' ? 13.5 : fontSize === 'medium' ? 15 : 17 }]}>
+              This is a live preview of how content looks with your current settings.
             </Text>
+            <Pressable style={styles.previewBtn}>
+              <Text style={styles.previewBtnText}>Sample button</Text>
+            </Pressable>
           </View>
-        </View>
+        </MotableSection>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -227,110 +153,114 @@ export default function AppearanceSettingsScreen() {
   );
 }
 
-const SettingToggle = ({ 
-  title, 
-  description, 
-  icon, 
-  color, 
-  isDark, 
-  value, 
-  onChange 
-}: any) => (
-  <TouchableOpacity style={[styles.settingItem, { backgroundColor: isDark ? '#2a2a2a' : '#fff' }]}>
-    <View style={[styles.settingIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+function MotableSection({ index, title, subtitle, children }: { index: number; title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 420, delay: index * 90 }}
+      style={styles.section}
+    >
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.sectionSub}>{subtitle}</Text> : null}
+      {children}
+    </MotiView>
+  );
+}
+
+const SettingToggle = ({ title, description, icon, value, onChange, last }: any) => (
+  <View style={[styles.settingItem, last && { borderBottomWidth: 0 }]}>
+    <View style={[styles.settingIcon, value && styles.settingIconActive]}>
+      <Ionicons name={icon} size={19} color={value ? '#FFFFFF' : Colors.brand.accent} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={[styles.settingTitle, { color: isDark ? '#fff' : '#000' }]}>{title}</Text>
-      <Text style={[styles.settingDescription, { color: isDark ? '#888' : '#666' }]}>{description}</Text>
+      <Text style={styles.settingTitle}>{title}</Text>
+      <Text style={styles.settingDescription}>{description}</Text>
     </View>
     <Switch
       value={value}
       onValueChange={onChange}
-      trackColor={{ false: '#E5E7EB', true: color }}
-      thumbColor={isDark ? '#fff' : '#fff'}
+      trackColor={{ false: Colors.border.medium, true: Colors.brand.accent }}
+      thumbColor="#FFFFFF"
     />
-  </TouchableOpacity>
+  </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
-  section: { borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 16 },
-  themeOption: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 16, 
-    borderRadius: 12, 
-    marginBottom: 12,
-    borderWidth: 1,
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  scrollContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[5], paddingBottom: 40 },
+
+  section: {
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
   },
-  themeIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  sectionTitle: { fontSize: 18, fontFamily: Typography.fontFamily.display, color: Colors.text.primary },
+  sectionSub: { fontSize: 12.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 3, marginBottom: Spacing[4] },
+
+  themeRow: { flexDirection: 'row', gap: Spacing[3] },
+  themeCard: {
+    flex: 1, alignItems: 'center', paddingVertical: Spacing[4], paddingHorizontal: Spacing[2],
+    borderRadius: BorderRadius.md, backgroundColor: Colors.surface.primary,
+    borderWidth: 1.5, borderColor: Colors.border.light,
   },
-  themeContent: { flex: 1 },
-  themeName: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  themeDesc: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  fontOption: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 16, 
-    borderRadius: 12, 
-    marginBottom: 12,
-    borderWidth: 1,
+  themeCardActive: { backgroundColor: Colors.brand.accent, borderColor: Colors.brand.accent, ...Shadows.buttonOrange },
+  themeIconWrap: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[2],
   },
-  fontPreview: { flex: 1, paddingRight: 16 },
-  fontInfo: { marginRight: 16 },
-  fontName: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  fontSize: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  settingItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+  themeIconWrapActive: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  themeName: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, marginBottom: 2 },
+  themeDesc: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, textAlign: 'center', lineHeight: 14 },
+  themeCheck: {
+    position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
   },
-  settingIcon: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+
+  fontRow: { flexDirection: 'row', gap: Spacing[3] },
+  fontCard: {
+    flex: 1, alignItems: 'center', paddingVertical: Spacing[4],
+    borderRadius: BorderRadius.md, backgroundColor: Colors.surface.primary,
+    borderWidth: 1.5, borderColor: Colors.border.light,
   },
+  fontCardActive: { backgroundColor: Colors.brand.accentSoft, borderColor: Colors.brand.accent },
+  fontName: { fontSize: 12, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary, marginTop: Spacing[1] },
+  fontCheck: {
+    position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9,
+    backgroundColor: Colors.brand.accent, alignItems: 'center', justifyContent: 'center',
+  },
+
+  settingItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    paddingVertical: Spacing[3] + 2, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
+  },
+  settingIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  settingIconActive: { backgroundColor: Colors.brand.accent },
   settingContent: { flex: 1 },
-  settingTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  settingDescription: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  previewCard: { 
-    borderRadius: 12, 
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#eee',
+  settingTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  settingDescription: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+
+  previewCard: {
+    borderRadius: BorderRadius.md, padding: Spacing[4], marginTop: Spacing[2],
+    backgroundColor: Colors.surface.primary, borderWidth: 1, borderColor: Colors.border.light,
   },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  previewAvatar: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 24, 
-    backgroundColor: '#8B85FF', 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    marginRight: 12,
+  previewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing[3], gap: Spacing[3] },
+  previewAvatar: {
+    width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.brand.primary,
+    alignItems: 'center', justifyContent: 'center',
   },
-  previewAvatarText: { color: '#fff', fontSize: 18, fontFamily: 'Inter_700Bold' },
-  previewName: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  previewSub: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  previewBadges: { flexDirection: 'row', gap: 8, marginLeft: 'auto' },
-  badge: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  badgeText: { fontSize: 12, color: '#fff' },
-  previewText: { fontFamily: 'Inter_400Regular', lineHeight: 22 },
+  previewAvatarText: { color: '#FFFFFF', fontSize: 17, fontFamily: Typography.fontFamily.bold },
+  previewName: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  previewSub: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  previewBadges: { flexDirection: 'row', gap: 6 },
+  badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  previewText: { fontFamily: Typography.fontFamily.body, lineHeight: 22, color: Colors.text.secondary, marginBottom: Spacing[3] },
+  previewBtn: {
+    alignSelf: 'flex-start', backgroundColor: Colors.brand.accent, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[5], paddingVertical: Spacing[2] + 2, ...Shadows.buttonOrange,
+  },
+  previewBtnText: { color: '#FFFFFF', fontSize: 13, fontFamily: Typography.fontFamily.semiBold },
 });

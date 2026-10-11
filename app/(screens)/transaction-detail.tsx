@@ -1,39 +1,60 @@
 /**
- * Transaction Detail Screen
- * Shows detailed information about a wallet transaction
+ * Transaction Detail Screen — Soft Modern
+ * Big tinted status hero, receipt-style amount breakdown,
+ * rounded info cards. All data flow unchanged.
  */
 
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { formatCurrency, formatDateTime, formatRelativeTime } from '@/utils/helpers';
+import { formatCurrency, formatDateTime } from '@/utils/helpers';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftButton, ScreenHeader } from '@/components/ui';
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: Colors.semantic.success,
+  pending: Colors.semantic.warning,
+  failed: Colors.semantic.error,
+  cancelled: Colors.text.muted,
+  refunded: Colors.semantic.info,
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'completed': return 'checkmark-circle';
+    case 'pending': return 'time-outline';
+    case 'failed': return 'close-circle';
+    case 'cancelled': return 'ban';
+    case 'refunded': return 'undo';
+    default: return 'help-circle';
+  }
+};
 
 export default function TransactionDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
-  const { 
-    transactions, 
+
+  const {
+    transactions,
     fetchTransactions,
-    isLoading: transactionsLoading,
   } = useWalletStore();
-  
+
   const { isAuthenticated } = useAuthStore();
-  const { showToast, setGlobalLoading } = useUIStore();
-  
+  const { showToast } = useUIStore();
+
   const [transaction, setTransaction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +97,8 @@ export default function TransactionDetailScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B85FF" />
+        <ActivityIndicator size="large" color={Colors.brand.accent} />
+        <Text style={styles.loadingText}>Loading transaction…</Text>
       </View>
     );
   }
@@ -86,469 +108,269 @@ export default function TransactionDetailScreen() {
   }
 
   const isCredit = transaction.type === 'credit';
-  const statusColors: Record<string, string> = {
-    completed: '#10B981',
-    pending: '#F59E0B',
-    failed: '#EF4444',
-    cancelled: '#6B7280',
-    refunded: '#8B5CF6',
-  };
+  const dirColor = isCredit ? Colors.semantic.success : Colors.semantic.error;
+  const dirSoft = isCredit ? Colors.semantic.successSoft : Colors.semantic.errorSoft;
+  const statusColor = STATUS_COLORS[transaction.status] || Colors.text.muted;
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return 'checkmark-circle';
-      case 'pending': return 'time-outline';
-      case 'failed': return 'close-circle';
-      case 'cancelled': return 'ban';
-      case 'refunded': return 'undo';
-      default: return 'help-circle';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const getTypeIcon = (type: string, category?: string) => {
-    if (type === 'credit') {
-      switch (category) {
-        case 'task_payment': return { icon: 'cash-check', color: '#10B981' };
-        case 'referral_bonus': return { icon: 'gift', color: '#8B5CF6' };
-        case 'topup': return { icon: 'add-circle', color: '#8B85FF' };
-        case 'refund': return { icon: 'undo', color: '#06B6D4' };
-        default: return { icon: 'arrow-down-circle', color: '#10B981' };
-      }
-    } else {
-      switch (category) {
-        case 'withdrawal': return { icon: 'bank-transfer-out', color: '#EF4444' };
-        case 'task_payment': return { icon: 'cash-minus', color: '#EF4444' };
-        case 'fee': return { icon: 'receipt', color: '#F59E0B' };
-        default: return { icon: 'arrow-up-circle', color: '#EF4444' };
-      }
-    }
-  };
-
-  const typeIcon = getTypeIcon(transaction.type, transaction.category);
+  const detailRows: Array<{ label: string; value: string }> = [
+    { label: 'Transaction ID', value: transaction.id },
+    { label: 'Date & time', value: formatDateTime(transaction.createdAt) },
+    { label: 'Type', value: transaction.type === 'credit' ? 'Credit (Received)' : 'Debit (Sent)' },
+    { label: 'Category', value: (transaction.category?.replace(/_/g, ' ') || 'General') },
+    ...(transaction.paymentMethod ? [{ label: 'Payment method', value: String(transaction.paymentMethod) }] : []),
+    ...(transaction.referenceId ? [{ label: 'Reference ID', value: String(transaction.referenceId) }] : []),
+  ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Status Header */}
-      <View style={styles.statusHeader}>
-        <View style={[
-          styles.statusIconContainer,
-          { backgroundColor: `${typeIcon.color}20` }
-        ]}>
-          <Ionicons name={typeIcon.icon as any} size={32} color={typeIcon.color} />
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScreenHeader title="Transaction" subtitle="Receipt and details" onBack={() => router.back()} />
+      {/* Hero card */}
+      <MotiView
+        from={{ opacity: 0, translateY: 18, scale: 0.97 }}
+        animate={{ opacity: 1, translateY: 0, scale: 1 }}
+        transition={{ type: 'timing', duration: 440 }}
+        style={styles.heroCard}
+      >
+        <View style={[styles.heroIconWrap, { backgroundColor: dirSoft }]}>
+          <Ionicons name={isCredit ? 'arrow-down' : 'arrow-up'} size={30} color={dirColor} />
         </View>
-        <View style={styles.statusInfo}>
-          <Text style={styles.statusTitle}>{transaction.description}</Text>
-          <Text style={[
-            styles.statusSubtitle,
-            { color: isCredit ? '#10B981' : '#EF4444' }
-          ]}>
-            {isCredit ? '+' : '-'}{formatCurrency(transaction.amount)}
+        <Text style={styles.heroTitle} numberOfLines={2}>{transaction.description}</Text>
+        <Text style={[styles.heroAmount, { color: dirColor }]}>
+          {isCredit ? '+' : '−'}{formatCurrency(transaction.amount)}
+        </Text>
+        <View style={[styles.statusPill, { backgroundColor: statusColor + '1A' }]}>
+          <Ionicons name={getStatusIcon(transaction.status) as any} size={14} color={statusColor} />
+          <Text style={[styles.statusPillText, { color: statusColor }]}>
+            {String(transaction.status).charAt(0).toUpperCase() + String(transaction.status).slice(1)}
           </Text>
         </View>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: `${statusColors[transaction.status] || '#6B7280'}20` }
-        ]}>
-          <Ionicons 
-            name={getStatusIcon(transaction.status) as any} 
-            size={16} 
-            color={statusColors[transaction.status] || '#6B7280'} 
-          />
-          <Text style={[
-            styles.statusBadgeText,
-            { color: statusColors[transaction.status] || '#6B7280' }
-          ]}>
-            {getStatusLabel(transaction.status)}
-          </Text>
-        </View>
-      </View>
+      </MotiView>
 
-      {/* Amount Details */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Amount Details</Text>
+      {/* Amount breakdown */}
+      <MotiView
+        from={{ opacity: 0, translateY: 16 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 400, delay: 100 }}
+        style={styles.section}
+      >
+        <Text style={styles.sectionTitle}>Amount details</Text>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Transaction Amount</Text>
-          <Text style={[
-            styles.detailValue,
-            { color: isCredit ? '#10B981' : '#EF4444' }
-          ]}>
-            {isCredit ? '+' : '-'}{formatCurrency(transaction.amount)}
+          <Text style={styles.detailLabel}>Transaction amount</Text>
+          <Text style={[styles.detailValue, { color: dirColor }]}>
+            {isCredit ? '+' : '−'}{formatCurrency(transaction.amount)}
           </Text>
         </View>
-        {transaction.fee && transaction.fee > 0 && (
+        {transaction.fee && transaction.fee > 0 ? (
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Fee</Text>
-            <Text style={styles.detailValue}>-{formatCurrency(transaction.fee)}</Text>
+            <Text style={[styles.detailValue, { color: Colors.semantic.error }]}>−{formatCurrency(transaction.fee)}</Text>
           </View>
-        )}
-        {transaction.netAmount !== undefined && (
+        ) : null}
+        {transaction.netAmount !== undefined ? (
           <View style={[styles.detailRow, styles.detailRowTotal]}>
-            <Text style={styles.detailLabel}>Net Amount</Text>
-            <Text style={[
-              styles.detailValueTotal,
-              { color: isCredit ? '#10B981' : '#EF4444' }
-            ]}>
-              {isCredit ? '+' : '-'}{formatCurrency(transaction.netAmount)}
+            <Text style={styles.detailLabelBold}>Net amount</Text>
+            <Text style={[styles.detailValueTotal, { color: dirColor }]}>
+              {isCredit ? '+' : '−'}{formatCurrency(transaction.netAmount)}
             </Text>
           </View>
-        )}
-      </View>
+        ) : null}
+      </MotiView>
 
-      {/* Transaction Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transaction Information</Text>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Transaction ID</Text>
-            <Text style={styles.infoValue} numberOfLines={1}>{transaction.id}</Text>
+      {/* Info grid */}
+      <MotiView
+        from={{ opacity: 0, translateY: 16 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 400, delay: 180 }}
+        style={styles.section}
+      >
+        <Text style={styles.sectionTitle}>Transaction information</Text>
+        {detailRows.map((row, i) => (
+          <View key={row.label} style={[styles.infoRow, i === detailRows.length - 1 && styles.infoRowLast]}>
+            <Text style={styles.infoLabel}>{row.label}</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{row.value}</Text>
           </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Date & Time</Text>
-            <Text style={styles.infoValue}>{formatDateTime(transaction.createdAt)}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Type</Text>
-            <Text style={styles.infoValue}>{transaction.type === 'credit' ? 'Credit (Received)' : 'Debit (Sent)'}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Category</Text>
-            <Text style={styles.infoValue}>{transaction.category?.replace('_', ' ') || 'General'}</Text>
-          </View>
-          {transaction.paymentMethod && (
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Payment Method</Text>
-              <Text style={styles.infoValue}>{transaction.paymentMethod}</Text>
-            </View>
-          )}
-          {transaction.referenceId && (
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Reference ID</Text>
-              <Text style={styles.infoValue} numberOfLines={1}>{transaction.referenceId}</Text>
-            </View>
-          )}
-        </View>
-      </View>
+        ))}
+      </MotiView>
 
       {/* Bank Account Details (for withdrawals) */}
-      {transaction.bankAccount && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bank Account</Text>
-          <View style={styles.bankAccountCard}>
-            <View style={styles.bankAccountRow}>
-              <MaterialCommunityIcons name="bank" size={24} color="#8B85FF" />
-              <View style={styles.bankAccountInfo}>
-                <Text style={styles.bankAccountName}>{transaction.bankAccount.bankName}</Text>
-                <Text style={styles.bankAccountNumber}>
-                  **** **** **** {transaction.bankAccount.accountNumber.slice(-4)}
-                </Text>
-              </View>
+      {transaction.bankAccount ? (
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400, delay: 260 }}
+          style={styles.section}
+        >
+          <Text style={styles.sectionTitle}>Bank account</Text>
+          <View style={styles.bankCard}>
+            <View style={styles.bankChip}>
+              <MaterialCommunityIcons name="bank" size={22} color={Colors.brand.accent} />
             </View>
-            <View style={styles.bankAccountDetails}>
-              <Text style={styles.bankDetailLabel}>Account Holder</Text>
-              <Text style={styles.bankDetailValue}>{transaction.bankAccount.accountHolderName}</Text>
-              <Text style={styles.bankDetailLabel}>IFSC</Text>
-              <Text style={styles.bankDetailValue}>{transaction.bankAccount.ifscCode}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bankName}>{transaction.bankAccount.bankName}</Text>
+              <Text style={styles.bankNumber}>
+                •••• {transaction.bankAccount.accountNumber.slice(-4)}
+              </Text>
             </View>
           </View>
-        </View>
-      )}
+          <View style={styles.bankMetaRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>Account holder</Text>
+              <Text style={styles.infoValue}>{transaction.bankAccount.accountHolderName}</Text>
+            </View>
+            <View>
+              <Text style={styles.infoLabel}>IFSC</Text>
+              <Text style={styles.infoValue}>{transaction.bankAccount.ifscCode}</Text>
+            </View>
+          </View>
+        </MotiView>
+      ) : null}
 
       {/* Related Task (for task payments) */}
-      {transaction.taskId && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Related Task</Text>
-          <TouchableOpacity style={styles.taskCard} onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: transaction.taskId } })}>
-            <View style={styles.taskCardContent}>
-              <View style={[
-                styles.taskCategoryIcon,
-                { backgroundColor: '#8B85FF20' }
-              ]}>
-                <Ionicons name="briefcase-outline" size={20} color="#8B85FF" />
-              </View>
-              <View style={styles.taskInfo}>
-                <Text style={styles.taskTitle}>{transaction.taskTitle || 'Task'}</Text>
-                <Text style={styles.taskId}>Task ID: {transaction.taskId.slice(0, 8)}...</Text>
-              </View>
+      {transaction.taskId ? (
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400, delay: 320 }}
+          style={styles.section}
+        >
+          <Text style={styles.sectionTitle}>Related task</Text>
+          <Pressable
+            style={({ pressed }) => [styles.taskCard, pressed && { backgroundColor: Colors.surface.creamSoft }]}
+            onPress={() => router.push({ pathname: `/(screens)/task-detail`, params: { taskId: transaction.taskId } })}
+          >
+            <View style={styles.taskIconWrap}>
+              <Ionicons name="briefcase-outline" size={19} color={Colors.brand.accent} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        </View>
-      )}
+            <View style={styles.taskInfo}>
+              <Text style={styles.taskTitle} numberOfLines={1}>{transaction.taskTitle || 'Task'}</Text>
+              <Text style={styles.taskId}>Task ID: {String(transaction.taskId).slice(0, 8)}…</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color={Colors.text.muted} />
+          </Pressable>
+        </MotiView>
+      ) : null}
 
       {/* Actions */}
-      <View style={styles.actionsSection}>
-        {transaction.status === 'pending' && (
-          <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => {
-            Alert.alert(
-              'Cancel Transaction',
-              'Are you sure you want to cancel this pending transaction?',
-              [
-                { text: 'No', style: 'cancel' },
-                { text: 'Yes, Cancel', style: 'destructive', onPress: () => {
-                  // TODO: Implement cancel transaction
-                  showToast('Transaction cancelled', 'success');
-                  router.back();
-                }},
-              ]
-            );
-          }}>
-            <Ionicons name="close-circle" size={20} color="#EF4444" />
-            <Text style={styles.actionBtnTextSecondary}>Cancel Transaction</Text>
-          </TouchableOpacity>
-        )}
-        
-        {transaction.status === 'completed' && transaction.type === 'debit' && transaction.category === 'withdrawal' && (
-          <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => {
-            // TODO: Implement download receipt
-            showToast('Receipt downloaded', 'success');
-          }}>
-            <Ionicons name="download" size={20} color="#8B85FF" />
-            <Text style={styles.actionBtnTextSecondary}>Download Receipt</Text>
-          </TouchableOpacity>
-        )}
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 400, delay: 380 }}
+        style={styles.actionsSection}
+      >
+        {transaction.status === 'pending' ? (
+          <SoftButton
+            label="Cancel transaction"
+            variant="danger"
+            icon="close-circle-outline"
+            onPress={() => {
+              Alert.alert(
+                'Cancel Transaction',
+                'Are you sure you want to cancel this pending transaction?',
+                [
+                  { text: 'No', style: 'cancel' },
+                  { text: 'Yes, Cancel', style: 'destructive', onPress: () => {
+                    // TODO: Implement cancel transaction
+                    showToast('Transaction cancelled', 'success');
+                    router.back();
+                  }},
+                ]
+              );
+            }}
+          />
+        ) : null}
 
-        <TouchableOpacity style={styles.actionBtnPrimary} onPress={() => router.back()}>
-          <Text style={styles.actionBtnTextPrimary}>Done</Text>
-        </TouchableOpacity>
-      </View>
+        {transaction.status === 'completed' && transaction.type === 'debit' && transaction.category === 'withdrawal' ? (
+          <SoftButton
+            label="Download receipt"
+            variant="success"
+            icon="download-outline"
+            onPress={() => {
+              // TODO: Implement download receipt
+              showToast('Receipt downloaded', 'success');
+            }}
+            style={{ marginTop: transaction.status === 'pending' ? Spacing[3] : 0 }}
+          />
+        ) : null}
+
+        <SoftButton label="Done" variant="primary" icon="checkmark" onPress={() => router.back()} style={{ marginTop: Spacing[3] }} />
+      </MotiView>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+  content: { padding: Spacing[5], paddingBottom: Spacing[10] },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface.primary, gap: Spacing[3] },
+  loadingText: { fontFamily: Typography.fontFamily.body, fontSize: 13.5, color: Colors.text.secondary },
+
+  heroCard: {
+    alignItems: 'center', backgroundColor: Colors.surface.elevated,
+    borderRadius: BorderRadius['2xl'], borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[6], marginBottom: Spacing[4], ...Shadows.elevated,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  heroIconWrap: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
   },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+  heroTitle: { fontSize: 17, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, textAlign: 'center', marginBottom: Spacing[2] },
+  heroAmount: { fontSize: 38, fontFamily: Typography.fontFamily.bold, letterSpacing: 0.3, marginBottom: Spacing[4] },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: Spacing[4], paddingVertical: 6, borderRadius: BorderRadius.pill,
   },
-  statusIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  statusSubtitle: {
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'capitalize',
-  },
+  statusPillText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold },
+
   section: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 1, borderColor: Colors.border.light,
+    padding: Spacing[5], marginBottom: Spacing[4], ...Shadows.card,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
-    marginBottom: 16,
-  },
+  sectionTitle: { fontSize: 17, fontFamily: Typography.fontFamily.display, color: Colors.text.primary, marginBottom: Spacing[3] },
+
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: Spacing[3], borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  detailRowTotal: {
-    borderBottomWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    marginTop: 4,
-    paddingTop: 14,
+  detailRowTotal: { borderBottomWidth: 0, borderTopWidth: 1.5, borderTopColor: Colors.border.medium, marginTop: Spacing[1], paddingTop: Spacing[4] },
+  detailLabel: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary },
+  detailLabelBold: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  detailValue: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  detailValueTotal: { fontSize: 19, fontFamily: Typography.fontFamily.bold },
+
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing[4],
+    paddingVertical: Spacing[3], borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  detailLabel: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#6B7280',
+  infoRowLast: { borderBottomWidth: 0 },
+  infoLabel: { fontSize: 11.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  infoValue: { fontSize: 13.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary, flexShrink: 1, textAlign: 'right' },
+
+  bankCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[4], marginBottom: Spacing[4],
   },
-  detailValue: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
+  bankChip: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
   },
-  detailValueTotal: {
-    fontSize: 18,
-    fontFamily: 'Inter_700Bold',
-  },
-  infoGrid: {
-    gap: 16,
-  },
-  infoItem: {
-    gap: 4,
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
-    color: '#111827',
-  },
-  bankAccountCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-  },
-  bankAccountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  bankAccountInfo: {
-    flex: 1,
-  },
-  bankAccountName: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
-  },
-  bankAccountNumber: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    color: '#6B7280',
-  },
-  bankAccountDetails: {
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  bankDetailLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  bankDetailValue: {
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-    color: '#374151',
-  },
+  bankName: { fontSize: 15, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  bankNumber: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 2, letterSpacing: 1 },
+  bankMetaRow: { flexDirection: 'row', gap: Spacing[4] },
+
   taskCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.surface.primary, borderRadius: BorderRadius.md,
+    borderWidth: 1, borderColor: Colors.border.light, padding: Spacing[4],
   },
-  taskCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
+  taskIconWrap: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center',
   },
-  taskCategoryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
-  },
-  taskId: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  actionsSection: {
-    padding: 16,
-    paddingBottom: 30,
-    gap: 12,
-  },
-  actionBtnSecondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  actionBtnTextSecondary: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#374151',
-  },
-  actionBtnPrimary: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: '#8B85FF',
-    alignItems: 'center',
-    shadowColor: '#8B85FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  actionBtnTextPrimary: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#fff',
-  },
+  taskInfo: { flex: 1 },
+  taskTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
+  taskId: { fontSize: 11.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 2 },
+
+  actionsSection: { marginTop: Spacing[2] },
 });

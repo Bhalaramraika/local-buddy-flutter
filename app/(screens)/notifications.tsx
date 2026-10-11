@@ -14,17 +14,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useUIStore } from '@/store/uiStore';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
 import { LoadingState } from '@/components/Loading';
-import { Colors } from '@/constants/design';
+import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { ScreenHeader } from '@/components/ui';
 
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { theme, showToast } = useUIStore();
-  
-  const isDark = theme === 'dark';
+  const { showToast } = useUIStore();
+
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,7 +95,20 @@ export default function NotificationsScreen() {
     }
     if (notification.actionUrl) {
       try { router.push(notification.actionUrl as any); } catch {}
+      return;
     }
+    // No deep link from the backend — open the in-app detail view instead
+    router.push({
+      pathname: '/(screens)/notification-detail',
+      params: {
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        time: notification.time,
+        type: notification.type,
+        read: notification.read ? '1' : '0',
+      },
+    });
   };
 
   const markAllAsRead = async () => {
@@ -111,15 +125,15 @@ export default function NotificationsScreen() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'task_application': return { icon: 'document-text-outline', color: Colors.brand.primary, bg: '#8B85FF15' };
-      case 'message': return { icon: 'chatbubble-outline', color: '#10B981', bg: '#10B98115' };
-      case 'task_completed': return { icon: 'check-circle-outline', color: '#10B981', bg: '#10B98115' };
-      case 'payment': return { icon: 'cash-outline', color: '#F59E0B', bg: '#F59E0B15' };
-      case 'review': return { icon: 'star-outline', color: '#F59E0B', bg: '#F59E0B15' };
-      case 'system': return { icon: 'information-circle-outline', color: '#6366F1', bg: '#6366F115' };
-      case 'task_assigned': return { icon: 'briefcase-outline', color: '#8B5CF6', bg: '#8B5CF615' };
-      case 'promotion': return { icon: 'gift-outline', color: '#EC4899', bg: '#EC489915' };
-      default: return { icon: 'notifications-outline', color: '#6B7280', bg: '#6B728015' };
+      case 'task_application': return { icon: 'document-text', color: Colors.brand.accent, bg: Colors.brand.accentSoft };
+      case 'message': return { icon: 'chatbubble', color: Colors.semantic.info, bg: Colors.semantic.infoSoft };
+      case 'task_completed': return { icon: 'checkmark-circle', color: Colors.semantic.success, bg: Colors.semantic.successSoft };
+      case 'payment': return { icon: 'cash', color: Colors.semantic.success, bg: Colors.semantic.successSoft };
+      case 'review': return { icon: 'star', color: Colors.semantic.warning, bg: Colors.semantic.warningSoft };
+      case 'system': return { icon: 'information-circle', color: Colors.brand.primary, bg: '#1E120912' };
+      case 'task_assigned': return { icon: 'briefcase', color: Colors.brand.accent, bg: Colors.brand.accentSoft };
+      case 'promotion': return { icon: 'gift', color: Colors.semantic.error, bg: Colors.semantic.errorSoft };
+      default: return { icon: 'notifications', color: Colors.text.secondary, bg: Colors.surface.tertiary };
     }
   };
 
@@ -130,44 +144,57 @@ export default function NotificationsScreen() {
     const timeAgo = formatTime(item.time);
 
     return (
-      <TouchableOpacity 
-        style={[styles.notificationItem, !item.read && styles.notificationUnread]}
-        onPress={() => handleNotificationPress(item)}
+      <MotiView
+        from={{ opacity: 0, translateY: 10 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 40 }}
       >
-        <View style={[styles.notificationIcon, { backgroundColor: bg }]}>
-          {item.avatar ? (
-            <Image source={{ uri: item.avatar }} style={styles.notificationAvatar} />
-          ) : (
-            <Ionicons name={icon as any} size={22} color={color} />
-          )}
-        </View>
-        <View style={styles.notificationContent}>
-          <View style={styles.notificationHeader}>
-            <Text style={[styles.notificationTitle, { color: isDark ? '#fff' : '#000' }]}>{item.title}</Text>
-            <Text style={[styles.notificationTime, { color: isDark ? '#888' : '#999' }]}>{timeAgo}</Text>
+        <TouchableOpacity
+          style={[styles.notificationItem, !item.read && styles.notificationUnread]}
+          onPress={() => handleNotificationPress(item)}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.notificationIcon, { backgroundColor: bg }]}>
+            {item.avatar ? (
+              <Image source={{ uri: item.avatar }} style={styles.notificationAvatar} />
+            ) : (
+              <Ionicons name={icon as any} size={20} color={color} />
+            )}
           </View>
-          <Text style={[styles.notificationMessage, { color: isDark ? '#ddd' : '#444' }]}>{item.message}</Text>
-          {!item.read && <View style={styles.unreadDot} />}
-        </View>
-      </TouchableOpacity>
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationHeader}>
+              <Text style={[styles.notificationTitle, !item.read && { color: Colors.text.primary }]}>
+                {item.title}
+              </Text>
+              <Text style={styles.notificationTime}>{timeAgo}</Text>
+            </View>
+            <Text style={styles.notificationMessage}>{item.message}</Text>
+          </View>
+          {!item.read ? <View style={styles.unreadDot} /> : null}
+        </TouchableOpacity>
+      </MotiView>
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <LoadingState message="Loading notifications..." style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }} />
+      <View style={styles.container}>
+        <LoadingState message="Loading notifications..." style={{ flex: 1, backgroundColor: Colors.surface.primary }} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-        <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#000' }]}>{error}</Text>
-          <TouchableOpacity onPress={loadNotifications} style={[styles.markAllReadButton, { marginTop: 16 }]}>
-            <Text style={styles.markAllReadText}>Retry</Text>
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.errorIconWrap}>
+            <Ionicons name="alert-circle" size={30} color={Colors.semantic.error} />
+          </View>
+          <Text style={styles.loadingText}>{error}</Text>
+          <TouchableOpacity onPress={loadNotifications} style={styles.retryBtn} hitSlop={8}>
+            <Ionicons name="refresh" size={15} color="#FFFFFF" />
+            <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -175,59 +202,58 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back-outline" size={28} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Notifications</Text>
-          <TouchableOpacity onPress={unreadCount > 0 ? markAllAsRead : undefined} disabled={unreadCount === 0}>
-            <Text style={[styles.clearText, { color: unreadCount > 0 ? '#EF4444' : (isDark ? '#555' : '#999') }]}>Mark all read</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={styles.container}>
+      {/* In-page header */}
+      <ScreenHeader
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+        onBack={() => router.back()}
+        right={
+          unreadCount > 0 ? (
+            <TouchableOpacity onPress={markAllAsRead} style={styles.markAllTopBtn} hitSlop={8}>
+              <Ionicons name="checkmark-done" size={14} color="#FFFFFF" />
+              <Text style={styles.markAllTopText}>Mark all read</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       {/* Filter Tabs */}
-      <View style={[styles.filterContainer, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
-        <TouchableOpacity 
-          style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterTabText, filter === 'all' ? styles.filterTabTextActive : {}, { color: filter === 'all' ? Colors.brand.primary : (isDark ? '#fff' : '#000') }]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
-          onPress={() => setFilter('unread')}
-        >
-          <Text style={[styles.filterTabText, filter === 'unread' ? styles.filterTabTextActive : {}, { color: filter === 'unread' ? Colors.brand.primary : (isDark ? '#fff' : '#000') }]}>
-            Unread {unreadCount > 0 && <Text style={styles.filterBadge}>{unreadCount}</Text>}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.filterContainer}>
+        {(['all', 'unread'] as const).map((t) => {
+          const active = filter === t;
+          return (
+            <TouchableOpacity
+              key={t}
+              style={[styles.filterTab, active && styles.filterTabActive]}
+              onPress={() => setFilter(t)}
+            >
+              <Text style={[styles.filterTabText, active && { color: '#FFFFFF' }]}>
+                {t === 'all' ? 'All' : 'Unread'}
+              </Text>
+              {t === 'unread' && unreadCount > 0 ? (
+                <View style={[styles.filterTabBadge, active ? styles.filterTabBadgeActive : styles.filterTabBadgeIdle]}>
+                  <Text style={[styles.filterBadgeText, active && { color: Colors.brand.accent }]}>{unreadCount}</Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
       </View>
-
-      {/* Mark All Read Button */}
-      {unreadCount > 0 && (
-        <TouchableOpacity style={styles.markAllReadButton} onPress={markAllAsRead}>
-          <Ionicons name="checkmark-done-outline" size={18} color="#8B85FF" />
-          <Text style={styles.markAllReadText}>Mark all as read</Text>
-        </TouchableOpacity>
-      )}
 
       {/* Notifications List */}
       {filteredNotifications.length === 0 ? (
-        <View style={[styles.emptyContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-          <Ionicons name={filter === 'unread' ? 'notifications-off-outline' : 'notifications-outline'} size={64} color={isDark ? '#555' : '#ccc'} />
-          <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }]}>
+        <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 400 }} style={styles.emptyContainer}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name={filter === 'unread' ? 'notifications-off-outline' : 'notifications-outline'} size={44} color={Colors.brand.accent} />
+          </View>
+          <Text style={styles.emptyTitle}>
             {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
           </Text>
-          <Text style={[styles.emptySubtitle, { color: isDark ? '#888' : '#666' }]}>
+          <Text style={styles.emptySubtitle}>
             {filter === 'unread' ? 'All caught up!' : 'Notifications will appear here'}
           </Text>
-        </View>
+        </MotiView>
       ) : (
         <FlatList
           data={filteredNotifications}
@@ -239,15 +265,9 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[Colors.brand.primary]}
+              colors={[Colors.brand.accent]}
+              tintColor={Colors.brand.accent}
             />
-          }
-          ListEmptyComponent={
-            <View style={[styles.emptyContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-              <Ionicons name="notifications-off-outline" size={64} color={isDark ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#fff' : '#000' }]}>No unread notifications</Text>
-              <Text style={[styles.emptySubtitle, { color: isDark ? '#888' : '#666' }]}>All caught up!</Text>
-            </View>
           }
         />
       )}
@@ -256,33 +276,67 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  clearText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  filterContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  filterTab: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  filterTabActive: { borderBottomWidth: 2, borderBottomColor: Colors.brand.primary },
-  filterTabText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  filterTabTextActive: { color: Colors.brand.primary },
-  filterBadge: { fontSize: 11, fontFamily: 'Inter_700Bold', color: '#fff', backgroundColor: '#EF4444', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 18, marginLeft: 6 },
-  markAllReadButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, marginHorizontal: 16, marginTop: 8, backgroundColor: '#8B85FF15', borderRadius: 10 },
-  markAllReadText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.brand.primary },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'Inter_400Regular', marginTop: 12 },
-  listContent: { padding: 16, paddingBottom: 40 },
-  notificationItem: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  notificationUnread: { backgroundColor: '#8B85FF08' },
-  notificationIcon: { width: 44, height: 44, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  notificationAvatar: { width: '100%', height: '100%', borderRadius: 22 },
+  container: { flex: 1, backgroundColor: Colors.surface.primary },
+
+  markAllTopBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: Colors.brand.primary, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[3], paddingVertical: Spacing[2], ...Shadows.button,
+  },
+  markAllTopText: { fontSize: 11.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  filterContainer: {
+    flexDirection: 'row', gap: Spacing[2],
+    paddingHorizontal: Spacing[5], paddingBottom: Spacing[4],
+  },
+  filterTab: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: Spacing[4] + 2, paddingVertical: Spacing[2] + 2,
+    borderRadius: BorderRadius.pill, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1.5, borderColor: Colors.border.light,
+  },
+  filterTabActive: { backgroundColor: Colors.brand.primary, borderColor: Colors.brand.primary, ...Shadows.button },
+  filterTabText: { fontSize: 13.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary },
+  filterTabBadge: { paddingHorizontal: Spacing[2], paddingVertical: 1, borderRadius: BorderRadius.pill, minWidth: 20, alignItems: 'center' },
+  filterTabBadgeActive: { backgroundColor: '#FFFFFF' },
+  filterTabBadgeIdle: { backgroundColor: Colors.brand.accent },
+  filterBadgeText: { fontSize: 10.5, fontFamily: Typography.fontFamily.bold, color: '#FFFFFF' },
+
+  listContent: { paddingHorizontal: Spacing[5], paddingBottom: 40 },
+  notificationItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    padding: Spacing[4], marginBottom: Spacing[3],
+    borderRadius: BorderRadius.lg, backgroundColor: Colors.surface.elevated,
+    borderWidth: 1, borderColor: Colors.border.light, ...Shadows.card,
+  },
+  notificationUnread: { backgroundColor: Colors.brand.accentSoft, borderColor: Colors.brand.accent + '40' },
+  notificationIcon: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  notificationAvatar: { width: '100%', height: '100%', borderRadius: 23 },
   notificationContent: { flex: 1, minWidth: 0 },
-  notificationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  notificationTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', flex: 1, marginRight: 8 },
-  notificationTime: { fontSize: 12, fontFamily: 'Inter_400Regular', flexShrink: 0 },
-  notificationMessage: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20 },
-  unreadDot: { width: 8, height: 8, borderRadius: 28, backgroundColor: Colors.brand.primary, marginTop: 6, alignSelf: 'flex-start' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginTop: 16, textAlign: 'center' },
-  emptySubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center' },
+  notificationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 },
+  notificationTitle: { fontSize: 14.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.secondary, flex: 1, marginRight: 8 },
+  notificationTime: { fontSize: 11, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, flexShrink: 0 },
+  notificationMessage: { fontSize: 13, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, lineHeight: 19 },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.brand.accent, marginLeft: Spacing[1] },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing[3], paddingHorizontal: Spacing[8] },
+  errorIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.semantic.errorSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loadingText: { fontSize: 14, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, textAlign: 'center' },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.brand.accent, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing[5], paddingVertical: Spacing[2] + 2, ...Shadows.buttonOrange,
+  },
+  retryBtnText: { fontSize: 13, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing[8] },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 42, backgroundColor: Colors.brand.accentSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[4],
+  },
+  emptyTitle: { fontSize: 17, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary, textAlign: 'center' },
+  emptySubtitle: { fontSize: 13.5, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: Spacing[2], textAlign: 'center' },
 });

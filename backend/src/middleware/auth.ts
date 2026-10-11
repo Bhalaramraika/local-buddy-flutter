@@ -66,6 +66,10 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       res.status(403).json({ error: 'Account is temporarily suspended', code: 'ACCOUNT_SUSPENDED' });
       return;
     }
+    if (userData?.status === 'deleted') {
+      res.status(403).json({ error: 'Account has been deleted', code: 'ACCOUNT_DELETED' });
+      return;
+    }
 
     req.user = {
       uid: decodedToken.uid,
