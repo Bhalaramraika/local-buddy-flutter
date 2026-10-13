@@ -23,7 +23,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useUIStore } from '@/store/uiStore';
 import { apiPost, getApiErrorMessage } from '@/services/api';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
 
 // Backend task statuses: open | assigned | completed | deleted
 // (payment is tracked by the task's paidAt timestamp, not a status)
@@ -35,6 +35,7 @@ export default function MyTasksScreen() {
     myTasks,
     refreshTasks,
     deleteTask,
+    isLoading: tasksLoading,
   } = useTaskStore();
   const { showToast } = useUIStore();
 
@@ -329,7 +330,14 @@ export default function MyTasksScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={
+          // First load: skeleton cards instead of a false empty state.
+          tasksLoading && myTasks.length === 0 ? (
+            <SoftScreenSkeleton cards={4} style={{ paddingHorizontal: 0 }} />
+          ) : (
+            renderEmptyState()
+          )
+        }
       />
     </View>
   );

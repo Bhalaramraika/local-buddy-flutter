@@ -18,8 +18,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftSkeleton } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
+
+// Hoisted out of the screen component — defining components during render
+// resets their state on each render and violates react-hooks/static-components.
+const StarRow = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <View style={{ flexDirection: 'row', gap: 2 }}>
+    {[1, 2, 3, 4, 5].map((s) => (
+      <Ionicons key={s} name={s <= Math.round(rating) ? 'star' : 'star-outline'} size={size} color={Colors.semantic.warning} />
+    ))}
+  </View>
+);
 
 export default function TaskReviewsScreen() {
   const router = useRouter();
@@ -45,14 +55,6 @@ export default function TaskReviewsScreen() {
   const overallRating = receivedReviews.length
     ? receivedReviews.reduce((s, r) => s + r.rating, 0) / receivedReviews.length
     : 0;
-
-  const StarRow = ({ rating, size = 14 }: { rating: number; size?: number }) => (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Ionicons key={s} name={s <= Math.round(rating) ? 'star' : 'star-outline'} size={size} color={Colors.semantic.warning} />
-      ))}
-    </View>
-  );
 
   const handleReviewPress = (review: any) => {
     Alert.alert(
@@ -144,8 +146,11 @@ export default function TaskReviewsScreen() {
           <Text style={styles.sectionTitle}>Reviews</Text>
 
           {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading reviews...</Text>
+            // Skeleton rows while reviews load (no spinner/text placeholder).
+            <View style={{ gap: Spacing[3], marginTop: Spacing[2] }}>
+              {[0, 1, 2].map((i) => (
+                <SoftSkeleton key={i} height={72} borderRadius={BorderRadius.md} />
+              ))}
             </View>
           ) : filteredReviews.length === 0 ? (
             <View style={styles.emptyState}>

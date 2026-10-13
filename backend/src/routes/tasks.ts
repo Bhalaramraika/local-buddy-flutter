@@ -835,10 +835,22 @@ router.post(
     const { otp } = req.body;
     const uid = req.user!.uid;
 
+    // Pre-read the task to learn the posterId — Firestore transactions
+    // require ALL reads before ANY write, so the poster's user doc must be
+    // fetched in the same read batch as the task + secrets (doing it after
+    // the updates caused HTTP 500: "all reads before all writes").
+    const preTaskSnap = await collections.tasks.doc(id).get();
+    if (!preTaskSnap.exists) throw new NotFoundError('Task not found');
+    const preTask = preTaskSnap.data() as TaskDocument;
+
     const result = await runTransaction(async (t) => {
       const taskRef = collections.tasks.doc(id);
       const secretsRef = taskRef.collection('secrets').doc('otp');
-      const [taskSnap, secretsSnap] = await Promise.all([t.get(taskRef), t.get(secretsRef)]);
+      const [taskSnap, secretsSnap, posterSnap] = await Promise.all([
+        t.get(taskRef),
+        t.get(secretsRef),
+        t.get(collections.users.doc(preTask.posterId)),
+      ]);
 
       if (!taskSnap.exists) throw new NotFoundError('Task not found');
       const task = taskSnap.data() as TaskDocument;
@@ -894,8 +906,6 @@ router.post(
         });
       }
 
-      // Load the poster's name so the app can show the rating screen.
-      const posterSnap = await t.get(collections.users.doc(task.posterId));
       return {
         task,
         posterName: (posterSnap.data() as any)?.name || 'Poster',
@@ -984,6 +994,33 @@ router.put(
     }
 
     await runTransaction(async (transaction) => {
+      // assigned → open = cancel assignment (buddy cancels / poster rejects
+      // the buddy): fully reset the task so it is back in the marketplace —
+      // clear the buddy/chat/timing fields, delete the OTP secrets, and
+      // mark the old application rejected so it can't auto-reapply.
+      if (status === 'open' && task.status === 'assigned') {
+        const now = timestamp();
+        const previousBuddyId = task.buddyId;
+        transaction.update(taskRef, {
+          status: 'open',
+          buddyId: FieldValue.delete(),
+          chatId: FieldValue.delete(),
+          assignedAt: FieldValue.delete(),
+          startedAt: FieldValue.delete(),
+          paymentRequestedAt: FieldValue.delete(),
+          ...(previousBuddyId ? { applicants: FieldValue.arrayRemove(previousBuddyId) } : {}),
+          updatedAt: now,
+        });
+        transaction.delete(taskRef.collection('secrets').doc('otp'));
+        if (previousBuddyId) {
+          transaction.update(taskRef.collection('applications').doc(previousBuddyId), {
+            status: 'rejected',
+            updatedAt: now,
+          });
+        }
+        return;
+      }
+
       transaction.update(taskRef, {
         status,
         updatedAt: timestamp(),
@@ -998,6 +1035,15 @@ router.put(
         });
       }
     });
+
+    // Notify the other party when an assignment is cancelled.
+    if (status === 'open' && task.status === 'assigned' && task.buddyId) {
+      const actorIsPoster = task.posterId === req.user!.uid;
+      const notifyUserId = actorIsPoster ? task.buddyId : task.posterId;
+      getPushNotificationService()
+        .sendTaskNotification(notifyUserId, 'cancelled', { taskId: id, title: task.title })
+        .catch((err) => console.error('[FCM] cancel notification failed:', err));
+    }
 
     res.json({ success: true, message: `Task status updated to ${status}` });
   }

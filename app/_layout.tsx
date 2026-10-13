@@ -4,11 +4,10 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
-import { 
-  SafeAreaView, 
-  StyleSheet, 
+import {
+  SafeAreaView,
+  StyleSheet,
   View,
-  Platform,
   StatusBar,
   useColorScheme,
 } from 'react-native';
@@ -348,6 +347,9 @@ function ThemedStatusBar() {
 
 // Main app providers wrapper
 function AppProviders({ children }: { children: React.ReactNode }) {
+  // Error boundary resets whenever the signed-in user changes
+  // (login/logout) — a crash can never trap the user on the error screen.
+  const authUserId = useAuthStore((s) => s.user?.id ?? null);
   return (
     <GestureHandlerRootView style={styles.container}>
       <QueryClientProvider client={queryClient}>
@@ -356,7 +358,7 @@ function AppProviders({ children }: { children: React.ReactNode }) {
             <NotificationProvider>
               <LocationProvider>
                   <SafeAreaProvider>
-                    <ErrorBoundary>
+                    <ErrorBoundary resetKeys={[authUserId]}>
                       <ThemedStatusBar />
                       <ToastContainer />
                       <FontLoader>

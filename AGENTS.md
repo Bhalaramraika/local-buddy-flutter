@@ -133,3 +133,17 @@ onboarding-referral}.tsx`), `(screens)/security-settings.tsx`,
   Firestore listeners re-sync.
 - One source of truth for constants: `constants/app.ts`.
 - Use the versioned Expo docs linked above.
+- **Uploads** (`services/upload.ts`): always `FileSystem.uploadAsync` from
+  `expo-file-system/legacy` (native multipart). Never `fetch`+`FormData`
+  with the RN `{uri,name,type}` object — expo/fetch's spec FormData rejects
+  it with "Unsupported FormDataPart implementation".
+- **Loading UX**: data-loading states render `SoftScreenSkeleton`/SoftSkeleton
+  blocks (components/ui), never plain spinners or text placeholders.
+- **ErrorBoundary** (`components/ui/ErrorBoundary.tsx`): auto-reset is keyed ONLY on
+  `resetKeys` (e.g. auth user id); do not add children-identity heuristics —
+  JSX children change identity every render and would create a reset loop
+  ("Maximum update depth exceeded").
+- **Cancel assignment**: buddy "Cancel task" / poster "Reject buddy" both
+  call `PUT /tasks/:id/status { status: 'open' }` (allowed for the two
+  participants while `assigned`); the backend resets buddyId/chat/OTP and
+  rejects the old application.

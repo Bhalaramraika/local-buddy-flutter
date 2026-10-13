@@ -49,15 +49,25 @@ export const initCommissionPayment = async (): Promise<PayUInitResponse> => {
 /** Build the auto-submitting HTML form for the PayU hosted checkout WebView. */
 export const buildPayUHtml = (params: Record<string, string>, action: string): string => {
   const fields = Object.entries(params)
-    .map(([k, v]) => `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}" />`)
+    .map(([k, v]) => `<input type="hidden" name="${k}" value="${escapeHtml(String(v))}" />`)
     .join('');
   return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif">
 <p>Redirecting to PayU…</p>
-<form id="f" method="post" action="${action}">${fields}</form>
+<form id="f" method="post" action="${escapeHtml(action)}">${fields}</form>
 <script>document.getElementById('f').submit();</script>
 </body></html>`;
 };
+
+/** Escape &, <, >, " and ' so user-controlled values can never break the form. */
+function escapeHtml(v: string): string {
+  return v
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 /**
  * Interpret a WebView URL to decide if the PayU flow has finished.

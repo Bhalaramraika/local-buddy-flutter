@@ -12,17 +12,18 @@ import {
   StyleSheet,
   ScrollView,
   Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/services/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { formatRelativeTime } from '@/utils/helpers';
 import { Colors, BorderRadius, Typography, Shadows, Spacing } from '@/constants/design';
-import { ScreenHeader, SoftButton } from '@/components/ui';
+import { ScreenHeader, SoftButton, SoftScreenSkeleton } from '@/components/ui';
 
 interface PublicUserProfile {
   id: string;
@@ -51,28 +52,39 @@ export default function PublicProfileScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async () => {
-    // Yield before touching state so React never sees sync setState in the mount effect
-    await Promise.resolve();
+    // Real data only: read the user's Firestore profile doc (rules allow any
+    // signed-in user to read public profiles). NO mock/fake data.
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setProfile({
-      id: userId as string,
-      name: 'Alex Johnson',
-      avatar: null,
-      bio: 'Experienced handyman and delivery partner. Love helping people in my neighborhood with everyday tasks.',
-      skills: ['Handyman', 'Delivery', 'Moving', 'Assembly', 'Cleaning'],
-      rating: 4.8,
-      tasksCompleted: 156,
-      tasksPosted: 23,
-      memberSince: '2024-03-15T10:30:00Z',
-      location: 'Downtown, 2.3 km away',
-      verifiedBadges: ['identity', 'phone', 'email'],
-      reviewCount: 142,
-      responseRate: 98,
-      avgResponseTime: '< 5 min',
-    });
-    setLoading(false);
+    try {
+      const snap = await getDoc(doc(db!, 'users', String(userId)));
+      if (!snap.exists()) {
+        setProfile(null);
+        return;
+      }
+      const d = snap.data() as any;
+      const kycOk = d.kycApproved === true || d.kyc?.status === 'verified';
+      setProfile({
+        id: snap.id,
+        name: d.name || 'User',
+        avatar: d.avatar || null,
+        bio: d.bio || '',
+        skills: Array.isArray(d.skills) ? d.skills : [],
+        rating: d.rating?.average ?? 0,
+        tasksCompleted: d.stats?.tasksCompleted ?? 0,
+        tasksPosted: d.stats?.tasksPosted ?? 0,
+        memberSince: d.createdAt || '',
+        location: [d.area, d.city].filter(Boolean).join(', ') || 'Nearby',
+        verifiedBadges: [kycOk ? 'identity' : null, 'email'].filter(Boolean) as string[],
+        reviewCount: d.rating?.count ?? 0,
+        responseRate: 0, // hidden when 0 — not tracked server-side yet
+        avgResponseTime: '',
+      });
+    } catch (e) {
+      console.warn('[PublicProfile] load failed:', e);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -113,12 +125,9 @@ export default function PublicProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ScreenHeader title="Profile" onBack={() => router.back()} style={{ position: 'absolute', top: 16, left: 20, right: 20 }} />
-        <View style={styles.loadingBadge}>
-          <Ionicons name="person" size={28} color={Colors.brand.accent} />
-        </View>
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={styles.container}>
+        <ScreenHeader title="Profile" onBack={() => router.back()} />
+        <SoftScreenSkeleton cards={3} />
       </View>
     );
   }
@@ -184,7 +193,7 @@ export default function PublicProfileScreen() {
           {/* Rating pill */}
           <View style={styles.ratingBadge}>
             <Ionicons name="star" size={15} color={Colors.semantic.warning} />
-            <Text style={styles.ratingText}>{profile.rating}</Text>
+            <Text style={styles.ratingText}>{profile.rating ? profile.rating.toFixed(1) : 'New'}</Text>
             <Text style={styles.reviewCount}>({profile.reviewCount} reviews)</Text>
           </View>
 
@@ -228,40 +237,33 @@ export default function PublicProfileScreen() {
               <Text style={styles.statValue}>{profile.tasksPosted}</Text>
               <Text style={styles.statLabel}>Posted</Text>
             </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: Colors.semantic.infoSoft }]}>
-                <Ionicons name="flash" size={16} color={Colors.semantic.info} />
-              </View>
-              <Text style={styles.statValue}>{profile.responseRate}%</Text>
-              <Text style={styles.statLabel}>Response</Text>
-            </View>
           </View>
           <View style={styles.statRows}>
-            <View style={styles.statRow}>
-              <Text style={styles.statRowLabel}>Avg response time</Text>
-              <Text style={styles.statRowValue}>{profile.avgResponseTime}</Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text style={styles.statRowLabel}>Member since</Text>
-              <Text style={styles.statRowValue}>
-                {formatRelativeTime(profile.memberSince)}
-              </Text>
-            </View>
+            {profile.memberSince ? (
+              <View style={styles.statRow}>
+                <Text style={styles.statRowLabel}>Member since</Text>
+                <Text style={styles.statRowValue}>
+                  {formatRelativeTime(profile.memberSince)}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </MotiView>
 
-        {/* Skills */}
-        <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 180 }} style={[styles.section, { marginTop: Spacing[4] }]}>
-          <Text style={styles.sectionTitle}>Skills</Text>
-          <View style={styles.skillsContainer}>
-            {profile.skills.map((skill, index) => (
-              <View key={index} style={styles.skillTag}>
-                <Ionicons name="construct" size={11} color={Colors.brand.accent} />
-                <Text style={styles.skillText}>{skill}</Text>
-              </View>
-            ))}
-          </View>
-        </MotiView>
+        {/* Skills (only when the user actually added some) */}
+        {profile.skills.length > 0 ? (
+          <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 180 }} style={[styles.section, { marginTop: Spacing[4] }]}>
+            <Text style={styles.sectionTitle}>Skills</Text>
+            <View style={styles.skillsContainer}>
+              {profile.skills.map((skill, index) => (
+                <View key={index} style={styles.skillTag}>
+                  <Ionicons name="construct" size={11} color={Colors.brand.accent} />
+                  <Text style={styles.skillText}>{skill}</Text>
+                </View>
+              ))}
+            </View>
+          </MotiView>
+        ) : null}
 
         {/* Actions */}
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 400, delay: 260 }} style={styles.actionButtons}>

@@ -21,12 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/services/firebase';
-import { apiGet, apiPost, ENDPOINTS, getApiErrorMessage } from '@/services/api';
+import { apiGet, apiPost, apiPut, ENDPOINTS, getApiErrorMessage } from '@/services/api';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useUIStore } from '@/store/uiStore';
-import { ScreenHeader, SoftButton } from '@/components/ui';
+import { ScreenHeader, SoftButton, SoftScreenSkeleton } from '@/components/ui';
 import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/helpers';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
@@ -148,15 +148,11 @@ export default function TaskDetailScreen() {
   };
 
   if (!currentTask) {
+    // Skeleton while the task document loads — no spinners per design rule.
     return (
       <View style={styles.container}>
         <ScreenHeader title="Task details" onBack={() => router.back()} />
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingBadge}>
-            <Ionicons name="clipboard" size={28} color={Colors.brand.accent} />
-          </View>
-          <Text style={styles.loadingText}>Loading task…</Text>
-        </View>
+        <SoftScreenSkeleton cards={4} />
       </View>
     );
   }
@@ -343,29 +339,42 @@ export default function TaskDetailScreen() {
               </View>
             ) : null}
 
-            {/* Poster side: chat with assigned buddy */}
-            {isPoster && (task as any).buddyName ? (
-              <Pressable
-                style={({ pressed }) => [styles.buddyStrip, pressed && { transform: [{ scale: 0.99 }] }]}
-                onPress={async () => {
-                  const buddyId = (task as any).buddyId;
-                  if (buddyId) {
-                    const conv = await createConversation(buddyId, taskId!);
-                    if (conv) router.push({ pathname: '/(screens)/chat-detail', params: { conversationId: conv.id } });
-                  } else {
-                    showToast('Buddy not assigned yet', 'info');
-                  }
-                }}
-              >
-                <View style={styles.buddyStripAvatar}>
-                  <Ionicons name="hand-left" size={17} color={Colors.brand.accent} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.buddyStripTitle}>Chat with buddy</Text>
-                  <Text style={styles.buddyStripSub}>{(task as any).buddyName} is working on this task</Text>
-                </View>
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.brand.accent} />
-              </Pressable>
+            {/* Poster side: assigned buddy — tap the name/avatar for the
+                buddy's REAL profile (from Firestore), or the chat bubble to
+                open the conversation. */}
+            {isPoster && task.buddyId ? (
+              <View style={styles.buddyStrip}>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/(screens)/user-profile', params: { userId: task.buddyId } })}
+                  style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: Spacing[3], flex: 1 }, pressed && { opacity: 0.85 }]}
+                  accessibilityLabel="View buddy profile"
+                >
+                  <View style={styles.buddyStripAvatar}>
+                    <Ionicons name="hand-left" size={17} color={Colors.brand.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.buddyStripTitle}>View buddy profile</Text>
+                    <Text style={styles.buddyStripSub}>{(task as any).buddyName || 'Assigned buddy'} is working on this task</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.brand.accent} />
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    const buddyId = (task as any).buddyId;
+                    if (buddyId) {
+                      const conv = await createConversation(buddyId, taskId!);
+                      if (conv) router.push({ pathname: '/(screens)/chat-detail', params: { conversationId: conv.id } });
+                    } else {
+                      showToast('Buddy not assigned yet', 'info');
+                    }
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.buddyStripChatBtn, pressed && { opacity: 0.8 }]}
+                  accessibilityLabel="Chat with buddy"
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={18} color="#FFFFFF" />
+                </Pressable>
+              </View>
             ) : null}
           </MotiView>
 
@@ -416,19 +425,14 @@ export default function TaskDetailScreen() {
             </View>
           ) : null}
 
-          {/* Task flow: OTP verification, payment, completion, rating */}
+          {/* Task flow: OTP codes (poster), progress CTAs (buddy), payment, rating.
+              Rendered ONCE — a duplicated mount double-fired the secrets
+              listener and showed two identical OTP cards. */}
           {(isPoster || (!!user?.id && task.buddyId === user.id)) && (task.status === 'assigned' || task.status === 'completed') ? (
-            <MotiView from={{ opacity: 0, translateY: 14 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 420, delay: 420 }} style={styles.section}>
-              <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id).catch(() => {})} />
-            </MotiView>
-          ) : null}
-
-          {/* Task flow: OTP codes (poster), progress CTAs (buddy), rating */}
-          {(isPoster || (user?.id && task.buddyId === user.id)) && (task.status === 'assigned' || task.status === 'completed') ? (
             <MotiView
               from={{ opacity: 0, translateY: 14 }}
               animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 420, delay: 340 }}
+              transition={{ type: 'timing', duration: 420, delay: 380 }}
               style={styles.section}
             >
               <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id).catch(() => {})} />
@@ -628,6 +632,48 @@ function TaskFlowSection({
     }
   };
 
+  // Cancel assignment: buddy cancels / poster rejects → task back to `open`.
+  const handleCancelAssignment = () => {
+    Alert.alert(
+      isPoster ? 'Reject buddy?' : 'Cancel task?',
+      isPoster
+        ? `${buddyName} will be removed and the task will reopen for other buddies.`
+        : 'You will be unassigned and the task will go back to the marketplace.',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: isPoster ? 'Reject buddy' : 'Cancel task',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await apiPut(`/tasks/${task.id}/status`, { status: 'open' });
+              showToast(isPoster ? 'Buddy rejected — task is open again' : 'Task cancelled', 'info');
+              onChanged();
+            } catch (err: any) {
+              Alert.alert('Could not cancel', getApiErrorMessage(err, 'Please try again.'));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const cancelRow = (
+    <Pressable
+      onPress={handleCancelAssignment}
+      disabled={busy}
+      hitSlop={8}
+      style={styles.cancelLink}
+      accessibilityLabel={isPoster ? 'Reject buddy' : 'Cancel task'}
+    >
+      <Ionicons name="close-circle-outline" size={15} color={Colors.semantic.error} />
+      <Text style={styles.cancelLinkText}>{isPoster ? 'Reject buddy' : 'Cancel task'}</Text>
+    </Pressable>
+  );
+
   const buddyName = buddyProfile?.name || (task as any).buddyName || 'Buddy';
   const posterName = task.posterName || 'the poster';
 
@@ -684,6 +730,7 @@ function TaskFlowSection({
             </Text>
           </View>
         ) : null}
+        {cancelRow}
       </View>
     );
   }
@@ -709,6 +756,7 @@ function TaskFlowSection({
               onPress={() => router.push({ pathname: '/(screens)/task-otp', params: { taskId: task.id, type: 'start', taskTitle: task.title } })}
               withGlow
             />
+            {cancelRow}
           </>
         ) : (
           <>
@@ -766,6 +814,7 @@ function TaskFlowSection({
               withGlow
               style={{ marginTop: Spacing[3] }}
             />
+            {cancelRow}
           </>
         )}
       </View>
@@ -967,6 +1016,10 @@ const styles = StyleSheet.create({
   },
   buddyStripTitle: { fontSize: 14, fontFamily: Typography.fontFamily.semiBold, color: Colors.text.primary },
   buddyStripSub: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, marginTop: 1 },
+  buddyStripChatBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.brand.accent,
+    alignItems: 'center', justifyContent: 'center', marginLeft: Spacing[2], flexShrink: 0,
+  },
 
   applicationsHeader: { flexDirection: 'row', alignItems: 'center' },
   viewAllButton: { flexDirection: 'row', alignItems: 'center', gap: 3 },
@@ -1035,6 +1088,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.brand.accentSoft, borderRadius: BorderRadius.md, padding: Spacing[3],
   },
   cashNoteText: { fontSize: 12, fontFamily: Typography.fontFamily.body, color: Colors.text.secondary, flex: 1, lineHeight: 17 },
+  cancelLink: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 5, marginTop: Spacing[4], alignSelf: 'center',
+    paddingHorizontal: Spacing[4], paddingVertical: Spacing[1] + 2,
+  },
+  cancelLinkText: { fontSize: 12.5, fontFamily: Typography.fontFamily.semiBold, color: Colors.semantic.error },
 
   bottomActions: {
     flexDirection: 'row', justifyContent: 'center', gap: Spacing[8],

@@ -17,9 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { useUIStore } from '@/store/uiStore';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
-import { LoadingState } from '@/components/Loading';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
 
 
 export default function NotificationsScreen() {
@@ -58,7 +57,9 @@ export default function NotificationsScreen() {
   };
 
   useEffect(() => {
-    loadNotifications();
+    // Defer past the first commit — a sync setState directly inside the
+    // effect body triggers cascading-render lint/runtime warnings.
+    void Promise.resolve().then(loadNotifications);
   }, []);
 
 
@@ -179,7 +180,7 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <LoadingState message="Loading notifications..." style={{ flex: 1, backgroundColor: Colors.surface.primary }} />
+        <SoftScreenSkeleton cards={5} />
       </View>
     );
   }

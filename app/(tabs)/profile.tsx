@@ -14,13 +14,13 @@ import {
   Image,
   RefreshControl,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
+import { SoftScreenSkeleton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { formatCurrency } from '@/utils/helpers';
 
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
       section: 'Account',
       items: [
         { id: 'edit-profile', icon: 'person-outline', label: 'Edit Profile', route: '/(screens)/edit-profile' },
-        { id: 'kyc-status', icon: 'shield-checkmark-outline', label: 'KYC Status', route: '/(screens)/kyc-status' },
+        { id: 'kyc-status', icon: 'shield-check-outline', label: 'KYC Status', route: '/(screens)/kyc-status' },
         { id: 'kyc-documents', icon: 'card-outline', label: 'KYC Documents', route: '/(screens)/kyc-documents' },
         { id: 'referral', icon: 'share-outline', label: 'Refer & Earn', route: '/(screens)/referral' },
         { id: 'my-referrals', icon: 'account-group-outline', label: 'My Referrals', route: '/(screens)/my-referrals' },
@@ -80,7 +80,7 @@ export default function ProfileScreen() {
       items: [
         { id: 'my-tasks', icon: 'clipboard-outline', label: 'My Tasks', route: '/(screens)/my-tasks' },
         { id: 'achievements', icon: 'trophy-outline', label: 'Achievements', route: '/(screens)/achievements' },
-        { id: 'stats', icon: 'chart-bar-outline', label: 'My Stats', route: '/(screens)/stats' },
+        { id: 'stats', icon: 'chart-box-outline', label: 'My Stats', route: '/(screens)/stats' },
       ],
     },
     {
@@ -96,7 +96,7 @@ export default function ProfileScreen() {
       section: 'Support',
       items: [
         { id: 'help', icon: 'help-circle-outline', label: 'Help & Support', route: '/(screens)/help' },
-        { id: 'faq', icon: 'question-mark-circle-outline', label: 'FAQ', route: '/(screens)/faq' },
+        { id: 'faq', icon: 'frequently-asked-questions', label: 'FAQ', route: '/(screens)/faq' },
         { id: 'contact', icon: 'headset-outline', label: 'Contact Support', route: '/(screens)/contact-support' },
         { id: 'terms', icon: 'document-text-outline', label: 'Terms of Service', route: '/(screens)/terms' },
         { id: 'privacy', icon: 'shield-outline', label: 'Privacy Policy', route: '/(screens)/privacy' },
@@ -105,18 +105,19 @@ export default function ProfileScreen() {
     },
   ];
 
+  // Real fields only: backend keeps task counts under `stats.tasksPosted /
+  // stats.tasksCompleted` and the star rating under `rating.average`.
   const stats = [
     { label: 'Tasks Posted', value: user?.stats?.tasksPosted || 0, icon: 'clipboard-outline', color: Colors.brand.primary },
-    { label: 'Tasks Completed', value: user?.stats?.completedTasks || 0, icon: 'check-circle-outline', color: Colors.semantic.success },
+    { label: 'Tasks Completed', value: user?.stats?.tasksCompleted || 0, icon: 'check-circle-outline', color: Colors.semantic.success },
     { label: 'Total Earnings', value: formatCurrency(user?.stats?.totalEarnings || 0), icon: 'currency-inr', color: Colors.brand.accent },
-    { label: 'Rating', value: user?.stats?.rating?.toFixed(1) || '0.0', icon: 'star-outline', color: Colors.semantic.warning },
+    { label: 'Rating', value: (user?.rating?.average ?? 0).toFixed(1), icon: 'star-outline', color: Colors.semantic.warning },
   ];
 
   if (authLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.brand.accent} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={styles.container}>
+        <SoftScreenSkeleton cards={4} />
       </View>
     );
   }
@@ -190,10 +191,10 @@ export default function ProfileScreen() {
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={14} color={Colors.brand.accent} />
             <Text style={styles.ratingText}>
-              {user?.stats?.rating?.toFixed(1) || '4.5'}
+              {(user?.rating?.average ?? 0).toFixed(1)}
             </Text>
             <Text style={styles.reviewsCount}>
-              ({user?.stats?.reviewCount || 0} reviews)
+              ({user?.rating?.count || 0} reviews)
             </Text>
             {kycVerified && (
               <View style={styles.kycPill}>
@@ -209,7 +210,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* Stats Grid */}
+        {/* Stats Grid — clean 2×2 */}
         <View style={styles.statsContainer}>
           {stats.map((stat, i) => (
             <MotiView
@@ -221,12 +222,10 @@ export default function ProfileScreen() {
             >
               <Pressable style={styles.statCard} onPress={() => router.push('/(screens)/stats')}>
                 <View style={[styles.statIcon, { backgroundColor: `${stat.color}18` }]}>
-                  <MaterialCommunityIcons name={stat.icon as any} size={17} color={stat.color} />
+                  <MaterialCommunityIcons name={stat.icon as any} size={16} color={stat.color} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValue} numberOfLines={1}>{stat.value}</Text>
-                  <Text style={styles.statLabel} numberOfLines={1}>{stat.label}</Text>
-                </View>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{stat.value}</Text>
+                <Text style={styles.statLabel} numberOfLines={1}>{stat.label}</Text>
               </Pressable>
             </MotiView>
           ))}
@@ -253,11 +252,12 @@ export default function ProfileScreen() {
                   pressed && { backgroundColor: Colors.surface.creamSoft },
                 ]}
                 onPress={() => router.push(item.route)}
+                accessibilityLabel={item.label}
               >
                 <View style={styles.menuItemIcon}>
                   <MaterialCommunityIcons name={item.icon as any} size={20} color={Colors.brand.accent} />
                 </View>
-                <Text style={styles.menuItemLabel}>{item.label}</Text>
+                <Text style={styles.menuItemLabel} numberOfLines={1} ellipsizeMode="tail">{item.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -351,21 +351,21 @@ const styles = StyleSheet.create({
   },
   editProfileText: { fontSize: 13.5, fontFamily: Typography.fontFamily.semiBold, color: '#FFFFFF' },
 
-  // ---- Stats ----
+  // ---- Stats — 2×2 grid ----
   statsContainer: {
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
+    flexDirection: 'row', flexWrap: 'wrap',
     paddingHorizontal: Spacing[4], paddingBottom: Spacing[4], gap: Spacing[2],
   },
-  statCardWrap: { width: '48.7%' },
+  // Exactly 2 per row (2×2 grid): two 48.5% cards + one gap column.
+  statCardWrap: { width: '48.5%' },
   statCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: Spacing[3], paddingHorizontal: Spacing[3],
+    alignItems: 'center', paddingVertical: Spacing[3], paddingHorizontal: Spacing[2],
     borderRadius: BorderRadius.md, backgroundColor: Colors.surface.primary,
     borderWidth: 1, borderColor: Colors.border.light,
   },
-  statIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-  statValue: { fontSize: 14.5, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary },
-  statLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 1 },
+  statIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing[1] + 2 },
+  statValue: { fontSize: 15, fontFamily: Typography.fontFamily.bold, color: Colors.text.primary, maxWidth: '100%' },
+  statLabel: { fontSize: 10.5, fontFamily: Typography.fontFamily.body, color: Colors.text.muted, marginTop: 2 },
 
   // ---- Menu ----
   menuSection: {
@@ -380,17 +380,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: Spacing[1],
   },
   menuItems: {},
+  // One full-width row per option: icon chip (fixed) + title to its right,
+  // no wrapping so the title never drops below the icon.
   menuItem: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', width: '100%',
     paddingHorizontal: Spacing[4], paddingVertical: Spacing[3] + 2,
+    minHeight: 56,
     borderTopWidth: 1, borderTopColor: Colors.border.light,
   },
   menuItemLast: {},
   menuItemIcon: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.brand.accentSoft,
-    justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3],
+    justifyContent: 'center', alignItems: 'center', marginRight: Spacing[3], flexShrink: 0,
   },
-  menuItemLabel: { flex: 1, fontSize: 14.5, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
+  // lineHeight keeps Poppins descenders un-clipped on Android.
+  menuItemLabel: { flex: 1, fontSize: 14.5, lineHeight: 21, fontFamily: Typography.fontFamily.medium, color: Colors.text.primary },
 
   // ---- Logout ----
   logoutButton: {

@@ -22,7 +22,7 @@ import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
 
 export default function WalletHistoryScreen() {
   const router = useRouter();
@@ -193,6 +193,10 @@ export default function WalletHistoryScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
         ListEmptyComponent={
+          walletLoading ? (
+            // While data loads, show skeletons — never a fake "empty" state.
+            <SoftScreenSkeleton cards={4} />
+          ) : (
           <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 400 }} style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
               <Ionicons name="receipt-outline" size={34} color={Colors.brand.accent} />
@@ -202,6 +206,7 @@ export default function WalletHistoryScreen() {
               {searchQuery ? 'Try adjusting your search or filters' : 'Your transaction history will appear here'}
             </Text>
           </MotiView>
+          )
         }
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.5}

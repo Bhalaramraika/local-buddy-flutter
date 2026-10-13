@@ -66,6 +66,37 @@ function generateTxnId(): string {
   return `LB_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 }
 
+/**
+ * PayU rejects checkout with the generic "Pardon, Some Problem Occurred"
+ * page when mandatory params fail format validation. Sanitize them
+ * centrally so a user name like "O'Brien" or a phone like "+91 98…" can
+ * never break checkout:
+ *  - firstname/productinfo: letters, digits, spaces and . , - only
+ *  - phone: digits only (10+), PayU-friendly
+ *  - email: must be a usable-looking address (fallback provided)
+ */
+const PAYU_SAFE_TEXT = (s: string): string => s.replace(/[^a-zA-Z0-9 .\-]/g, '');
+
+function sanitizePayUFirstName(name: string | undefined | null): string {
+  const cleaned = (name || '').replace(/[^a-zA-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned.slice(0, 50) || 'User';
+}
+
+function sanitizePayUPhone(phone: string | undefined | null): string {
+  const digits = (phone || '').replace(/\D/g, '');
+  const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+  return last10.length >= 10 ? last10 : '9999999999';
+}
+
+function sanitizePayUEmail(email: string | undefined | null): string {
+  const e = (email || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : 'payments@localbuddy.app';
+}
+
+function sanitizePayUProductInfo(info: string): string {
+  return PAYU_SAFE_TEXT(info).trim().slice(0, 90) || 'Wallet Topup';
+}
+
 function generatePayUHash(params: Record<string, string>, salt: string): string {
   // PayU request hash sequence: key|txnid|amount|productinfo|firstname|email|udf1|...|udf10|salt
   const sequence = [
@@ -189,9 +220,14 @@ router.post(
     // Without them PayU rejects the transaction with
     // "One or more mandatory parameters are missing" before checkout opens.
     // Priority: API_PUBLIC_URL env → request-derived origin (https via proxy).
-    const apiBase =
+    const apiBaseRaw =
       process.env.API_PUBLIC_URL ||
       `${req.protocol}://${req.get('host')}`;
+    // Behind Render's proxy req.protocol is often http:// — PayU callbacks
+    // must be https, so upgrade non-localhost bases to https.
+    const apiBase = apiBaseRaw.startsWith('http://localhost') || apiBaseRaw.startsWith('http://127.')
+      ? apiBaseRaw
+      : apiBaseRaw.replace(/^http:\/\//, 'https://');
     const callbackUrl = `${apiBase}/api/v1/wallet/payu/callback`;
 
     // Generate PayU hash
@@ -199,13 +235,13 @@ router.post(
       key: config.payu.merchantKey,
       txnid,
       amount: amount.toFixed(2),
-      productinfo: 'Wallet Top-up',
-      firstname: req.user!.userDoc?.name || 'User',
-      email: req.user!.userDoc?.email || 'user@localbuddy.app',
-      phone: req.user!.phone || req.user!.userDoc?.phone || '9999999999',
+      productinfo: sanitizePayUProductInfo('Wallet Topup'),
+      firstname: sanitizePayUFirstName(req.user!.userDoc?.name),
+      email: sanitizePayUEmail(req.user!.userDoc?.email),
+      phone: sanitizePayUPhone(req.user!.phone || req.user!.userDoc?.phone),
       surl: callbackUrl,
       furl: callbackUrl,
-      udf1: userId,
+      udf1: req.user!.uid,
       udf2: 'wallet_add',
       service_provider: 'payu_paisa',
     };
@@ -564,19 +600,24 @@ router.post(
     };
     await txnRef.set(transaction);
 
-    const apiBase =
+    const apiBaseRaw =
       process.env.API_PUBLIC_URL ||
       `${req.protocol}://${req.get('host')}`;
+    // Behind Render's proxy req.protocol is often http:// — PayU callbacks
+    // must be https, so upgrade non-localhost bases to https.
+    const apiBase = apiBaseRaw.startsWith('http://localhost') || apiBaseRaw.startsWith('http://127.')
+      ? apiBaseRaw
+      : apiBaseRaw.replace(/^http:\/\//, 'https://');
     const callbackUrl = `${apiBase}/api/v1/wallet/payu/callback`;
 
     const payuParams = {
       key: config.payu.merchantKey,
       txnid,
       amount: amount.toFixed(2),
-      productinfo: 'Platform Dues Payment',
-      firstname: req.user!.userDoc?.name || 'User',
-      email: req.user!.userDoc?.email || 'user@localbuddy.app',
-      phone: req.user!.phone || req.user!.userDoc?.phone || '9999999999',
+      productinfo: sanitizePayUProductInfo('Platform Dues Payment'),
+      firstname: sanitizePayUFirstName(userDoc.data()?.name),
+      email: sanitizePayUEmail(req.user!.userDoc?.email || userDoc.data()?.email),
+      phone: sanitizePayUPhone(req.user!.phone || req.user!.userDoc?.phone || userDoc.data()?.phone),
       surl: callbackUrl,
       furl: callbackUrl,
       udf1: userId,

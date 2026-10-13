@@ -99,10 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await authService.clearTokens();
             clearAll();
           } else {
-            // Transient failure (offline / backend down): keep the Firebase
-            // session so the next cold start can retry, but don't leave a
-            // stale "authenticated" local state that Firestore rules reject.
-            clearAll();
+            // Transient failure (offline / backend cold-start / timeout):
+            // KEEP the persisted session. Only the Firebase session is
+            // trustworthy-proof of login; logging the user out on a random
+            // network blip is the "suddenly logged out" bug. The next
+            // cold start retries cleanly.
+            setError(null);
           }
         }
       } else {

@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton } from '@/components/ui';
+import { SoftButton, SoftScreenSkeleton } from '@/components/ui';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatRelativeTime } from '@/utils/helpers';
@@ -19,7 +19,7 @@ import { formatRelativeTime } from '@/utils/helpers';
 export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { chats, clearUnreadCount } = useChatStore();
+  const { chats, chatsSynced, clearUnreadCount } = useChatStore();
   const { user, isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,6 +156,11 @@ export default function ChatScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
         ListEmptyComponent={
+          // Before the first realtime sync, show skeletons — never a false
+          // "no conversations" empty state while data is still loading.
+          !chatsSynced ? (
+            <SoftScreenSkeleton cards={5} />
+          ) : (
           <MotiView
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -169,6 +174,7 @@ export default function ChatScreen() {
             <Text style={styles.emptySubtext}>Start a conversation with a buddy or task poster</Text>
             <SoftButton label="New Chat" variant="accent" icon="add" fullWidth={false} onPress={() => router.push('/(screens)/new-chat')} style={{ paddingHorizontal: Spacing[7], marginTop: Spacing[5] }} withGlow />
           </MotiView>
+          )
         }
       />
     </View>

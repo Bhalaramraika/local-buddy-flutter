@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton } from '@/components/ui';
+import { SoftButton, SoftSkeleton } from '@/components/ui';
 import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatCurrency, formatRelativeTime } from '@/utils/helpers';
@@ -20,7 +20,7 @@ export default function WalletScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { wallet, balance, transactions, fetchWallet, fetchTransactions, isLoading: walletLoading, commissionDue } = useWalletStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'credit' | 'debit'>('all');
 
@@ -247,6 +247,15 @@ export default function WalletScreen() {
         contentContainerStyle={styles.listContent}
         scrollEnabled={false}
         ListEmptyComponent={
+          // While the first fetch is in flight, show skeletons — not a fake
+          // "No transactions yet" state.
+          walletLoading ? (
+            <View style={{ gap: Spacing[3], paddingHorizontal: Spacing[5], marginTop: Spacing[2] }}>
+              {[0, 1, 2].map((i) => (
+                <SoftSkeleton key={i} height={64} borderRadius={BorderRadius.lg} />
+              ))}
+            </View>
+          ) : (
           <MotiView
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -263,6 +272,7 @@ export default function WalletScreen() {
                'No outgoing transactions yet'}
             </Text>
           </MotiView>
+          )
         }
       />
     </ScrollView>

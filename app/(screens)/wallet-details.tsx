@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftSkeleton } from '@/components/ui';
 import { useWalletStore } from '@/store/walletStore';
 import { useAuthStore } from '@/store/authStore';
 
@@ -31,6 +31,9 @@ export default function WalletDetailsScreen() {
     isLoading,
     refreshWallet,
     formatCurrency,
+    commissionDue,
+    getThisMonthEarnings,
+    getThisMonthSpending,
   } = useWalletStore();
 
   const [refreshing, setRefreshing] = React.useState(false);
@@ -115,21 +118,25 @@ export default function WalletDetailsScreen() {
           </View>
         </MotiView>
 
-        {/* Wallet Stats */}
+          {/* Wallet Stats — REAL numbers computed from the transactions
+              (no hardcoded values: the old screen showed fake ₹1250/₹890/₹500) */}
         <MotableSection index={1} title="This month">
           <View style={styles.statsGrid}>
-            <StatCard title="Earned" value={formatCurrency(1250)} icon="cash-plus" tint="success" />
-            <StatCard title="Spent" value={formatCurrency(890)} icon="cash-minus" tint="error" />
-            <StatCard title="Withdrawn" value={formatCurrency(500)} icon="bank-transfer-out" tint="warning" />
-            <StatCard title="Pending" value={formatCurrency(pendingBalance)} icon="clock-outline" tint="accent" />
+            <StatCard title="Earned" value={formatCurrency(getThisMonthEarnings())} icon="cash-plus" tint="success" />
+            <StatCard title="Spent" value={formatCurrency(getThisMonthSpending())} icon="cash-minus" tint="error" />
+            <StatCard title="Pending" value={formatCurrency(pendingBalance)} icon="clock-outline" tint="warning" />
+            <StatCard title="Platform dues" value={formatCurrency(commissionDue || 0)} icon="alert-circle-outline" tint="accent" />
           </View>
         </MotableSection>
 
         {/* Recent Transactions */}
         <MotableSection index={2} title="Recent transactions">
           {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading transactions...</Text>
+            // Skeleton rows while transactions load (no plain text/spinner).
+            <View style={{ gap: Spacing[3], marginTop: Spacing[2] }}>
+              {[0, 1, 2].map((i) => (
+                <SoftSkeleton key={i} height={56} borderRadius={BorderRadius.md} />
+              ))}
             </View>
           ) : recentTransactions.length === 0 ? (
             <View style={styles.emptyState}>

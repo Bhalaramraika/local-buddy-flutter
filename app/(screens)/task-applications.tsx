@@ -21,7 +21,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
 import { useUIStore } from '@/store/uiStore';
 
@@ -33,6 +33,7 @@ export default function TaskApplicationsScreen() {
     refreshApplications,
     acceptApplication,
     rejectApplication,
+    isLoading: applicationsLoading,
   } = useTaskStore();
   const { showToast } = useUIStore();
 
@@ -297,7 +298,14 @@ export default function TaskApplicationsScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={
+          // Skeleton while applications load — never a false "No applications".
+          applicationsLoading && applications.length === 0 ? (
+            <SoftScreenSkeleton cards={4} style={{ paddingHorizontal: 0 }} />
+          ) : (
+            renderEmptyState()
+          )
+        }
       />
     </View>
   );

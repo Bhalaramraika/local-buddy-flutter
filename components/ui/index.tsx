@@ -655,6 +655,22 @@ export function SoftLineSkeleton({ lines = 3, gap = Spacing[3], style }: {
   );
 }
 
+/**
+ * Full-screen skeleton: heading line + N card blocks. Use everywhere data
+ * loads (lists, profiles, stats) — replaces plain spinners per design rule.
+ */
+export function SoftScreenSkeleton({ cards = 4, style }: { cards?: number; style?: ViewStyle }) {
+  return (
+    <View style={[{ padding: Spacing[5], gap: Spacing[3] }, style]}>
+      <SoftSkeleton width={170} height={26} borderRadius={10} />
+      <SoftSkeleton width="55%" height={14} borderRadius={8} />
+      {Array.from({ length: cards }, (_, i) => (
+        <SoftSkeleton key={i} height={92} borderRadius={BorderRadius.lg} />
+      ))}
+    </View>
+  );
+}
+
 // ============================================================
 // EMPTY STATE
 // ============================================================

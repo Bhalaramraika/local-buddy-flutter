@@ -11,7 +11,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -22,7 +21,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatCurrency, formatDateTime } from '@/utils/helpers';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton, ScreenHeader } from '@/components/ui';
+import { SoftButton, ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
 
 const STATUS_COLORS: Record<string, string> = {
   completed: Colors.semantic.success,
@@ -95,10 +94,10 @@ export default function TransactionDetailScreen() {
   }, [id, transactions, fetchTransactions, isAuthenticated, router, showToast]);
 
   if (loading) {
+    // Skeleton while the transaction loads (design rule: no plain spinner).
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.brand.accent} />
-        <Text style={styles.loadingText}>Loading transaction…</Text>
+      <View style={styles.container}>
+        <SoftScreenSkeleton cards={4} />
       </View>
     );
   }

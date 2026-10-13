@@ -11,12 +11,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftCard, SoftBadge, SoftSkeleton, SoftAvatar, useAppColors } from '@/components/ui';
+import { SoftBadge, SoftSkeleton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useWalletStore } from '@/store/walletStore';
 import { useNotificationStore } from '@/store/notificationStore';
-import { useChatStore } from '@/store/chatStore';
 import { formatCurrency } from '@/utils/helpers';
 
 const QUICK_ACTIONS = [
@@ -37,11 +36,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuthStore();
-  const { nearbyTasks, isLoading: tasksLoading, fetchTasks } = useTaskStore();
+  const { nearbyTasks, assignedTasks, isLoading: tasksLoading, fetchTasks } = useTaskStore();
   const { getAvailableBalance } = useWalletStore();
   const { unreadCount } = useNotificationStore();
-  const { getTotalUnreadCount } = useChatStore();
-  const t = useAppColors();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
@@ -207,6 +204,48 @@ export default function HomeScreen() {
             </View>
           </View>
         </MotiView>
+
+        {/* My active tasks — tasks assigned to me as a buddy (auto-assigned
+            on apply) — always visible on Home so they never get lost */}
+        {assignedTasks.length > 0 ? (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ type: 'timing', duration: 400, delay: 340 }}
+          >
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>My active tasks</Text>
+            </View>
+            {assignedTasks.slice(0, 4).map((task, i) => (
+              <MotiView
+                key={task.id}
+                from={{ opacity: 0, translateY: 16 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 400, delay: 360 + i * 60 }}
+              >
+                <Pressable
+                  onPress={() => router.push({ pathname: '/(screens)/task-detail', params: { taskId: task.id } })}
+                  style={({ pressed }) => [styles.taskCard, pressed && { transform: [{ scale: 0.985 }] }]}
+                >
+                  <View style={styles.taskIconChip}>
+                    <Ionicons name="flash" size={18} color={Colors.brand.accent} />
+                  </View>
+                  <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
+                    <Text style={styles.taskSub} numberOfLines={1}>
+                      {task.category} · ₹{task.budget?.amount ?? (task as any).budget} · {task.startedAt ? 'In progress' : 'Assigned to you'}
+                    </Text>
+                  </View>
+                  <View style={styles.taskRight}>
+                    <View style={[styles.statusDot, { backgroundColor: Colors.semantic.warningSoft }]}>
+                      <View style={[styles.statusDotInner, { backgroundColor: Colors.semantic.warning }]} />
+                    </View>
+                  </View>
+                </Pressable>
+              </MotiView>
+            ))}
+          </MotiView>
+        ) : null}
 
         {/* Nearby Tasks */}
         <MotiView
@@ -414,7 +453,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[3], ...Shadows.card,
   },
   taskIconChip: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.brand.accentSoft,
+    width: 46, height: 46, borderRadius: BorderRadius.md, backgroundColor: Colors.brand.accentSoft,
+    borderWidth: 1.5, borderColor: Colors.brand.accent,
     alignItems: 'center', justifyContent: 'center',
   },
   taskInfo: { flex: 1 },

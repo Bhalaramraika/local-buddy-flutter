@@ -10,8 +10,6 @@ import {
   Chat,
   Message,
   MessageType,
-  ChatParticipant,
-  PaginatedResponse
 } from '@/types';
 import { apiGet, apiPost, apiDelete } from '@/services/api';
 
@@ -57,6 +55,9 @@ function chatToConversation(chat: Chat): ConversationView {
 interface ChatState {
   // State
   chats: Chat[];
+  /** True once the first realtime `setChats` arrived this session — lets the
+   *  Chats tab show a loading skeleton instead of a false "no chats" state. */
+  chatsSynced: boolean;
   currentChat: Chat | null;
   currentConversation: ConversationView | null;
   users: any[]; // directory of users for the new-chat screen
@@ -139,6 +140,7 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       // Initial state
       chats: [],
+      chatsSynced: false,
       currentChat: null,
       currentConversation: null,
       users: [],
@@ -153,7 +155,7 @@ export const useChatStore = create<ChatState>()(
       typingUsers: {},
       
       // Actions
-      setChats: (chats) => set({ chats, isLoading: false, error: null }),
+      setChats: (chats) => set({ chats, chatsSynced: true, isLoading: false, error: null }),
       
       addChat: (chat) => set((state) => ({
         chats: [chat, ...state.chats.filter((c) => c.id !== chat.id)],
@@ -554,6 +556,7 @@ export const useChatStore = create<ChatState>()(
       
       clearAll: () => set({
         chats: [],
+        chatsSynced: false,
         currentChat: null,
         currentConversation: null,
         users: [],
