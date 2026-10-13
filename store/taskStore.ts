@@ -16,6 +16,8 @@ import {
   PaginatedResponse
 } from '@/types';
 import { apiGet, apiPost, apiPut, apiDelete, ENDPOINTS, getApiErrorMessage } from '@/services/api';
+import { CACHE_CONFIG } from '@/constants/app';
+import { cacheGet, cacheGetStale, cacheSet, cacheInvalidate, userCacheKey } from '@/services/cache';
 
 // Review entry as consumed by the task-reviews screen
 export interface TaskReviewEntry {
@@ -53,6 +55,12 @@ interface TaskState {
   myTasks: Task[]; // Tasks created by current user
   assignedTasks: Task[]; // Tasks assigned to current user (buddy)
   nearbyTasks: Task[]; // Tasks near current location
+  /** True once the first data (REST or realtime snapshot) for each list has
+   *  arrived this session — screens use these to show skeleton cards from the
+   *  very first frame instead of a false "no tasks" empty state. */
+  nearbySynced: boolean;
+  mySynced: boolean;
+  assignedSynced: boolean;
   currentTask: Task | null;
   filters: TaskFilters;
   sortOptions: TaskSortOptions;
@@ -76,12 +84,12 @@ interface TaskState {
   isSubscribed: boolean;
 
   // Async (REST-first) actions used by screens
-  fetchTasks: (params?: Record<string, any>) => Promise<Task[]>;
-  fetchTaskById: (taskId: string) => Promise<Task | undefined>;
+  fetchTasks: (params?: Record<string, any>, options?: { forceRefresh?: boolean }) => Promise<Task[]>;
+  fetchTaskById: (taskId: string, options?: { forceRefresh?: boolean }) => Promise<Task | undefined>;
   createTask: (payload: Record<string, any>) => Promise<boolean>;
   applyToTask: (taskId: string, payload?: { message?: string; proposedBudget?: number }) => Promise<boolean>;
   fetchReviews: (taskId?: string) => Promise<TaskReviewEntry[]>;
-  refreshTasks: () => Promise<void>;
+  refreshTasks: (forceRefresh?: boolean) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   updateTaskStatus: (taskId: string, status: TaskStatus | string) => Promise<void>;
   refreshApplications: (taskId: string) => Promise<void>;
@@ -186,6 +194,19 @@ function currentUserId(): string | undefined {
   }
 }
 
+/**
+ * Drop this user's task caches after any mutation so the next mount
+ * refetches instead of serving pre-mutation data. Never throws.
+ */
+function invalidateTaskCaches(taskId?: string): void {
+  try {
+    void cacheInvalidate(userCacheKey('tasks:'));
+    if (taskId) void cacheInvalidate(userCacheKey(`task:${taskId}`));
+  } catch {
+    // non-fatal — cache invalidation must never break a mutation flow
+  }
+}
+
 export const useTaskStore = create<TaskState>()(
   persist(
     (set, get) => ({
@@ -194,6 +215,9 @@ export const useTaskStore = create<TaskState>()(
       myTasks: [],
       assignedTasks: [],
       nearbyTasks: [],
+      nearbySynced: false,
+      mySynced: false,
+      assignedSynced: false,
       currentTask: null,
       filters: defaultFilters,
       sortOptions: defaultSortOptions,
@@ -210,11 +234,11 @@ export const useTaskStore = create<TaskState>()(
       // Actions
       setTasks: (tasks) => set({ tasks, isLoading: false, error: null }),
       
-      setMyTasks: (myTasks) => set({ myTasks }),
-      
-      setAssignedTasks: (assignedTasks) => set({ assignedTasks }),
-      
-      setNearbyTasks: (nearbyTasks) => set({ nearbyTasks }),
+      setMyTasks: (myTasks) => set({ myTasks, mySynced: true }),
+
+      setAssignedTasks: (assignedTasks) => set({ assignedTasks, assignedSynced: true }),
+
+      setNearbyTasks: (nearbyTasks) => set({ nearbyTasks, nearbySynced: true }),
       
       addTask: (task) => set((state) => ({
         tasks: [task, ...state.tasks],
@@ -253,6 +277,7 @@ export const useTaskStore = create<TaskState>()(
               body.budget = { amount: Math.round(body.budget), currency: 'INR', type: 'fixed' };
             }
             await apiPut(ENDPOINTS.tasks.update(taskId), body);
+            invalidateTaskCaches(taskId);
             // Realtime listener will re-sync the authoritative copy.
           } catch (error) {
             console.warn('[TaskStore] updateTask remote failed:', error);
@@ -303,32 +328,70 @@ export const useTaskStore = create<TaskState>()(
       // realtime Firestore listeners re-sync authoritative data.
       // ------------------------------------------------------------
 
-      fetchTasks: async (params) => {
-        set({ isLoading: true, error: null });
+      fetchTasks: async (params, options) => {
+        // Per-user TTL cache (CACHE_CONFIG.tasks): fresh cache → zero network;
+        // stale cache → paint instantly, refresh silently in background.
+        // Pull-to-refresh passes forceRefresh to bypass the cache entirely.
+        const key = userCacheKey(`tasks:feed:${JSON.stringify(params ?? {})}`);
+        if (!options?.forceRefresh) {
+          const fresh = await cacheGet<Task[]>(key);
+          if (fresh !== null) {
+            set({ tasks: fresh, isLoading: false, error: null, nearbySynced: true });
+            return fresh;
+          }
+        }
+        const stale = await cacheGetStale<Task[]>(key);
+        if (stale) {
+          set({ tasks: stale.data, isLoading: false, error: null, nearbySynced: true });
+        } else {
+          set({ isLoading: true, error: null });
+        }
         try {
-          const data = await apiGet<any>(ENDPOINTS.tasks.list, { params });
+          const data = await apiGet<any>(ENDPOINTS.tasks.list, {
+            params,
+            skipGlobalLoader: stale !== null,
+          } as any);
           const rawList: any[] = data?.tasks ?? data?.data ?? (Array.isArray(data) ? data : []);
           if (Array.isArray(rawList)) {
-            set({ tasks: rawList.map(normalizeTask) });
+            const tasks = rawList.map(normalizeTask);
+            set({ tasks });
+            void cacheSet(key, tasks, CACHE_CONFIG.tasks);
           }
-          set({ isLoading: false });
+          set({ isLoading: false, nearbySynced: true });
           return get().tasks;
         } catch (error) {
           console.warn('[TaskStore] fetchTasks failed:', error);
-          set({ isLoading: false });
+          set({ isLoading: false, nearbySynced: true });
           return get().tasks;
         }
       },
 
-      fetchTaskById: async (taskId) => {
+      fetchTaskById: async (taskId, options) => {
         const cached = get().getTaskById(taskId);
         if (cached) set({ currentTask: cached });
+        const key = userCacheKey(`task:${taskId}`);
+        if (!options?.forceRefresh) {
+          const fresh = await cacheGet<Task>(key);
+          if (fresh) {
+            set({ currentTask: fresh });
+            return fresh;
+          }
+        }
+        // Nothing in memory → try stale disk snapshot so the screen still
+        // paints while the network fetch runs.
+        if (!cached) {
+          const stale = await cacheGetStale<Task>(key);
+          if (stale) set({ currentTask: stale.data });
+        }
         try {
-          const data = await apiGet<any>(ENDPOINTS.tasks.get(taskId));
+          const data = await apiGet<any>(ENDPOINTS.tasks.get(taskId), {
+            skipGlobalLoader: get().currentTask != null,
+          } as any);
           const raw = data?.task ?? data;
           if (raw && raw.id) {
             const task = normalizeTask(raw);
             set({ currentTask: task });
+            void cacheSet(key, task, CACHE_CONFIG.taskDetail);
             return task;
           }
         } catch (error) {
@@ -385,6 +448,7 @@ export const useTaskStore = create<TaskState>()(
           if (task && task.id) {
             get().addTask(normalizeTask(task));
           }
+          invalidateTaskCaches();
           set({ isCreating: false, error: null });
           return true;
         } catch (error: any) {
@@ -420,8 +484,11 @@ export const useTaskStore = create<TaskState>()(
                 : {}),
             } as Task);
           }
+          // Apply changes the task server-side — drop cached copies BEFORE
+          // the refetch below, or it would return the pre-apply snapshot.
+          invalidateTaskCaches(taskId);
           // Pull the authoritative task (assigned state + startedAt/paidAt etc.)
-          get().fetchTaskById(taskId).catch(() => {});
+          get().fetchTaskById(taskId, { forceRefresh: true }).catch(() => {});
           set({ isApplying: false, error: null });
           return true;
         } catch (error: any) {
@@ -463,15 +530,30 @@ export const useTaskStore = create<TaskState>()(
         return get().reviews;
       },
 
-      refreshTasks: async () => {
-        await get().fetchTasks();
+      refreshTasks: async (forceRefresh) => {
+        await get().fetchTasks(undefined, forceRefresh ? { forceRefresh: true } : undefined);
+        const key = userCacheKey('tasks:mine');
+        if (!forceRefresh) {
+          const fresh = await cacheGet<Task[]>(key);
+          if (fresh !== null) {
+            // The realtime myTasks listener also writes this state; either
+            // source is fine — the cache simply avoids the network call.
+            if (get().myTasks.length === 0 && fresh.length > 0) set({ myTasks: fresh });
+            return;
+          }
+        }
         try {
-          const mine = await apiGet<any>('/tasks/my/posted');
+          const hadData = get().myTasks.length > 0;
+          const mine = await apiGet<any>('/tasks/my/posted', {
+            skipGlobalLoader: hadData,
+          } as any);
           const list: any[] = mine?.tasks ?? mine?.data ?? [];
           if (Array.isArray(list)) {
             // Always sync on success — even an empty list means the server
             // says "no posted tasks", so don't keep stale local entries.
-            set({ myTasks: list.map(normalizeTask) });
+            const myTasks = list.map(normalizeTask);
+            set({ myTasks });
+            void cacheSet(key, myTasks, CACHE_CONFIG.tasks);
           }
         } catch (error) {
           console.warn('[TaskStore] refreshTasks (posted) failed:', error);
@@ -480,6 +562,7 @@ export const useTaskStore = create<TaskState>()(
 
       deleteTask: async (taskId) => {
         get().removeTask(taskId);
+        invalidateTaskCaches(taskId);
         try {
           await apiDelete(ENDPOINTS.tasks.delete(taskId));
         } catch (error) {
@@ -496,6 +579,7 @@ export const useTaskStore = create<TaskState>()(
         }
         try {
           await apiPut(`/tasks/${taskId}/status`, { status: backendStatus });
+          invalidateTaskCaches(taskId);
         } catch (error) {
           console.warn('[TaskStore] updateTaskStatus remote failed (local kept):', error);
         }
@@ -542,6 +626,7 @@ export const useTaskStore = create<TaskState>()(
         }));
         try {
           await apiPost<any>(ENDPOINTS.tasks.decideApplication(taskId, applicationId), { action: 'accept' });
+          invalidateTaskCaches(taskId);
           // Realtime task listener re-syncs status → 'assigned'.
           return true;
         } catch (error: any) {
@@ -561,6 +646,7 @@ export const useTaskStore = create<TaskState>()(
         }));
         try {
           await apiPost<any>(ENDPOINTS.tasks.decideApplication(taskId, applicationId), { action: 'reject' });
+          invalidateTaskCaches(taskId);
           return true;
         } catch (error: any) {
           set({ applications: prev });
@@ -701,6 +787,9 @@ export const useTaskStore = create<TaskState>()(
         myTasks: [],
         assignedTasks: [],
         nearbyTasks: [],
+        nearbySynced: false,
+        mySynced: false,
+        assignedSynced: false,
         currentTask: null,
         filters: defaultFilters,
         sortOptions: defaultSortOptions,

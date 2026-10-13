@@ -14,14 +14,13 @@ import {
   FlatList,
   Alert,
   RefreshControl,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton, CachedImage } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
 import { useUIStore } from '@/store/uiStore';
 
@@ -153,7 +152,7 @@ export default function TaskApplicationsScreen() {
             <View style={styles.applicantInfo}>
               <View style={styles.avatar}>
                 {item.applicantAvatar ? (
-                  <Image source={{ uri: item.applicantAvatar }} style={styles.avatarImage} />
+                  <CachedImage source={{ uri: item.applicantAvatar }} style={styles.avatarImage} />
                 ) : (
                   <Text style={styles.avatarText}>{(item.applicantName || 'A').charAt(0).toUpperCase()}</Text>
                 )}

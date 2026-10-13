@@ -42,7 +42,11 @@ const clearTokens = async (): Promise<void> => {
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
-	const response = await api.get('/auth/me');
+	// Always silent: this runs at every cold start (AuthContext.initializeAuth)
+	// and from hydrateSettingsFromServer. The backend may be cold-starting
+	// (Render free tier = tens of seconds) — the persisted session already
+	// drives the UI, so a full-screen GlobalLoader here would block the app.
+	const response = await api.get('/auth/me', { skipGlobalLoader: true } as any);
 	return responseData<{ user: User }>(response).user;
 };
 

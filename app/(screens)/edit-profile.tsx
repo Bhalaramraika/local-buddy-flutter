@@ -11,7 +11,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  Image,
   Alert,
   Pressable,
 } from 'react-native';
@@ -23,7 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUIStore } from '@/store/uiStore';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton, ScreenHeader } from '@/components/ui';
+import { SoftButton, ScreenHeader, CachedImage } from '@/components/ui';
 import { uploadToCloudinary } from '@/services/upload';
 import { getApiErrorMessage } from '@/services/api';
 
@@ -185,9 +184,9 @@ export default function EditProfileScreen() {
         >
           <View style={styles.avatarWrapper}>
             {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatarImage} />
+              <CachedImage source={{ uri: avatar }} style={styles.avatarImage} />
             ) : user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              <CachedImage source={{ uri: user.avatar }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarInitial}>

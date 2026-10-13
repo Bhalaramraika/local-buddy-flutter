@@ -21,7 +21,8 @@ import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { apiGet } from '@/services/api';
+import { cachedApiGet, userCacheKey } from '@/services/cache';
+import { CACHE_CONFIG } from '@/constants/app';
 import { ScreenHeader } from '@/components/ui';
 
 export default function ReferralScreen() {
@@ -36,8 +37,12 @@ export default function ReferralScreen() {
   const loadReferralData = async () => {
     setLoading(true);
     try {
-      const codeRes = await apiGet<{ code: string; shareUrl: string }>('/referral/code');
-      const statsRes = await apiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>('/referral/stats');
+      // 30-min TTL cache — referral data changes rarely, so repeated screen
+      // opens shouldn't re-hit the backend.
+      const codeRes = await cachedApiGet<{ code: string; shareUrl: string }>(
+        userCacheKey('referral:code'), '/referral/code', CACHE_CONFIG.referral);
+      const statsRes = await cachedApiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>(
+        userCacheKey('referral:stats'), '/referral/stats', CACHE_CONFIG.referral);
       const code = codeRes?.code || user?.referralCode || '';
       const stats = statsRes?.stats || { total: 0, completed: 0, pending: 0, rewards: 0 };
       setReferralData({
@@ -68,7 +73,7 @@ export default function ReferralScreen() {
   };
 
   useEffect(() => {
-    loadReferralData();
+    void Promise.resolve().then(loadReferralData);
   }, []);
 
   const copyReferralCode = () => {

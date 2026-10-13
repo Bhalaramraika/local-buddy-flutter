@@ -15,6 +15,8 @@ import {
   PaginatedResponse
 } from '@/types';
 import { apiGet, apiPost, ENDPOINTS, getApiErrorMessage } from '@/services/api';
+import { CACHE_CONFIG } from '@/constants/app';
+import { cacheGet, cacheGetStale, cacheSet, cacheInvalidate, userCacheKey } from '@/services/cache';
 import { initWalletTopup, initCommissionPayment, refreshWalletAfterPayment, type PayUInitResponse } from '@/services/payment';
 import { formatCurrency as formatINR } from '@/utils/helpers';
 
@@ -105,7 +107,7 @@ interface WalletState {
   // Screen-facing API (REST-first; failures surface to UI)
   // ------------------------------------------------------------
   fetchWallet: () => Promise<WalletInfo | null>;
-  fetchTransactions: (params?: { page?: number; limit?: number; type?: string; status?: string }) => Promise<Transaction[]>;
+  fetchTransactions: (params?: { page?: number; limit?: number; type?: string; status?: string }, options?: { forceRefresh?: boolean }) => Promise<Transaction[]>;
   loadMoreTransactions: () => Promise<void>;
   refreshWallet: () => Promise<void>;
   getTransaction: (id: string) => Promise<Transaction | undefined>;
@@ -356,10 +358,37 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      fetchTransactions: async (params) => {
+      fetchTransactions: async (params, options) => {
         const page = params?.page ?? 1;
         const limit = params?.limit ?? 20;
-        set({ isLoadingTransactions: true, error: null });
+        // 2-minute TTL cache for the FIRST page only (user decision):
+        // balance itself is never cached — it streams via the realtime
+        // userProfile listener. Later pages always hit the network.
+        const key = page === 1
+          ? userCacheKey(`wallet:txns:1:${limit}:${params?.type ?? ''}:${params?.status ?? ''}`)
+          : null;
+        if (key && !options?.forceRefresh) {
+          const fresh = await cacheGet<Transaction[]>(key);
+          if (fresh !== null) {
+            set((state) => ({
+              transactions: fresh,
+              transactionsPagination: { ...state.transactionsPagination, page: 1, limit, hasMore: fresh.length >= limit },
+              isLoadingTransactions: false,
+              error: null,
+            }));
+            return fresh;
+          }
+        }
+        if (key) {
+          const stale = await cacheGetStale<Transaction[]>(key);
+          if (stale && get().transactions.length === 0) {
+            set({ transactions: stale.data, isLoadingTransactions: false });
+          } else {
+            set({ isLoadingTransactions: true, error: null });
+          }
+        } else {
+          set({ isLoadingTransactions: true, error: null });
+        }
         try {
           const data = await apiGet<any>('/wallet/transactions', {
             params: {
@@ -368,7 +397,8 @@ export const useWalletStore = create<WalletState>()(
               ...(params?.type ? { type: params.type } : {}),
               ...(params?.status ? { status: params.status } : {}),
             },
-          });
+            skipGlobalLoader: get().transactions.length > 0,
+          } as any);
           const raw: any[] = data?.transactions ?? data?.data ?? [];
           const transactions: Transaction[] = raw.map((t: any): Transaction => ({
             id: t.id ?? t.txnid ?? String(Math.random()),
@@ -398,6 +428,9 @@ export const useWalletStore = create<WalletState>()(
             },
             isLoadingTransactions: false,
           }));
+          if (key && page === 1) {
+            void cacheSet(key, transactions, CACHE_CONFIG.walletTransactions);
+          }
         } catch (error) {
           console.warn('[WalletStore] fetchTransactions failed:', error);
           set({ isLoadingTransactions: false });
@@ -415,8 +448,9 @@ export const useWalletStore = create<WalletState>()(
       },
 
       refreshWallet: async () => {
+        // Explicit refresh = bypass the transactions TTL cache.
         await get().fetchWallet();
-        await get().fetchTransactions({ page: 1, limit: 20 });
+        await get().fetchTransactions({ page: 1, limit: 20 }, { forceRefresh: true });
       },
 
       getTransaction: async (id) => {
@@ -476,7 +510,10 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      refreshAfterPayment: async () => {        try {
+      refreshAfterPayment: async () => {
+        // A payment just settled — the cached txn list is stale.
+        void cacheInvalidate(userCacheKey('wallet:txns:'));
+        try {
           const w = await refreshWalletAfterPayment();
           if (w) {
             set((state) => ({
@@ -584,9 +621,11 @@ export const useWalletStore = create<WalletState>()(
     {
       name: 'wallet-storage',
       storage: createJSONStorage(() => storage),
+      // Bump: v1 persisted bankAccounts (confidential) — removed.
+      // Only non-sensitive pagination prefs survive restarts; balances and
+      // transactions are NEVER persisted (listener + TTL memory cache only).
+      version: 2,
       partialize: (state) => ({
-        // Persist bank accounts and pagination
-        bankAccounts: state.bankAccounts,
         transactionsPagination: state.transactionsPagination,
         withdrawalsPagination: state.withdrawalsPagination,
       }),

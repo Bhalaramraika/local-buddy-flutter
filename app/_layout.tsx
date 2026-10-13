@@ -3,7 +3,7 @@
  * Expo Router v3 with route groups
  */
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -17,12 +17,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { NotificationProvider, useNotifications } from '@/contexts/NotificationContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { LocationProvider, useLocation } from '@/contexts/LocationContext';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLocationStore } from '@/store/locationStore';
-import { useNotificationStore } from '@/store/notificationStore';
 import { initializeStores } from '@/store';
 import { initializeServices, startRealtimeSync, stopRealtimeSync } from '@/services';
 import { auth as firebaseAuth } from '@/services/firebase';
@@ -90,92 +89,77 @@ function useLoadFonts() {
 }
 
 // Auth initialization hook
+// NOTE: runs silently — the persisted Zustand session already drives routing,
+// so this must NOT show the global loader. If the backend is cold-starting
+// (Render free tier = tens of seconds), getCurrentUser (skipGlobalLoader)
+// refreshes the profile in the background instead of blocking the app.
 function AuthInitializer() {
   const { initializeAuth, isInitialized } = useAuth();
   const { setLoading: setAuthLoading } = useAuthStore();
-  const { setGlobalLoading } = useUIStore();
-  const setUILoading = useCallback((isLoading: boolean) => {
-    setGlobalLoading({ isLoading });
-  }, [setGlobalLoading]);
 
   useEffect(() => {
     const initAuth = async () => {
       try {
         setAuthLoading(true);
-        setUILoading(true);
         await initializeAuth();
       } catch (error) {
         console.error('Auth initialization failed:', error);
       } finally {
         setAuthLoading(false);
-        setUILoading(false);
       }
     };
 
     if (!isInitialized) {
       initAuth();
     }
-  }, [isInitialized, initializeAuth, setAuthLoading, setUILoading]);
+  }, [isInitialized, initializeAuth, setAuthLoading]);
 
   return null;
 }
 
 // Location initialization hook
+// IMPORTANT: no system permission prompt at app start — it delays the first
+// screen and users reflexively deny it. We silently check the CURRENT status
+// (expo-location, no prompt) and only start tracking when permission was
+// already granted. Features that need location (onboarding setup,
+// location-settings, task flows) call requestPermission() at the moment of use.
 function LocationInitializer() {
-  const { requestPermission, startTracking } = useLocation();
-  const { setPermissionStatus, setTrackingMode } = useLocationStore();
-  const { user } = useAuthStore();
+  const { startTracking } = useLocation();
+  const permissionStatus = useLocationStore((s) => s.permissionStatus);
+  const setPermissionStatus = useLocationStore((s) => s.setPermissionStatus);
+  const user = useAuthStore((s) => s.user);
+  const [checked, setChecked] = useState(false);
 
+  // Step 1: silent status check — never shows the system dialog
   useEffect(() => {
-    const initLocation = async () => {
-      if (user) {
-        try {
-          const granted = await requestPermission();
-          setPermissionStatus(granted ? 'granted' : 'denied');
-
-          if (granted) {
-            await startTracking('foreground');
-          }
-        } catch (error) {
-          console.error('Location initialization failed:', error);
+    if (!user || checked) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getForegroundPermissionsAsync } = await import('expo-location');
+        const { status } = await getForegroundPermissionsAsync();
+        if (!cancelled) {
+          setPermissionStatus(status as 'granted' | 'denied' | 'undetermined');
         }
+      } catch (error) {
+        console.warn('[Location] Silent permission check failed:', error);
+      } finally {
+        if (!cancelled) setChecked(true);
       }
-    };
+    })();
+    return () => { cancelled = true; };
+  }, [user, checked, setPermissionStatus]);
 
-    initLocation();
-  }, [user, requestPermission, startTracking, setPermissionStatus, setTrackingMode]);
-
-  return null;
-}
-
-// Notification initialization hook
-function NotificationInitializer() {
-  const { requestPermission, registerForPushNotifications } = useNotifications();
-  const { setFCMToken, setTokenRegistered, setNotificationPermission } = useNotificationStore();
-  const { user } = useAuthStore();
-
+  // Step 2: start foreground tracking only when permission already exists.
+  // Runs on the re-render after step 1's store update, so startTracking's
+  // closure sees the fresh status and skips its own requestPermission().
   useEffect(() => {
-    const initNotifications = async () => {
-      if (user) {
-        try {
-          const granted = await requestPermission();
-          setNotificationPermission(granted, granted ? 'granted' : 'denied');
-
-          if (granted) {
-            const token = await registerForPushNotifications();
-            if (token) {
-              setFCMToken(token);
-              setTokenRegistered(true);
-            }
-          }
-        } catch (error) {
-          console.error('Notification initialization failed:', error);
-        }
-      }
-    };
-
-    initNotifications();
-  }, [user, requestPermission, registerForPushNotifications, setFCMToken, setTokenRegistered, setNotificationPermission]);
+    if (user && checked && permissionStatus === 'granted') {
+      startTracking('foreground').catch((error) =>
+        console.error('Location tracking start failed:', error)
+      );
+    }
+  }, [user, checked, permissionStatus, startTracking]);
 
   return null;
 }
@@ -366,7 +350,6 @@ function AppProviders({ children }: { children: React.ReactNode }) {
                         <GlobalErrorHandler />
                         <AuthInitializer />
                         <LocationInitializer />
-                        <NotificationInitializer />
                         <RealtimeInitializer />
                         {children}
                         {/* App-wide centered orange loader (auto-wired to API calls) */}

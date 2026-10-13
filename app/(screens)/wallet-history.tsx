@@ -47,7 +47,7 @@ export default function WalletHistoryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchTransactions({ page: 1, limit: 20 });
+    await fetchTransactions({ page: 1, limit: 20 }, { forceRefresh: true });
     setRefreshing(false);
   };
 

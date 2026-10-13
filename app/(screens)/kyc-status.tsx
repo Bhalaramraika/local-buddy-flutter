@@ -2,7 +2,7 @@
  * KYC Status Screen - View KYC verification status
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -36,9 +36,9 @@ export default function KYCStatusScreen() {
   const [loading, setLoading] = useState(true);
 
   // ---- Approved hero animations (green tick pop + chips stagger) ----
-  const tickScale = useRef(new Animated.Value(0)).current;
-  const tickRing = useRef(new Animated.Value(0)).current;
-  const heroFade = useRef(new Animated.Value(0)).current;
+  const tickScale = React.useState(() => new Animated.Value(0))[0];
+  const tickRing = React.useState(() => new Animated.Value(0))[0];
+  const heroFade = React.useState(() => new Animated.Value(0))[0];
 
   const loadKYCStatus = async () => {
     setLoading(true);
@@ -64,7 +64,8 @@ export default function KYCStatusScreen() {
 
   // Store override can arrive any time (realtime toggle while screen is open)
   useEffect(() => {
-    if (storeApproved) setKycStatus('verified');
+    if (!storeApproved) return;
+    void Promise.resolve().then(() => setKycStatus('verified'));
   }, [storeApproved]);
 
   const isApproved = kycStatus === 'verified';

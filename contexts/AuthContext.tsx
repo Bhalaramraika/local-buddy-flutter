@@ -95,9 +95,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (err: any) {
           const status = err?.response?.status;
           if (status === 401 || status === 403) {
-            // Session is actually dead — wipe everything
+            // Session is actually dead — wipe everything, including this
+            // user's TTL cache, so no stale data survives the next login.
+            const uid = firebaseAuth?.currentUser?.uid ?? useAuthStore.getState().user?.id;
             await authService.clearTokens();
             clearAll();
+            try {
+              const { cacheWipeUser } = require('@/services/cache');
+              void cacheWipeUser(uid);
+            } catch { /* non-fatal */ }
           } else {
             // Transient failure (offline / backend cold-start / timeout):
             // KEEP the persisted session. Only the Firebase session is

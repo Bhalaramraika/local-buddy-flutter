@@ -38,3 +38,16 @@ export { initWalletTopup, initCommissionPayment, buildPayUHtml, parsePayURedirec
 export { default as walletService } from './wallet';
 export { default as imagePickerService } from './imagePicker';
 export { startRealtimeSync, stopRealtimeSync, subscribeToChatMessages } from './realtime';
+export {
+  cacheGet,
+  cacheGetStale,
+  cacheSet,
+  cacheInvalidate,
+  cacheWipeUser,
+  cacheWipeAll,
+  cachePrune,
+  cachedApiGet,
+  userCacheKey,
+  userCacheKeyFor,
+  globalCacheKey,
+} from './cache';

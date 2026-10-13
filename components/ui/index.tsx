@@ -107,7 +107,7 @@ export function SoftButton({
   withGlow = false,
 }: SoftButtonProps) {
   const isDark = useIsDark();
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const scaleAnim = React.useState(() => new Animated.Value(1))[0];
 
   const pressIn = () => {
     Animated.spring(scaleAnim, { toValue: 0.95, ...Animation.spring, useNativeDriver: true }).start();
@@ -396,7 +396,7 @@ export function ChoiceCard({
   delay = 0,
 }: ChoiceCardProps) {
   const isDark = useIsDark();
-  const scale = React.useRef(new Animated.Value(1)).current;
+  const scale = React.useState(() => new Animated.Value(1))[0];
 
   const pressIn = () => Animated.spring(scale, { toValue: 0.97, ...Animation.snappy, useNativeDriver: true }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1, ...Animation.snappy, useNativeDriver: true }).start();
@@ -656,6 +656,24 @@ export function SoftLineSkeleton({ lines = 3, gap = Spacing[3], style }: {
 }
 
 /**
+ * Task-card skeleton — same outer frame (white bg, 2px orange border,
+ * rounded-24, soft shadow) as the real task card, so the card STRUCTURE is
+ * visible from the very first frame while data is still loading.
+ */
+export function SoftTaskCardSkeleton({ style }: { style?: ViewStyle }) {
+  return (
+    <View style={[styles.taskCardSkeleton, style]}>
+      <SoftSkeleton width={46} height={46} borderRadius={BorderRadius.md} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <SoftSkeleton width="70%" height={15} borderRadius={7} />
+        <SoftSkeleton width="45%" height={12} borderRadius={6} />
+      </View>
+      <SoftSkeleton width={54} height={24} borderRadius={BorderRadius.pill} />
+    </View>
+  );
+}
+
+/**
  * Full-screen skeleton: heading line + N card blocks. Use everywhere data
  * loads (lists, profiles, stats) — replaces plain spinners per design rule.
  */
@@ -768,7 +786,7 @@ export function SoftIcon({
   onPress?: () => void;
   style?: ViewStyle;
 }) {
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const scaleAnim = React.useState(() => new Animated.Value(1))[0];
 
   const press = () => {
     Animated.sequence([
@@ -918,6 +936,13 @@ const styles = StyleSheet.create({
   },
   skeleton: { marginVertical: Spacing[1] },
   skeletonContainer: { padding: Spacing[1] },
+  // Same outer frame as the real task card — see SoftTaskCardSkeleton.
+  taskCardSkeleton: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
+    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.lg,
+    borderWidth: 2, borderColor: Colors.brand.accent,
+    padding: Spacing[4], marginBottom: Spacing[3], ...Shadows.card,
+  },
   emptyState: { alignItems: 'center', justifyContent: 'center', padding: Spacing[12] },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing[5] },
   emptyTitle: { fontSize: Typography.fontSize.lg, fontFamily: Typography.fontFamily.semiBold, marginBottom: Spacing[2] },
@@ -926,3 +951,6 @@ const styles = StyleSheet.create({
   screenContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[6], paddingBottom: Spacing[24] },
   iconContainer: { alignItems: 'center', justifyContent: 'center' },
 });
+
+// Disk-cached remote images (expo-image wrapper) — use for ALL remote URIs.
+export { CachedImage } from './CachedImage';

@@ -21,7 +21,8 @@ import { MotiView } from 'moti';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLocationStore } from '@/store/locationStore';
-import { apiGet } from '@/services/api';
+import { cachedApiGet, globalCacheKey } from '@/services/cache';
+import { CACHE_CONFIG } from '@/constants/app';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { ScreenHeader, SoftButton } from '@/components/ui';
 
@@ -60,9 +61,20 @@ export default function CreateTaskScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    apiGet<{ categories: { id: string; name: string }[] }>('/meta/categories')
+    // Categories are effectively static — global 1h TTL cache (a fresh
+    // cache hit means zero network; stale paints instantly via onStale).
+    cachedApiGet<{ categories: { id: string; name: string }[] }>(
+      globalCacheKey('meta:categories'),
+      '/meta/categories',
+      CACHE_CONFIG.categories,
+      {
+        onStale: (res) => {
+          if (!cancelled && res?.categories?.length) setServerCategories(res.categories);
+        },
+      }
+    )
       .then((res) => { if (!cancelled && res?.categories?.length) setServerCategories(res.categories); })
-      .catch(() => {});
+      .catch(() => {}); // hardcoded fallback list stays the final resort
     return () => { cancelled = true; };
   }, []);
 

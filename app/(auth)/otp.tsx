@@ -42,7 +42,11 @@ export default function OtpScreen() {
     if (timerActive && timer > 0) {
       const interval = setInterval(() => setTimer((t) => t - 1), 1000);
       return () => clearInterval(interval);
-    } else if (timer === 0) setTimerActive(false);
+    } else if (timer === 0) {
+      // Defer — no sync setState inside the effect body.
+      const t = setTimeout(() => setTimerActive(false), 0);
+      return () => clearTimeout(t);
+    }
   }, [timer, timerActive]);
 
   const startTimer = () => {
@@ -82,7 +86,7 @@ export default function OtpScreen() {
     }
   };
 
-  useEffect(() => { startTimer(); }, []);
+  useEffect(() => { void Promise.resolve().then(startTimer); }, []);
   useEffect(() => {
     if (otp.length === OTP_LEN) {
       // Small auto-submit delay; no jarring instant feels → we want subtle happiness
@@ -198,7 +202,7 @@ export default function OtpScreen() {
 
           <View style={styles.helpers}>
             <Text style={styles.resendText}>
-              Didn't receive the code?{'\n'}
+              Didn&apos;t receive the code?{'\n'}
               <Text style={styles.resendPlus} onPress={resend} disabled={resending || timerActive}>
                 {timerActive ? `Resend in ${timer}s` : 'Resend OTP'}
               </Text>

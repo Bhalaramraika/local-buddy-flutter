@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton } from '@/components/ui';
+import { SoftButton, SoftTaskCardSkeleton } from '@/components/ui';
 import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -20,7 +20,7 @@ import { formatCurrency, formatDistance, formatRelativeTime } from '@/utils/help
 export default function TasksScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { nearbyTasks: storedNearbyTasks, myTasks: storedMyTasks, assignedTasks: storedAssignedTasks, getFilteredTasks, setFilters } = useTaskStore();
+  const { nearbyTasks: storedNearbyTasks, myTasks: storedMyTasks, assignedTasks: storedAssignedTasks, nearbySynced, mySynced, assignedSynced, getFilteredTasks, setFilters } = useTaskStore();
   const { user, isAuthenticated } = useAuthStore();
   const { theme } = useUIStore();
   const systemScheme = useColorScheme();
@@ -212,6 +212,18 @@ export default function TasksScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
         ListEmptyComponent={
+          // Card-shaped skeletons from the first frame while the active tab's
+          // list is still syncing — then either a real task card or the true
+          // empty state. Never a false "No tasks found" flash.
+          (activeTab === 'nearby' && !nearbySynced) ||
+          (activeTab === 'my' && !mySynced) ||
+          (activeTab === 'applied' && !assignedSynced) ? (
+            <View style={{ gap: Spacing[3] }}>
+              <SoftTaskCardSkeleton />
+              <SoftTaskCardSkeleton />
+              <SoftTaskCardSkeleton />
+            </View>
+          ) : (
           <MotiView
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -231,6 +243,7 @@ export default function TasksScreen() {
               <SoftButton label="Create Task" variant="accent" icon="add" fullWidth={false} onPress={() => router.push('/(screens)/create-task')} style={{ paddingHorizontal: Spacing[7], marginTop: Spacing[5] }} withGlow />
             )}
           </MotiView>
+          )
         }
       />
 
@@ -289,11 +302,12 @@ const styles = StyleSheet.create({
   segBadgeTextIdle: { color: Colors.brand.accent },
 
   listContent: { padding: Spacing[5], paddingBottom: 120 },
-  // Square-round card with a soft orange curved border
+  // Clearly a CARD: white surface, 2px orange border, rounded-24 corners,
+  // soft shadow on the antique-white page.
   taskCard: {
     marginBottom: Spacing[4], padding: Spacing[5],
-    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
-    borderWidth: 1.5, borderColor: Colors.brand.accent, ...Shadows.card,
+    backgroundColor: '#FFFFFF', borderRadius: BorderRadius.lg,
+    borderWidth: 2, borderColor: Colors.brand.accent, ...Shadows.card,
   },
   taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing[2] },
   taskCategory: { paddingHorizontal: Spacing[3], paddingVertical: 5, borderRadius: BorderRadius.pill, backgroundColor: Colors.brand.accentSoft },

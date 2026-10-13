@@ -112,6 +112,10 @@ export const useAuthStore = create<AuthState>()(
       })),
       
       logout: () => {
+        // Capture the user id BEFORE the reset below — the TTL-cache wipe
+        // and persisted-store cleanup are namespaced by it.
+        const uid = get().user?.id;
+
         // Clear persisted auth keys
         storage.remove('auth_token');
         storage.remove('refresh_token');
@@ -130,6 +134,24 @@ export const useAuthStore = create<AuthState>()(
             stopRealtimeSync();
           } catch (e) {
             console.warn('[AuthStore] stopRealtimeSync on logout failed:', e);
+          }
+
+          // Wipe this user's TTL cache + persisted data-bearing store keys —
+          // otherwise user B logging into the same phone could see user A's
+          // cached tasks/chats/notifications (AsyncStorage is app-scoped).
+          try {
+            const { cacheWipeUser } = require('@/services/cache');
+            await cacheWipeUser(uid);
+
+            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+            await AsyncStorage.multiRemove([
+              'chat-storage',
+              'task-storage',
+              'wallet-storage',
+              'notification-storage',
+            ]);
+          } catch (e) {
+            console.warn('[AuthStore] cache wipe on logout failed:', e);
           }
 
           try {

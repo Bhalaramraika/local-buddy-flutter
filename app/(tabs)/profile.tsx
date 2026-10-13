@@ -11,7 +11,6 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  Image,
   RefreshControl,
   Alert,
 } from 'react-native';
@@ -20,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftScreenSkeleton } from '@/components/ui';
+import { SoftScreenSkeleton, CachedImage } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { formatCurrency } from '@/utils/helpers';
 
@@ -172,7 +171,7 @@ export default function ProfileScreen() {
 
         <View style={styles.avatarContainer}>
           {user?.avatar ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            <CachedImage source={{ uri: user.avatar }} style={styles.avatarImage} />
           ) : (
             <Text style={styles.avatarInitial}>
               {user?.name?.charAt(0).toUpperCase() || 'U'}

@@ -6,7 +6,7 @@
  * uiStore.setGlobalLoading({ isLoading, message }).
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { useUIStore } from '@/store/uiStore';
 import { Colors, Spacing, BorderRadius, Typography } from '@/constants/design';
@@ -16,8 +16,8 @@ const ORANGE = Colors.brand.accent; // #F77051
 export function GlobalLoader() {
   const { isLoading, message } = useUIStore((s) => s.globalLoading);
 
-  const fade = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(1)).current;
+  const fade = React.useState(() => new Animated.Value(0))[0];
+  const pulse = React.useState(() => new Animated.Value(1))[0];
 
   useEffect(() => {
     Animated.timing(fade, {

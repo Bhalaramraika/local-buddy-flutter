@@ -43,7 +43,8 @@ export default function WalletScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchWallet(), fetchTransactions()]);
+    // Pull-to-refresh = user asked for fresh data → bypass the 2-min TTL.
+    await Promise.all([fetchWallet(), fetchTransactions(undefined, { forceRefresh: true })]);
     setRefreshing(false);
   };
 

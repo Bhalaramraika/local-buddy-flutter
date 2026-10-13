@@ -18,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
-import { apiGet } from '@/services/api';
+import { cachedApiGet, userCacheKey } from '@/services/cache';
+import { CACHE_CONFIG } from '@/constants/app';
 import { ScreenHeader } from '@/components/ui';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
@@ -35,7 +36,9 @@ export default function StatsScreen() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const res = await apiGet<{ stats: any }>('/users/me/stats');
+      // 10-min TTL — stats only move when the task lifecycle progresses.
+      const res = await cachedApiGet<{ stats: any }>(
+        userCacheKey('user:stats'), '/users/me/stats', CACHE_CONFIG.userStats);
       const server = (res as any)?.stats || res || {};
       const myCompletedTasks = completedTasks.filter(t => t.status === 'completed');
       const myPostedTasks = postedTasks;
@@ -110,7 +113,8 @@ export default function StatsScreen() {
   };
 
   useEffect(() => {
-    loadStats();
+    // Defer — loadStats performs async work + setState; not synchronously.
+    void Promise.resolve().then(loadStats);
   }, [timeRange]);
 
   const formatCurrency = (amount: number) => {

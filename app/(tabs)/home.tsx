@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftBadge, SoftSkeleton } from '@/components/ui';
+import { SoftBadge, SoftTaskCardSkeleton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useWalletStore } from '@/store/walletStore';
@@ -36,7 +36,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuthStore();
-  const { nearbyTasks, assignedTasks, isLoading: tasksLoading, fetchTasks } = useTaskStore();
+  const { nearbyTasks, assignedTasks, isLoading: tasksLoading, nearbySynced, fetchTasks } = useTaskStore();
   const { getAvailableBalance } = useWalletStore();
   const { unreadCount } = useNotificationStore();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -52,7 +52,7 @@ export default function HomeScreen() {
     setRefreshing(true);
     try {
       getAvailableBalance();
-      void fetchTasks({ status: 'open' });
+      void fetchTasks({ status: 'open' }, { forceRefresh: true }); // pull = fresh network data
     } finally { setRefreshing(false); }
   };
 
@@ -261,10 +261,13 @@ export default function HomeScreen() {
           </Pressable>
         </MotiView>
 
-        {tasksLoading && tasksToShow.length === 0 ? (
+        {/* Card-shaped skeletons from the FIRST frame — the user sees the
+            card structure immediately; real data replaces it when loaded. */}
+        {(!nearbySynced || tasksLoading) && tasksToShow.length === 0 ? (
           <View style={styles.taskSkeletonRow}>
-            <SoftSkeleton height={92} borderRadius={BorderRadius.lg} />
-            <SoftSkeleton height={92} borderRadius={BorderRadius.lg} width="92%" />
+            <SoftTaskCardSkeleton />
+            <SoftTaskCardSkeleton />
+            <SoftTaskCardSkeleton />
           </View>
         ) : tasksToShow.length === 0 ? (
           <MotiView
@@ -445,11 +448,12 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: Typography.fontFamily.semiBold, fontSize: 17, color: Colors.text.primary, marginBottom: Spacing[2] },
   emptySub: { fontFamily: Typography.fontFamily.body, fontSize: 13.5, color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
 
-  // ---- Task cards — square-round with soft orange curved border ----
+  // ---- Task cards — clearly a CARD: white surface, 2px orange border,
+  // rounded-24 corners and a soft shadow on the antique-white page.
   taskCard: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
-    backgroundColor: Colors.surface.elevated, borderRadius: BorderRadius.xl,
-    borderWidth: 1.5, borderColor: Colors.brand.accent, padding: Spacing[4],
+    backgroundColor: '#FFFFFF', borderRadius: BorderRadius.lg,
+    borderWidth: 2, borderColor: Colors.brand.accent, padding: Spacing[4],
     marginBottom: Spacing[3], ...Shadows.card,
   },
   taskIconChip: {

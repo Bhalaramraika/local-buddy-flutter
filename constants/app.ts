@@ -270,13 +270,21 @@ export const IMAGE_CONFIG = {
   maxImagesPerChat: 3,
 } as const;
 
-// Cache Configuration
+// Cache Configuration — TTLs for the client cache (services/cache.ts).
+// Hard rule: wallet balance/commissionDue, OTP secrets, KYC docs, chat
+// messages, bank accounts, SOS/location data are NEVER cached on disk.
 export const CACHE_CONFIG = {
   tasks: 5 * 60 * 1000, // 5 minutes
+  taskDetail: 5 * 60 * 1000, // 5 minutes
   userProfile: 10 * 60 * 1000, // 10 minutes
   categories: 60 * 60 * 1000, // 1 hour
   cities: 24 * 60 * 60 * 1000, // 24 hours
-  chatMessages: 2 * 60 * 1000, // 2 minutes
+  chatMessages: 2 * 60 * 1000, // policy note only — chat messages are never cached
+  walletTransactions: 2 * 60 * 1000, // 2 minutes (balance itself is realtime-only)
+  notifications: 2 * 60 * 1000, // 2 minutes
+  referral: 30 * 60 * 1000, // 30 minutes
+  userStats: 10 * 60 * 1000, // 10 minutes
+  achievements: 30 * 60 * 1000, // 30 minutes
 } as const;
 
 // Pagination

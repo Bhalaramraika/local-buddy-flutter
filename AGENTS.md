@@ -128,11 +128,44 @@ onboarding-referral}.tsx`), `(screens)/security-settings.tsx`,
   (`uiStore.globalLoading` ref-counted in `services/api.ts`; opt out per
   request with `skipGlobalLoader: true` in the axios config).
 
+## Client cache (services/cache.ts)
+- AsyncStorage TTL cache for NON-confidential data. Keys: `lbc:v1:u:<uid>:<domain>`
+  per-user, `lbc:v1:g:<domain>` global. Bump the `v1` constant when an entry
+  shape changes. Every function is failure-proof (errors → cache miss).
+- **Never cache**: wallet balance / `commissionDue`, task OTP secrets, KYC
+  docs, chat messages, bank accounts, SOS/location data, auth tokens.
+- TTLs live ONLY in `CACHE_CONFIG` (`constants/app.ts`). Patterns:
+  - Rich stores: `cacheGet`/`cacheGetStale`/`cacheSet` inline (taskStore,
+    walletStore) — stale-while-revalidate; background refetch passes
+    `skipGlobalLoader: true`. Pull-to-refresh MUST pass `forceRefresh: true`.
+  - Simple screens: `cachedApiGet(key, url, ttl, { onStale })`.
+  - Any task/wallet mutation MUST `cacheInvalidate` the matching key prefix.
+- `services/realtime.ts` write-throughs listener snapshots into the cache
+  (NOT userProfile — carries wallet/KYC) and hydrates empty stores from
+  cache on cold start before listeners fire.
+- Logout + dead-session teardown (authStore.logout, AuthContext
+  initializeAuth 401/403) calls `cacheWipeUser(uid)` AND removes persisted
+  `chat-storage`/`task-storage`/`wallet-storage`/`notification-storage`
+  keys — no cross-account data bleed. walletStore persist no longer stores
+  `bankAccounts` (persist version bumped to 2).
+- **Images**: remote URIs render via `CachedImage` (`components/ui`,
+  expo-image `memory-disk`). Never reintroduce RN `<Image source={{uri}}>`.
+
 ## Conventions
 - Store↔screen contracts: stores call REST first, then update local state;
   Firestore listeners re-sync.
 - One source of truth for constants: `constants/app.ts`.
 - Use the versioned Expo docs linked above.
+- **Cold-start perf**: startup never blocks on the network. `GET /auth/me`
+  (`authService.getCurrentUser`) always runs with `skipGlobalLoader: true` and
+  persisted auth drives routing immediately; `AuthInitializer` must NOT call
+  `setGlobalLoading`. No permission prompts at app start — location is asked
+  at the feature's moment of use (setup, location-settings, task flows),
+  notifications self-register silently in `NotificationContext` when already
+  granted. Firestore listeners attach after first interactions
+  (`InteractionManager` in `services/realtime.ts`) and `nearbyTasks` is
+  limited to 30 docs. Axios attaches the cached Firebase ID token
+  (`getIdToken()`); force-refresh exists only in the 401 retry path.
 - **Uploads** (`services/upload.ts`): always `FileSystem.uploadAsync` from
   `expo-file-system/legacy` (native multipart). Never `fetch`+`FormData`
   with the RN `{uri,name,type}` object — expo/fetch's spec FormData rejects

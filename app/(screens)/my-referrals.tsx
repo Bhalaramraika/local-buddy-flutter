@@ -18,7 +18,8 @@ import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { ScreenHeader } from '@/components/ui';
 import { useRouter } from 'expo-router';
-import { apiGet } from '@/services/api';
+import { cachedApiGet, userCacheKey, cacheInvalidate } from '@/services/cache';
+import { CACHE_CONFIG } from '@/constants/app';
 
 export default function MyReferralsScreen() {
   const router = useRouter();
@@ -27,10 +28,13 @@ export default function MyReferralsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
 
-  const loadReferrals = async () => {
+  const loadReferrals = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      await apiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>('/referral/stats');
+      const key = userCacheKey('referral:stats'); // shared with referral.tsx
+      if (forceRefresh) await cacheInvalidate(key);
+      await cachedApiGet<{ stats: { total: number; completed: number; pending: number; rewards: number } }>(
+        key, '/referral/stats', CACHE_CONFIG.referral);
       // Referral details are not exposed per-item by the backend yet; show aggregate list only.
       setReferrals([]);
     } catch (e) {
@@ -43,12 +47,12 @@ export default function MyReferralsScreen() {
 
   useEffect(() => {
     // Defer data loading past first commit so no sync setState happens in the effect body
-    void Promise.resolve().then(loadReferrals);
+    void Promise.resolve().then(() => loadReferrals());
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadReferrals().finally(() => setRefreshing(false));
+    loadReferrals(true).finally(() => setRefreshing(false)); // pull = bypass TTL cache
   };
 
   const filteredReferrals = referrals.filter(r => filter === 'all' || r.status === filter);

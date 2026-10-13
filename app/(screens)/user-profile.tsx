@@ -11,7 +11,6 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  Image,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,7 +22,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { formatRelativeTime } from '@/utils/helpers';
 import { Colors, BorderRadius, Typography, Shadows, Spacing } from '@/constants/design';
-import { ScreenHeader, SoftButton, SoftScreenSkeleton } from '@/components/ui';
+import { ScreenHeader, SoftButton, SoftScreenSkeleton, CachedImage } from '@/components/ui';
 
 interface PublicUserProfile {
   id: string;
@@ -177,7 +176,7 @@ export default function PublicProfileScreen() {
           <View style={styles.profileBand} />
           <View style={styles.avatarContainer}>
             {profile.avatar ? (
-              <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+              <CachedImage source={{ uri: profile.avatar }} style={styles.avatar} />
             ) : (
               <Text style={styles.avatarText}>
                 {profile.name.charAt(0).toUpperCase()}

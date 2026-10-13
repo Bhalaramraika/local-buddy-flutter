@@ -11,7 +11,6 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  Image,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,7 +20,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, CachedImage } from '@/components/ui';
 
 export default function NewChatScreen() {
   const router = useRouter();
@@ -78,7 +77,7 @@ export default function NewChatScreen() {
       >
         <View style={styles.userAvatar}>
           {item.avatar ? (
-            <Image source={{ uri: item.avatar }} style={styles.userAvatarImage} />
+            <CachedImage source={{ uri: item.avatar }} style={styles.userAvatarImage} />
           ) : (
             <Text style={styles.userAvatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
           )}

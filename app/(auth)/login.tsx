@@ -70,7 +70,7 @@ export default function LoginScreen() {
             <Ionicons name="lock-closed" size={30} color={Colors.brand.accent} />
           </View>
           <Text style={styles.heroTitle}>Welcome back</Text>
-          <Text style={styles.heroSub}>Sign in with your email — we'll send you a quick 6-digit code.</Text>
+          <Text style={styles.heroSub}>Sign in with your email — we&apos;ll send you a quick 6-digit code.</Text>
         </MotiView>
 
         {/* Card */}

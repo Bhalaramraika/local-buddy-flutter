@@ -20,10 +20,12 @@ services:
       # Supabase (required)
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      # PayU (required for payments)
+      # PayU (required for payments) — production endpoint by default;
+      # the merchant credentials for this app are LIVE, so test.payu.in
+      # would only show PayU's generic "Pardon" error page.
       - PAYU_MERCHANT_KEY=${PAYU_MERCHANT_KEY}
       - PAYU_SALT=${PAYU_SALT}
-      - PAYU_BASE_URL=${PAYU_BASE_URL:-https://test.payu.in}
+      - PAYU_BASE_URL=${PAYU_BASE_URL:-https://secure.payu.in}
       # Cloudinary (required for uploads)
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}

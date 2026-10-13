@@ -17,7 +17,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { apiGet } from '@/services/api';
+import { cachedApiGet, userCacheKey } from '@/services/cache';
+import { CACHE_CONFIG } from '@/constants/app';
 import { ScreenHeader } from '@/components/ui';
 import { useRouter } from 'expo-router';
 
@@ -30,7 +31,9 @@ export default function AchievementsScreen() {
   const loadAchievements = async () => {
     setLoading(true);
     try {
-      const res = await apiGet<{ achievements: any[] }>('/achievements');
+      // 30-min TTL — achievements change only on task events.
+      const res = await cachedApiGet<{ achievements: any[] }>(
+        userCacheKey('achievements'), '/achievements', CACHE_CONFIG.achievements);
       setAchievements(res?.achievements || []);
     } catch (e) {
       console.warn('[Achievements] load failed:', e);

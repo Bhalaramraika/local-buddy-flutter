@@ -23,7 +23,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useUIStore } from '@/store/uiStore';
 import { apiPost, getApiErrorMessage } from '@/services/api';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
+import { ScreenHeader, SoftTaskCardSkeleton } from '@/components/ui';
 
 // Backend task statuses: open | assigned | completed | deleted
 // (payment is tracked by the task's paidAt timestamp, not a status)
@@ -35,7 +35,9 @@ export default function MyTasksScreen() {
     myTasks,
     refreshTasks,
     deleteTask,
+    fetchTaskById,
     isLoading: tasksLoading,
+    mySynced,
   } = useTaskStore();
   const { showToast } = useUIStore();
 
@@ -51,7 +53,7 @@ export default function MyTasksScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshTasks();
+    await refreshTasks(true); // pull-to-refresh bypasses the TTL cache
     setRefreshing(false);
   };
 
@@ -113,7 +115,11 @@ export default function MyTasksScreen() {
             try {
               await apiPost(`/wallet/release/${task.id}`);
               showToast('Payment released to buddy', 'success');
-              await refreshTasks();
+              // Release stamps paidAt on the task — refresh both the list
+              // and this task's detail cache (task-detail would otherwise
+              // show stale "unpaid" state for up to the TTL window).
+              fetchTaskById(task.id, { forceRefresh: true }).catch(() => {});
+              await refreshTasks(true); // mutation just happened — bypass cache
             } catch (err: any) {
               Alert.alert('Payment failed', getApiErrorMessage(err, 'Could not release payment. Please try again.'));
             } finally {
@@ -331,9 +337,14 @@ export default function MyTasksScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.brand.accent]} tintColor={Colors.brand.accent} />
         }
         ListEmptyComponent={
-          // First load: skeleton cards instead of a false empty state.
-          tasksLoading && myTasks.length === 0 ? (
-            <SoftScreenSkeleton cards={4} style={{ paddingHorizontal: 0 }} />
+          // First load: CARD-shaped skeletons — card structure visible from
+          // the first frame, real data replaces them when synced.
+          (!mySynced || (tasksLoading && myTasks.length === 0)) ? (
+            <View style={{ gap: Spacing[3] }}>
+              <SoftTaskCardSkeleton />
+              <SoftTaskCardSkeleton />
+              <SoftTaskCardSkeleton />
+            </View>
           ) : (
             renderEmptyState()
           )
@@ -368,9 +379,11 @@ const styles = StyleSheet.create({
   filterBadgeText: { fontSize: 10, fontFamily: Typography.fontFamily.bold, color: Colors.text.secondary },
 
   listContent: { paddingHorizontal: Spacing[5], paddingTop: Spacing[3], paddingBottom: 40, gap: Spacing[3] },
+  // Same unmistakable card treatment as the Home/Tasks tabs: white surface,
+  // 2px orange border, rounded-24 corners, soft shadow.
   taskCard: {
     borderRadius: BorderRadius.lg, padding: Spacing[4],
-    backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.border.light,
+    backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: Colors.brand.accent,
     ...Shadows.card,
   },
   taskCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing[2], marginBottom: Spacing[2] },

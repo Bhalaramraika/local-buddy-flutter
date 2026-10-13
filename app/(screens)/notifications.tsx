@@ -10,15 +10,14 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   RefreshControl,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { useUIStore } from '@/store/uiStore';
-import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
+import { fetchNotificationsCached, markNotificationRead, markAllNotificationsRead } from '@/services/notifications';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader, SoftScreenSkeleton } from '@/components/ui';
+import { ScreenHeader, SoftScreenSkeleton, CachedImage } from '@/components/ui';
 
 
 export default function NotificationsScreen() {
@@ -32,21 +31,30 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
 
-  const loadNotifications = async () => {
+  const applyList = (res: { notifications?: any[] } | null | undefined) => {
+    const raw = res?.notifications ?? [];
+    setNotifications(raw.map((n: any) => ({
+      id: n.id,
+      type: n.type || 'system',
+      title: n.title || 'Notification',
+      message: n.body || n.message || '',
+      time: n.createdAt || new Date().toISOString(),
+      read: !!n.read,
+      actionUrl: n.data?.url || n.actionUrl,
+      avatar: n.image || null,
+    })));
+  };
+
+  const loadNotifications = async (forceRefresh = false) => {
     setError(null);
     try {
-      const res = await fetchNotifications({ limit: 50 });
-      const raw = res?.notifications ?? [];
-      setNotifications(raw.map((n: any) => ({
-        id: n.id,
-        type: n.type || 'system',
-        title: n.title || 'Notification',
-        message: n.body || n.message || '',
-        time: n.createdAt || new Date().toISOString(),
-        read: !!n.read,
-        actionUrl: n.data?.url || n.actionUrl,
-        avatar: n.image || null,
-      })));
+      // 2-min TTL cache: fresh cache = zero network; stale cache paints
+      // first (onStale) and is replaced by the background fetch result.
+      const res = await fetchNotificationsCached(
+        { limit: 50 },
+        { forceRefresh, onStale: applyList }
+      );
+      applyList(res);
     } catch (e: any) {
       console.warn('[Notifications] load failed:', e);
       setError(e?.response?.data?.error || 'Failed to load notifications');
@@ -59,13 +67,13 @@ export default function NotificationsScreen() {
   useEffect(() => {
     // Defer past the first commit — a sync setState directly inside the
     // effect body triggers cascading-render lint/runtime warnings.
-    void Promise.resolve().then(loadNotifications);
+    void Promise.resolve().then(() => loadNotifications());
   }, []);
 
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadNotifications();
+    await loadNotifications(true); // pull-to-refresh bypasses the TTL cache
   };
 
   const filteredNotifications = filter === 'unread' 
@@ -157,7 +165,7 @@ export default function NotificationsScreen() {
         >
           <View style={[styles.notificationIcon, { backgroundColor: bg }]}>
             {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={styles.notificationAvatar} />
+              <CachedImage source={{ uri: item.avatar }} style={styles.notificationAvatar} />
             ) : (
               <Ionicons name={icon as any} size={20} color={color} />
             )}
@@ -193,7 +201,7 @@ export default function NotificationsScreen() {
             <Ionicons name="alert-circle" size={30} color={Colors.semantic.error} />
           </View>
           <Text style={styles.loadingText}>{error}</Text>
-          <TouchableOpacity onPress={loadNotifications} style={styles.retryBtn} hitSlop={8}>
+          <TouchableOpacity onPress={() => void loadNotifications()} style={styles.retryBtn} hitSlop={8}>
             <Ionicons name="refresh" size={15} color="#FFFFFF" />
             <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>

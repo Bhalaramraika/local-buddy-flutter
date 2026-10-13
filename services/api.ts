@@ -101,7 +101,11 @@ api.interceptors.request.use(
       
       const user = auth.currentUser;
       if (user) {
-        const token = await user.getIdToken(true); // Force refresh
+        // Cached token — Firebase auto-refreshes it when expired. The old
+        // getIdToken(true) force-refresh added a full network round trip to
+        // EVERY API call (0.5–1s+ each). The 401 handler below still
+        // force-refreshes and retries when a token actually goes stale.
+        const token = await user.getIdToken();
         config.headers.Authorization = `Bearer ${token}`;
       }
       

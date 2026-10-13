@@ -32,7 +32,14 @@ export const config = {
   payu: {
     merchantKey: process.env.PAYU_MERCHANT_KEY || '',
     merchantSalt: process.env.PAYU_MERCHANT_SALT || '',
-    baseUrl: process.env.PAYU_BASE_URL || 'https://test.payu.in',
+    // Explicit PAYU_BASE_URL always wins. Otherwise PAYU_ENV decides —
+    // anything other than 'test' resolves to the PRODUCTION endpoint.
+    // This app's merchant credentials are LIVE; hitting test.payu.in with
+    // them makes PayU render its generic "Pardon, Some Problem Occurred"
+    // error page instead of the checkout.
+    baseUrl:
+      process.env.PAYU_BASE_URL ||
+      (process.env.PAYU_ENV === 'test' ? 'https://test.payu.in' : 'https://secure.payu.in'),
   },
 
   mojoauth: {
@@ -77,3 +84,7 @@ if (!config.server.isDev) {
     }
   }
 }
+
+// Always log the PayU endpoint at boot — a key/URL environment mismatch is
+// invisible without it (PayU only shows a generic error page to the user).
+console.log(`[CONFIG] PayU checkout endpoint: ${config.payu.baseUrl}/_payment`);

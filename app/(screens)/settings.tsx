@@ -13,7 +13,6 @@ import {
   StyleSheet,
   Switch,
   Alert,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, CachedImage } from '@/components/ui';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -145,7 +144,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.userAvatar}>
             {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.userAvatarImage} />
+              <CachedImage source={{ uri: user.avatar }} style={styles.userAvatarImage} />
             ) : (
               <Text style={styles.userAvatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
             )}

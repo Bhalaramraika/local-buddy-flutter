@@ -222,6 +222,10 @@ export const initializeStores = () => {
     useNotificationStore.getState();
     useKYCStore.getState();
     useUserStore.getState();
+    // Cheap cache maintenance: drop expired client-cache entries once per
+    // app start (fire-and-forget; services/cache.ts can never throw).
+    const { cachePrune } = require('@/services/cache');
+    void cachePrune();
     console.log('[Stores] All stores initialized');
   } catch (error) {
     console.error('[Stores] Initialization failed:', error);

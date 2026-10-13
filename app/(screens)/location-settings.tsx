@@ -44,7 +44,10 @@ export default function LocationSettingsScreen() {
   const [savingNearby, setSavingNearby] = useState(false);
   const [trackingBusy, setTrackingBusy] = useState(false);
 
-  useEffect(() => setNearbyVisible(initialNearby), [initialNearby]);
+  useEffect(() => {
+    // Defer the props→state sync past the effect body (react-hooks rule).
+    void Promise.resolve().then(() => setNearbyVisible(initialNearby));
+  }, [initialNearby]);
 
   const permissionGranted = permissionStatus === 'granted';
 

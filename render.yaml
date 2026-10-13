@@ -35,13 +35,16 @@ services:
       - key: JWT_EXPIRY
         value: "7d"
 
-      # PayU (Test Mode from PayU Merchant Dashboard)
+      # PayU — PRODUCTION hosted checkout. The merchant key/salt pair
+      # configured for this app is a LIVE pair: pointing base URL at
+      # test.payu.in makes PayU show "Pardon, Some Problem Occurred"
+      # because the test environment doesn't know those credentials.
       - key: PAYU_MERCHANT_KEY
         sync: false
       - key: PAYU_MERCHANT_SALT
         sync: false
       - key: PAYU_BASE_URL
-        value: "https://test.payu.in"
+        value: "https://secure.payu.in"
 
       # MojoAuth — Email OTP
       - key: MOJOAUTH_API_KEY

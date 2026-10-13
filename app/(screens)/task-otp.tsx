@@ -58,7 +58,8 @@ export default function TaskOtpScreen() {
         { otp }
       );
       // Re-sync the task locally (realtime listeners also cover this).
-      fetchTaskById(taskId).catch(() => {});
+      // forceRefresh bypasses the TTL cache — the OTP just mutated the task.
+      fetchTaskById(taskId, { forceRefresh: true }).catch(() => {});
 
       if (isStart) {
         router.back();

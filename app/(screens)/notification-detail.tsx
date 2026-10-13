@@ -9,7 +9,6 @@ import {
   ScrollView, 
   TouchableOpacity, 
   StyleSheet,
-  Image,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -17,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { useNotificationStore } from '@/store/notificationStore';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, CachedImage } from '@/components/ui';
 
 export default function NotificationDetailScreen() {
   const router = useRouter();
@@ -126,7 +125,7 @@ export default function NotificationDetailScreen() {
           {/* Sender Info (if applicable) */}
           {notification.avatar ? (
             <View style={styles.senderInfo}>
-              <Image source={{ uri: notification.avatar }} style={styles.senderAvatar} />
+              <CachedImage source={{ uri: notification.avatar }} style={styles.senderAvatar} />
               <View style={styles.senderDetails}>
                 <Text style={styles.senderName}>
                   {notification.data?.userName || 'LocalBuddy Team'}

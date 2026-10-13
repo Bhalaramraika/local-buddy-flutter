@@ -12,7 +12,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Image,
   Alert,
   Linking,
 } from 'react-native';
@@ -26,7 +25,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useUIStore } from '@/store/uiStore';
-import { ScreenHeader, SoftButton, SoftScreenSkeleton } from '@/components/ui';
+import { ScreenHeader, SoftButton, SoftScreenSkeleton, CachedImage } from '@/components/ui';
 import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/helpers';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
 
@@ -74,7 +73,7 @@ export default function TaskDetailScreen() {
 
       if (success) {
         setApplied(true);
-        fetchTaskById(taskId!).catch(() => {});
+        fetchTaskById(taskId!, { forceRefresh: true }).catch(() => {});
         showToast('Task assigned to you! Enter the start code when you reach the location.', 'success');
       }
     } catch (err: any) {
@@ -193,7 +192,7 @@ export default function TaskDetailScreen() {
         {/* Task Image */}
         {task.images && task.images.length > 0 ? (
           <MotiView from={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'timing', duration: 440 }} style={styles.imageContainer}>
-            <Image
+            <CachedImage
               source={{ uri: task.images[0]?.url }}
               style={styles.taskImage}
               resizeMode="cover"
@@ -294,7 +293,7 @@ export default function TaskDetailScreen() {
             >
               <View style={styles.posterAvatar}>
                 {task.posterAvatar ? (
-                  <Image source={{ uri: task.posterAvatar }} style={styles.posterAvatarImage} />
+                  <CachedImage source={{ uri: task.posterAvatar }} style={styles.posterAvatarImage} />
                 ) : (
                   <Text style={styles.posterAvatarText}>{task.posterName?.charAt(0).toUpperCase()}</Text>
                 )}
@@ -401,7 +400,7 @@ export default function TaskDetailScreen() {
                     <View key={app.id} style={styles.applicationCard}>
                       <View style={styles.applicantAvatar}>
                         {app.applicantAvatar ? (
-                          <Image source={{ uri: app.applicantAvatar }} style={styles.applicantAvatarImage} />
+                          <CachedImage source={{ uri: app.applicantAvatar }} style={styles.applicantAvatarImage} />
                         ) : (
                           <Text style={styles.applicantAvatarText}>{app.applicantName?.charAt(0).toUpperCase()}</Text>
                         )}
@@ -435,7 +434,7 @@ export default function TaskDetailScreen() {
               transition={{ type: 'timing', duration: 420, delay: 380 }}
               style={styles.section}
             >
-              <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id).catch(() => {})} />
+              <TaskFlowSection task={task} isPoster={isPoster} userId={user?.id} onChanged={() => fetchTaskById(task.id, { forceRefresh: true }).catch(() => {})} />
             </MotiView>
           ) : null}
 

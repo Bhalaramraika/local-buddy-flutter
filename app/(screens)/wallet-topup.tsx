@@ -52,7 +52,10 @@ export default function WalletTopupScreen() {
 
   // Dues mode: amount is fixed to the buddy's pending dues (server-verified).
   useEffect(() => {
-    if (isDuesMode) setAmount(String(Math.max(0, Math.round(commissionDue || 0))));
+    if (!isDuesMode) return;
+    void Promise.resolve().then(() => {
+      setAmount(String(Math.max(0, Math.round(commissionDue || 0))));
+    });
   }, [isDuesMode, commissionDue]);
 
   const validate = (): boolean => {

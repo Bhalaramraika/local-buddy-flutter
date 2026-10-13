@@ -12,7 +12,6 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,7 +22,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatRelativeTime, formatTime } from '@/utils/helpers';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, CachedImage } from '@/components/ui';
 
 export default function ChatDetailScreen() {
   const router = useRouter();
@@ -116,7 +115,7 @@ export default function ChatDetailScreen() {
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
               {item.senderAvatar ? (
-                <Image source={{ uri: item.senderAvatar }} style={styles.avatarImage} />
+                <CachedImage source={{ uri: item.senderAvatar }} style={styles.avatarImage} />
               ) : (
                 <Text style={styles.avatarText}>{item.senderName?.charAt(0).toUpperCase()}</Text>
               )}
@@ -133,7 +132,7 @@ export default function ChatDetailScreen() {
             isOwn ? Shadows.button : {},
           ]}>
             {item.type === 'image' && item.imageUrl && (
-              <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+              <CachedImage source={{ uri: item.imageUrl }} style={styles.messageImage} />
             )}
             {item.type === 'text' && (
               <Text style={[
@@ -199,7 +198,7 @@ export default function ChatDetailScreen() {
           <TouchableOpacity style={styles.headerUser} onPress={handleViewProfile}>
             <View style={styles.headerAvatar}>
               {currentConversation?.otherUser?.avatar ? (
-                <Image source={{ uri: currentConversation.otherUser.avatar }} style={styles.headerAvatarImage} />
+                <CachedImage source={{ uri: currentConversation.otherUser.avatar }} style={styles.headerAvatarImage} />
               ) : (
                 <Text style={styles.headerAvatarText}>{currentConversation?.otherUser?.name?.charAt(0).toUpperCase()}</Text>
               )}

@@ -10,14 +10,13 @@
  * nothing is left half-saved.
  */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   TextInput,
-  Image,
   StyleSheet,
   Animated,
   Easing,
@@ -25,6 +24,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { CachedImage } from '@/components/ui';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -214,7 +214,7 @@ export default function OnboardingSetup() {
   const [referral, setReferral] = useState('');
 
   // Step transition animation
-  const stepFade = useRef(new Animated.Value(1)).current;
+  const stepFade = React.useState(() => new Animated.Value(1))[0];
   const goTo = (next: number) => {
     Animated.timing(stepFade, { toValue: 0, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(() => {
       setStep(next);
@@ -256,10 +256,15 @@ export default function OnboardingSetup() {
   };
 
   React.useEffect(() => {
-    if (currentLocation?.address && !city) {
-      const parts = String(currentLocation.address).split(',').map((s: string) => s.trim()).filter(Boolean);
-      if (parts.length) setCity(parts[0]);
-    }
+    if (!currentLocation?.address) return;
+    // Defer props→state sync past the effect body (react-hooks rule).
+    void Promise.resolve().then(() => {
+      setCity((prev) => {
+        if (prev) return prev;
+        const parts = String(currentLocation.address).split(',').map((s: string) => s.trim()).filter(Boolean);
+        return parts.length ? parts[0] : prev;
+      });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLocation]);
 
@@ -337,7 +342,7 @@ export default function OnboardingSetup() {
               <View style={wizStyles.avatarRow}>
                 <Pressable onPress={pickPhoto} style={wizStyles.avatarWrap}>
                   {avatarUri ? (
-                    <Image source={{ uri: avatarUri }} style={wizStyles.avatarImg} />
+                    <CachedImage source={{ uri: avatarUri }} style={wizStyles.avatarImg} />
                   ) : (
                     <View style={wizStyles.avatarPlaceholder}>
                       <Ionicons name="camera-outline" size={26} color={ORANGE} />

@@ -61,7 +61,7 @@ function TabButton({
   onPress: () => void;
 }) {
   // Pop animation when a tab becomes active
-  const scale = React.useRef(new Animated.Value(1)).current;
+  const scale = React.useState(() => new Animated.Value(1))[0];
   React.useEffect(() => {
     if (!focused) return;
     scale.setValue(0.82);
@@ -103,7 +103,7 @@ function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
 
   // ---- Sliding active-pill animation ----
   const [shellWidth, setShellWidth] = React.useState(0);
-  const slide = React.useRef(new Animated.Value(0)).current;
+  const slide = React.useState(() => new Animated.Value(0))[0];
   React.useEffect(() => {
     Animated.spring(slide, {
       toValue: state.index,

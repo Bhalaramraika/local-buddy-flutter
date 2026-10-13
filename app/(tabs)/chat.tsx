@@ -5,13 +5,13 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, Image, TextInput } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Colors, Spacing, BorderRadius, Typography, Shadows } from '@/constants/design';
-import { SoftButton, SoftScreenSkeleton } from '@/components/ui';
+import { SoftButton, SoftScreenSkeleton, CachedImage } from '@/components/ui';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatRelativeTime } from '@/utils/helpers';
@@ -66,7 +66,7 @@ export default function ChatScreen() {
         >
           <View style={styles.conversationAvatar}>
             {displayUser.avatar ? (
-              <Image source={{ uri: displayUser.avatar }} style={styles.avatarImage} />
+              <CachedImage source={{ uri: displayUser.avatar }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarInitial}>{(displayUser.name || 'C').charAt(0).toUpperCase()}</Text>
             )}

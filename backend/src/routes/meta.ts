@@ -6,6 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { getDb } from '../models';
+import { config } from '../config';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ function safeAllowPublicConfig() {
       currency: 'INR',
       supportedMethods: ['upi', 'card', 'netbanking', 'wallet'],
     },
-    payu: { baseUrl: process.env.PAYU_BASE_URL || 'https://test.payu.in' },
+    payu: { baseUrl: config.payu.baseUrl },
   };
 }
 
