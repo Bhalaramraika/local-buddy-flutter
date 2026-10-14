@@ -166,10 +166,17 @@ onboarding-referral}.tsx`), `(screens)/security-settings.tsx`,
   (`InteractionManager` in `services/realtime.ts`) and `nearbyTasks` is
   limited to 30 docs. Axios attaches the cached Firebase ID token
   (`getIdToken()`); force-refresh exists only in the 401 retry path.
-- **Uploads** (`services/upload.ts`): always `FileSystem.uploadAsync` from
-  `expo-file-system/legacy` (native multipart). Never `fetch`+`FormData`
-  with the RN `{uri,name,type}` object — expo/fetch's spec FormData rejects
-  it with "Unsupported FormDataPart implementation".
+- **Uploads** (`services/upload.ts`): primary transport is
+  `FileSystem.uploadAsync` from `expo-file-system/legacy` (native
+  multipart); fallback is a base64 data-URI **JSON** POST. Never
+  `fetch`+`FormData` with the RN `{uri,name,type}` object — expo/fetch's
+  spec FormData rejects it with "Unsupported FormDataPart implementation".
+- **Cloudinary**: unsigned uploads use preset `localbuddy_unsigned`
+  (cloud `dmewodusk`, folder `localbuddy/`, images ≤10MB). The built-in
+  `ml_default` preset is signed-only — don't reuse it; unsigned uploads
+  through it fail with "Upload preset must be whitelisted for unsigned
+  uploads". Manage via Cloudinary Console → Settings → Upload, or Admin
+  API with `CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` (backend/.env).
 - **Loading UX**: data-loading states render `SoftScreenSkeleton`/SoftSkeleton
   blocks (components/ui), never plain spinners or text placeholders.
 - **ErrorBoundary** (`components/ui/ErrorBoundary.tsx`): auto-reset is keyed ONLY on
